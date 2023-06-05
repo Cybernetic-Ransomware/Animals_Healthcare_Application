@@ -6,7 +6,7 @@
 
 
 ### Status  
-Propsed
+Proposed
 
 
 ### Context  
@@ -37,12 +37,13 @@ List todos suspended until next iterations of application:
 
 ### Consequences  
 An effortful list of functionality has been created to exercise a building process of web applications. 
-Demands were splitted on a quickly attainable goals, leaved a basic draft of a further development.
+Demands has been splitted into quickly attainable goals, leaved a basic draft of a further development.
 
 
 ### Keywords
 -   init,
--   functionality
+-   functionality,
+-   scope of project.
 
 
 ### Links
