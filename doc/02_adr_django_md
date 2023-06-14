@@ -10,8 +10,8 @@ Proposed
 
 
 ### Context  
-We need to choose a main web framework technology to create a core of application.\
-Considered technologies: 
+We need to choose a main web framework for the project to create the core of the application.\
+Considered technologies are:
 - Django, 
 - Flask,
 - Dash Plotly.
@@ -20,15 +20,15 @@ Considered technologies:
 ### Decision  
 Django was selected. The developer has the most recent experience and the desire to systematize knowledge.
 
-Flask as a microframework could extend the time to the first working prototype.
+Flask, as a microframework, could extend the time to the first working prototype.
 
 Dash is a derivative framework for Flask with extensive features for generating interactive dashboards. 
-This functionality has been postponed to a later stage of application development.
+This functionality has been postponed to a later stage of the application development.
 
 
 ### Consequences  
-Expected short time to prepare the first working prototype. 
-Through good community support, pluggins supporting particular functionalities should be available (ORM, logging, api).
+An expected short time to prepare the first working prototype.
+With good community support, plugins supporting specific functionalities should be available (ORM, logging, api, etc.).
 
 
 ### Keywords
