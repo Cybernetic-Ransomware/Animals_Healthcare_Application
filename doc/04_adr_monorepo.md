@@ -12,13 +12,13 @@ Proposed
 ### Context  
 We need to choose an approach to building and maintaining the repositories and branches.\
 Considered approaches: 
-- Monorepo,
-- Polirepo,
+- [x] Monorepo,
+- [ ] Polirepo,
 ---
-- GitFlow,
-- GitHub Flow,
-- GitLab Flow,
-- Trunk-based development.
+- [ ] GitFlow,
+- [x] GitHub Flow,
+- [ ] GitLab Flow,
+- [ ] Trunk-based development.
 
 
 ### Decision  

@@ -12,13 +12,13 @@ Proposed
 ### Context  
 We need to choose a technology to create charts for the application.\
 Considered approaches: 
-- Static charts:
-	- Matplotlib,
+- [x] Static charts:
+	- [x] Matplotlib,
 
 
-- Interactive dashboards:
-	- Dash-Plotly microservice,
-    - Chart.js,
+- [ ] Interactive dashboards:
+	- [ ] Dash-Plotly microservice,
+    - [x] Chart.js,
 
 
 ### Decision  

@@ -12,8 +12,8 @@ Proposed
 ### Context  
 We need to choose an approach to building the project's application structure.\
 Considered approaches: 
-- Monolith,
-- Microservices.
+- [x] Monolith,
+- [ ] Microservices.
 
 
 ### Decision  

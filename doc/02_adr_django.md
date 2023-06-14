@@ -12,9 +12,9 @@ Proposed
 ### Context  
 We need to choose a main web framework for the project to create the core of the application.\
 Considered technologies:
-- Django, 
-- Flask,
-- Dash Plotly.
+- [x] Django, 
+- [ ] Flask,
+- [ ] Dash Plotly.
 
 
 ### Decision  
