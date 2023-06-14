@@ -11,7 +11,7 @@ Proposed
 
 ### Context  
 We need to choose a main web framework for the project to create the core of the application.\
-Considered technologies are:
+Considered technologies:
 - Django, 
 - Flask,
 - Dash Plotly.
