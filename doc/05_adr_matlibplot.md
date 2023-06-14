@@ -10,20 +10,26 @@ Proposed
 
 
 ### Context  
-We need to choose a technology to draw a charts for application.\
+We need to choose a technology to create charts for the application.\
 Considered approaches: 
 - Static charts:
 	- Matplotlib,
 
+
 - Interactive dashboards:
-	- Dash Plotly microservice
+	- Dash-Plotly microservice,
+    - Chart.js,
+
 
 ### Decision  
-pass
+To avoid the proliferation of microservices, a decision has been made to prototype using a static method of generating charts. 
+The presented data is not expected to require frequent refreshing and filtering of the range.
 
 
 ### Consequences  
-pass
+A faster development process and the possibility of future functionality replacement.
+After preparing the static prototype, tests with Chart.js will be carried out and the cost of implementation will be estimated.
+
 
 ### Keywords
 -   Matplotlib,
@@ -34,4 +40,11 @@ pass
 
 
 ### Links
-	pass
+*[2023-06-14]*\
+Homepages:
+
+	https://matplotlib.org/
+
+    https://dash.plotly.com/
+
+	https://www.chartjs.org/
