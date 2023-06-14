@@ -39,8 +39,8 @@ With good community support, plugins supporting specific functionalities should 
 
 
 ### Links
-*[2023-06-05]*
-#### Homepages:
+*[2023-06-05]*\
+Homepages:
 
 	https://www.djangoproject.com/
 
@@ -48,7 +48,5 @@ With good community support, plugins supporting specific functionalities should 
 
     https://dash.plotly.com/
 
-*[2021-11-26]*
-#### List of 7 Best Python Frameworks to Consider For Your Web Project:
-
-    https://www.monocubed.com/blog/top-python-frameworks/
+*[2021-11-26]*\
+[List of 7 Best Python Frameworks to Consider For Your Web Project](https://www.monocubed.com/blog/top-python-frameworks/)

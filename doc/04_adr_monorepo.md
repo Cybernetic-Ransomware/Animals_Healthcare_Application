@@ -36,4 +36,5 @@ pass
 
 
 ### Links
-	pass
+*[2023-06-14]*\
+[Monorepo vs polyrepo – Taby vs spacje #02](https://youtu.be/7FcbTBtlxqs)
