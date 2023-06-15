@@ -8,13 +8,12 @@
 
 ---
 ### Functionality:
-    [ADR][doc/01_ADR_Functionality.md]
+[ADR](doc/01_ADR_Functionality.md)
 
 ---
 ### Requirements:
-    Python 3.11.3
-
-    [Packages][requirements.txt]
+Python 3.11.3\
+[Packages](AHC_app/requirements.txt)
 
 ---
 ### Sources:
