@@ -8,7 +8,7 @@
 
 ---
 ### Functionality:
-[ADR](doc/01_ADR_Functionality.md)
+[ADR](doc/01_adr_functionality.md)
 
 ---
 ### Requirements:
