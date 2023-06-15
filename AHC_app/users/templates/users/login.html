@@ -1,0 +1,33 @@
+{% extends "homepage/base.html" %}
+{% load static %}
+
+{% block container %}
+  <article class="grid">
+    <div>
+      <p>Hello adventurer!</p>
+      {% if form.errors %}
+        <div>
+          {% for k, error in form.errors.items %}
+            {{ error }}
+          {% endfor %}
+        </div>
+      {% endif %}
+      <form method="POST" action=".">
+        {% csrf_token %}
+        {% for field in form %}
+          <label for="{{ field.auto_id }}">
+            {{ field.label }}
+            {{ field }}
+            {% if field.errors %}
+              <div>{{ field.errors }}</div>
+            {% endif %}
+          </label>
+        {% endfor %}
+        <button type="submit">Login</button>
+      </form>
+    </div>
+<!--    <div>-->
+<!--      <img src="{% static "images/sea-login.png" %}">-->
+<!--    </div>-->
+  </article>
+{% endblock %}
