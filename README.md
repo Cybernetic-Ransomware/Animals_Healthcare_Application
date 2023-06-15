@@ -4,7 +4,7 @@
 # Animals Healthcare Application
 
 
-## A healthcare data management application for pet owners and carers.
+<strong> A healthcare data management application for pet owners and carers.
 
 ---
 ### Functionality:
@@ -19,13 +19,13 @@ Python 3.11.3\
 ### Sources:
 
 * Styles:
-  * to link
+  * https://picocss.com/
 * Graphics:
-  * to link
+  * https://www.flaticon.com/authors/futuer
 * Fonts:
   * to link
 * Knowledge:
   * https://www.devs-mentoring.pl/
-  * to link
+
 
 To all the people upper mentioned and not only there, thank You for your work and influence on my motivation! Keep still doing your best!
