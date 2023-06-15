@@ -1,0 +1,33 @@
+{% load i18n %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AHC</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{% static "css/pico/pico.min.css" %}">
+
+    {% if title %}
+        <title>{{ title }}</title>
+    {% else %}
+        <title>AHC app</title>
+    {% endif %}
+
+</head>
+<body>
+
+<main class="container">
+     <h1>Hello, world!</h1>
+     {% block content %}{% endblock %}
+</main>
+
+<footer class="container">
+    <a href="{% url 'user/login' }" > Login </a>
+</footer>
+
+</body>
+</html>
