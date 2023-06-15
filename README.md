@@ -12,8 +12,9 @@
 
 ---
 ### Requirements:
-Python 3.11.3\
-[Packages](AHC_app/requirements.txt)
+- Python 3.11.3
+- [Packages](AHC_app/requirements.txt)
+- [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
 
 ---
 ### Sources:
