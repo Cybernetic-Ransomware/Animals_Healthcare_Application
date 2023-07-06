@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
+from couchdb import Server
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -88,28 +91,23 @@ WSGI_APPLICATION = 'AHC_app.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    # },
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    },
-    # 'postgresql': {
-    #
-    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
-    #     'NAME': '< db_name >',
-    #     'USER': '<db_username>',
-    #     'PASSWORD': '<password>',
-    #     'HOST': '<db_hostname_or_ip>',
-    #     'PORT': '<db_port>',
-    #     },
-    # 'couchdb': {
-    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
-    #     'NAME': '< db_name >',
-    #     'USER': '<db_username>',
-    #     'PASSWORD': '<password>',
-    #     'HOST': '<db_hostname_or_ip>',
-    #     'PORT': '<db_port>',
-    #     }
+
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'adr_main',
+        'USER': 'adr_controller',
+        'PASSWORD': '123dupabanana',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        }
+
 }
+
+COUCH_CONNECTOR = Server('http://127.0.0.1:5984')
 
 
 # Password validation
