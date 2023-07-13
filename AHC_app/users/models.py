@@ -2,11 +2,29 @@ from django.db import models
 from django.contrib.auth.models import User
 from PIL import Image
 
+# TODO create Privilege, ProfileBackground models, import and set default
+
+
+class Privilege(models.Model):
+    # TODO move to homepage
+    pass
+
+
+class ProfileBackground(models.Model):
+    pass
+
+
+class ApplicationUser(User):
+    email = models.EmailField()
+    registration_date = models.DateField(auto_now_add=True)
+    privilege_tier = models.ForeignKey(Privilege, on_delete=models.SET_DEFAULT, default=None)
+
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    registration_date = models.DateField(auto_now_add=True)
-    image = models.ImageField(default='profile_pics/signup.png', upload_to='profile_pics')
+    user = models.OneToOneField(ApplicationUser, on_delete=models.CASCADE)
+    birthdate = models.DateField(Null=True, db_index=True, default=None)
+    profile_image = models.ImageField(default='profile_pics/signup.png', upload_to='profile_pics')
+    profile_background = models.ForeignKey(ProfileBackground, on_delete=models.SET_DEFAULT, default=None)
 
     def __str__(self):
         return f'Profile of {self.user.username}'
