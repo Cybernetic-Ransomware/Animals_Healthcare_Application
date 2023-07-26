@@ -9,7 +9,14 @@
     <title>AHC</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
     <link rel="stylesheet" href="{% static "css/pico-1.5.9/css/pico.css" %}">
+-->
+
+    {% load compress %}
+    {% compress css %}
+        <link type="text/x-scss" href="{% static 'custom_pico.scss' %}" rel="stylesheet" media="screen">
+    {% endcompress %}
 
     {% if title %}
         <title>{{ title }}</title>
