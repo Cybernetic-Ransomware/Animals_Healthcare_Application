@@ -1,32 +1,13 @@
-from io import BytesIO
-
 from django.contrib.auth.models import User
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 from django.urls import reverse
-from PIL import Image
 
-
-# TODO: przerzuc do nowego pliku 'utils.py'
-class ImageGenerator:
-    @staticmethod
-    def generate_black_image(width, height):
-        image = Image.new("RGB", (width, height), (0, 0, 0))
-        image_io = BytesIO()
-        image.save(image_io, format="JPEG")
-        return InMemoryUploadedFile(
-            image_io, None, "black.jpg", "image/jpeg", image_io.tell(), None
-        )
-
-    @staticmethod
-    def default_profile_image():
-        width, height = 100, 100
-        return ImageGenerator.generate_black_image(width, height)
+from .utils import ImageGenerator
 
 
 class Privilege(models.Model):
     title = models.CharField(max_length=30)
-    privelage_to_delete_animal = models.BooleanField(default=False)
+    privilege_to_delete_animal = models.BooleanField(default=False)
 
 
 class ProfileBackground(models.Model):
@@ -43,8 +24,8 @@ class ProfileBackground(models.Model):
 class AnimalTitle(models.Model):
     title = models.CharField(max_length=30)
     content = models.ImageField(
-        default="AHC_app/static/media/icons/chinchilla.png",
-        upload_to="AHC_app/static/media/animal_pic",
+        default="static/media/background/default_title.jpg",
+        upload_to="static/media/animal_pic",
     )
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
 

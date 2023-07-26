@@ -106,6 +106,9 @@ DATABASES = {
         }
 
 }
+# PostgreSQL
+# drop owned by adr_controller
+
 
 COUCH_CONNECTOR = Server('http://127.0.0.1:5984')
 
