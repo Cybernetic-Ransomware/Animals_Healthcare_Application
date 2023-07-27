@@ -1,8 +1,29 @@
 {% extends 'homepage/base.html' %}
+{% load static %}
 
 
 {% block content %}
 
-  <p>Placeholder</p>
+  <h3>Placeholder title</h3>
+  <p>Placeholder paragraph</p>
+    {% if user.is_authenticated %}
+
+    <div class="grid">
+         {% if animal %}
+             <h4>Catalog:</h4>
+            {% for animal in animals %}
+                <a role="button"
+                   class="contrast" href="{% url '{{ animal.url }}' %}"
+                   style="background-image: url('{% static "{{ animal.image }}"%}')"
+                >{{ animal.title }}</a>
+            {% endfor %}
+         {% endif %}
+    </div>
+    <h4>Operations:</h4>
+    <div class="grid">
+        <a role="button" class="secondary outline" href="#">Manage animals</a>
+        <a role="button" class="secondary outline" href="#">Add animal</a>
+    </div>
+    {% endif %}
 
 {% endblock %}
