@@ -153,7 +153,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = 'static/collected'
+STATIC_ROOT = 'static_collected'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static/"),
 ]
@@ -164,13 +164,22 @@ STATICFILES_FINDERS = [
     "compressor.finders.CompressorFinder",
 ]
 
-COMPRESS_ROOT = STATIC_URL
+COMPRESS_ROOT = STATIC_ROOT
 COMPRESS_PRECOMPILERS = (
     ('text/x-scss', 'django_libsass.SassCompiler'),
 )
 COMPRESS_OFFLINE = True
 LIBSASS_OUTPUT_STYLE = 'compressed'
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
+''' DOCUMENTATION TO CUSTOM SCSS:  
+https://picocss.com/docs/customization.html  
+https://www.accordbox.com/blog/how-use-scss-sass-your-django-project-python-way/  
+
+commands:  
+python manage.py collectstatic  
+python manage.py compress --force  
+'''
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'static/media')
