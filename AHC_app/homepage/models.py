@@ -14,7 +14,6 @@ class ProfileBackground(models.Model):
     title = models.CharField(max_length=30)
     # content = models.ImageField(default='AHC_app/static/media/background/background-1169534_1920.png',
     #                             upload_to='AHC_app/static/media/background')
-    # TODO: sprawdż ścieżki przy pozostałych statycznych obrazach
     content = models.ImageField(
         default=ImageGenerator.default_profile_image(),
         upload_to="static/media/background",

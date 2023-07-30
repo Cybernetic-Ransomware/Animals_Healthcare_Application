@@ -11,7 +11,6 @@ class BiometricRecord(models.Model):
     animal = None
     height = None
     weight = None
-    custom_values = None
 
 
 class MedicalRecord(models.Model):
@@ -41,12 +40,12 @@ class Animal(models.Model):
     profile_image = None
     creation_date = None
 
-    allowed_keepers = None
+    allowed_keepers = None  # TO_DO przeniesc do Usera (do many to one)
     first_contact_vet = None
     first_contact_medical_place = None
 
-    biometric_records = None
-    biometric_records_history = None
+    # biometric_records = None
+    # biometric_records_history = None
 
     last_control_visit = None
     medical_records = None
