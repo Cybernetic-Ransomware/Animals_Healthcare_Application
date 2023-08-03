@@ -3,14 +3,12 @@ from django.db import models
 from homepage.models import Privilege, ProfileBackground
 from PIL import Image
 
-# TODO create Privilege, ProfileBackground models, import and set default
-
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     birthdate = models.DateField(null=True, db_index=True, default=None)
     profile_image = models.ImageField(
-        default="profile_pics/signup.png", upload_to="profile_pics"
+        default="profile_pics/signup2.png", upload_to="profile_pics/users"
     )
     privilege_tier = models.ForeignKey(
         Privilege, on_delete=models.SET_NULL, null=True, default=None
