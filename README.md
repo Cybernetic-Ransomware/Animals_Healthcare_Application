@@ -23,6 +23,8 @@
   * https://picocss.com/
 * Graphics:
   * https://www.flaticon.com/authors/futuer
+  * https://www.flaticon.com/authors/pixel-perfect
+  * https://www.flaticon.com/authors/riajulislam
   * https://www.midjourney.com/
   * https://pixabay.com/
 * Fonts:
