@@ -1,0 +1,55 @@
+{% extends "homepage/base.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <div class="content-section">
+        <div class="media">
+            <img class="rounded-circle account-img" src="{{ animal.animal.profile_image.url}}" alt="Animal's profile picture">
+            <div class="media-body">
+                <h2 class="account-heading">{{ animal.full_name }}</h2>
+
+                {% if animal.birthdate %}
+                <p class="text-secondary">{{ animal.owner }}</p>
+                <br>
+                {% endif %}
+
+                <p class="text-secondary">{{ animal.owner }}</p>
+                <br>
+                <p class="text-secondary">{{ animal.short_description }}</p>
+                <a role="button" class="secondary outline" href="#">Viev full description</a>
+            </div>
+        </div>
+        <h3>Manage details:</h3>
+        <div class="media-body">
+            <p>Placeholder for a timeline</p>
+         </div>
+
+        <h4>Manage details:</h4>
+        <div class="grid">
+            <a role="button" class="secondary outline" href="#">Plan a new visit</a>
+            <a role="button" class="secondary outline" href="#">Add a new note</a>
+            <a role="button" class="secondary outline" href="#">View the full timeline</a>
+        </div>
+        <hr>
+        <div class="grid">
+            <a role="button" class="secondary outline" href="#">Edit biometric records</a>
+            <a role="button" class="secondary outline" href="#">Manage a current diet</a>
+            <a role="button" class="secondary outline" href="#">Manage current medicines</a>
+        </div>
+        <hr>
+        <div class="grid">
+            <a role="button" class="secondary outline" href="#">Change the birthdate</a>
+            <a role="button" class="secondary outline" href="#">Change the profile picture</a>
+        </div>
+            <hr>
+        <div class="grid">
+            <a role="button" class="secondary outline" href="#">Manage notofications</a>
+            <a role="button" class="secondary outline" href="#">Change the owner</a>
+            <a role="button" class="secondary outline" href="#">Manage keepers</a>
+        </div>
+            <hr>
+        <div class="grid">
+            <a role="button" class="secondary outline" href="#">Manage vet first contacts</a>
+            <a role="button" class="secondary outline" href="#">Remove from the files</a>
+        </div>
+    </div>
+{% endblock %}
