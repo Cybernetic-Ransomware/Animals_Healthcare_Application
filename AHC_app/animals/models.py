@@ -3,11 +3,16 @@ from users.models import Profile as UserProfile
 
 
 class BiometricRecord(models.Model):
-    height = models.IntegerField(default=0)  # always in grams, set validation to int values (if float, ask if save as integer grams)
+    height = models.IntegerField(
+        default=0
+    )  # always in grams, set validation to int values (if float, ask if save as integer grams)
+    height_unit_to_present = models.CharField(max_length=3, default="g", blank=False)
     height_date_updated = models.DateTimeField(auto_now_add=True, editable=True)
 
-    weight = models.DecimalField(max_digits=6, decimal_places=2, default=0, null=True)
-    weight_unit = models.CharField(max_length=5, default='mm', blank=False)
+    weight = models.IntegerField(
+        default=0
+    )  # always in mm, set validation to int values (if float, ask if save as integer grams)
+    weight_unit_to_presen = models.CharField(max_length=3, default="mm", blank=False)
     weight_date_updated = models.DateTimeField(auto_now_add=True, editable=True)
 
     # + sygnał archiwizowania do danych wykreślnych
@@ -31,7 +36,9 @@ class Animal(models.Model):
     )
     creation_date = models.DateTimeField(auto_now_add=True, editable=False)
 
-    owner = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True) # dodac okresową notyfikację o braku ownera - przypisuje admin z panelu
+    owner = models.ForeignKey(
+        UserProfile, on_delete=models.SET_NULL, null=True
+    )  # dodac okresową notyfikację o braku ownera - przypisuje admin z panelu
     allowed_users = models.ManyToManyField(UserProfile, null=True)
 
     # first_contact_vet = models.ForeignKey(Vet_pofile)
@@ -39,7 +46,9 @@ class Animal(models.Model):
 
     last_control_visit = models.DateTimeField(null=True, blank=True)
 
-    biometric_records = models.OneToOneField(BiometricRecord, on_delete=models.SET_NULL, null=True)
+    biometric_records = models.OneToOneField(
+        BiometricRecord, on_delete=models.SET_NULL, null=True
+    )
 
 
 # biometric_records_history = # relacja jeden do jeden w notatce
@@ -70,6 +79,7 @@ class CurrentMedicine(CurrentDiet):
     notification_message = None
     notification_frequency_interval = None
 
+    # rodzielić od karmy (nie dziedziczyć)
     # co jeszcze odroznia medykament od pokarmu?
     # dostępne inne produkty z kartoteki
     # zaplanować pod możliwość konwertowania datetime i ustawienia notyfikacji
