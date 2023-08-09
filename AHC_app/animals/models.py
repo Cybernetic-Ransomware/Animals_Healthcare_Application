@@ -4,6 +4,7 @@ from django.db import models
 from users.models import Profile as UserProfile
 
 
+# przerzuć powiązanie do Animal - on delete -> CASCAde
 class BiometricRecord(models.Model):
     height = models.IntegerField(
         default=0
@@ -28,6 +29,7 @@ class BiometricCustomRecords(models.Model):
 
 
 class Animal(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     full_name = models.CharField(max_length=50)
     short_description = models.CharField(max_length=250, blank=True)
     long_description = models.CharField(max_length=2500, blank=True)
@@ -39,9 +41,9 @@ class Animal(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True, editable=False)
 
     owner = models.ForeignKey(
-        UserProfile, on_delete=models.SET_NULL, null=True
+        UserProfile, on_delete=models.SET_NULL, null=True, related_name='owner'
     )  # dodac okresową notyfikację o braku ownera - przypisuje admin z panelu
-    allowed_users = models.ManyToManyField(UserProfile, null=True)
+    allowed_users = models.ManyToManyField(UserProfile, related_name='keepers')
 
     first_contact_vet = models.CharField(max_length=250, blank=True)
     # first_contact_vet = models.ForeignKey(Vet_pofile)
@@ -62,7 +64,7 @@ class Animal(models.Model):
 
 class CurrentDiet(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    animal = models.ForeignKey(Animal, on_delete=models.SET_NULL)
+    animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     food_type = models.CharField(max_length=50)
@@ -77,7 +79,7 @@ class CurrentDiet(models.Model):
 
 class CurrentMedicine(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    animal = models.ForeignKey(Animal, on_delete=models.SET_NULL)
+    animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     food_type = models.CharField(max_length=50)

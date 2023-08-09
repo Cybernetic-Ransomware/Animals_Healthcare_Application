@@ -8,6 +8,7 @@
   <p>Placeholder paragraph</p>
     {% if user.is_authenticated %}
 
+    <a role="button" class="secondary outline" href="#">The example animal profile</a>
     <div class="grid">
          {% if animal %}
              <h4>Catalog:</h4>
@@ -21,8 +22,8 @@
     </div>
     <h4>Operations:</h4>
     <div class="grid">
-        <a role="button" class="secondary outline" href="#">Manage animals</a>
-        <a role="button" class="secondary outline" href="#">Add animal</a>
+        <a role="button" class="secondary outline" href="{% url 'animals_manage' %}">Manage animals</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
     </div>
     {% endif %}
 

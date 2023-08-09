@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "compressor",
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",
+    "animals.apps.AnimalsConfig",
 ]
 
 MIDDLEWARE = [
