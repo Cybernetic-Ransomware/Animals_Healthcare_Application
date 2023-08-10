@@ -4,8 +4,39 @@ from django.db import models
 from users.models import Profile as UserProfile
 
 
-# przerzuć powiązanie do Animal - on delete -> CASCAde
+class Animal(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    full_name = models.CharField(max_length=50, null=False, blank=False)
+    short_description = models.CharField(max_length=250, default=None, blank=True, null=True)
+    long_description = models.CharField(max_length=2500, default=None, blank=True, null=True)
+
+    birthdate = models.DateField(null=True, default=None)
+    profile_image = models.ImageField(
+        default="profile_pics/pet-care.png", upload_to="profile_pics/animals"
+    )
+    creation_date = models.DateTimeField(auto_now_add=True, editable=False)
+
+    owner = models.ForeignKey(
+        UserProfile, on_delete=models.SET_NULL, null=True, related_name='owner'
+    )  # dodac okresową notyfikację o braku ownera - przypisuje admin z panelu
+    allowed_users = models.ManyToManyField(UserProfile, related_name='keepers')
+
+    first_contact_vet = models.CharField(max_length=250, default=None, blank=True, null=True)
+    # first_contact_vet = models.ForeignKey(Vet_pofile)
+    first_contact_medical_place = models.CharField(max_length=250, default=None, blank=True, null=True)
+    # first_contact_medical_place = models.ForeignKey(Place_profile)
+
+    last_control_visit = models.DateTimeField(null=True, default=None)
+
+
+# biometric_records_history = # relacja jeden do jeden w notatce
+# medical_records_history = None  # relacja jeden do jeden do notatki
+# feeding_records_history = None # relacja jeden do jeden w notatce
+
+
 class BiometricRecord(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
     height = models.IntegerField(
         default=0
     )  # always in grams, set validation to int values (if is float, ask if save as integer grams)
@@ -22,44 +53,11 @@ class BiometricRecord(models.Model):
 
 
 class BiometricCustomRecords(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     biometric_record = models.ForeignKey(BiometricRecord, on_delete=models.CASCADE)
     creation_date = models.DateTimeField(auto_now_add=True, editable=False)
     record_name = models.CharField(max_length=30, blank=False, null=False)
     record_value = models.CharField(max_length=255, blank=False, null=False)
-
-
-class Animal(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    full_name = models.CharField(max_length=50)
-    short_description = models.CharField(max_length=250, blank=True)
-    long_description = models.CharField(max_length=2500, blank=True)
-
-    birthdate = models.DateField(null=True, blank=True)
-    profile_image = models.ImageField(
-        default="profile_pics/pet-care.png", upload_to="profile_pics/animals"
-    )
-    creation_date = models.DateTimeField(auto_now_add=True, editable=False)
-
-    owner = models.ForeignKey(
-        UserProfile, on_delete=models.SET_NULL, null=True, related_name='owner'
-    )  # dodac okresową notyfikację o braku ownera - przypisuje admin z panelu
-    allowed_users = models.ManyToManyField(UserProfile, related_name='keepers')
-
-    first_contact_vet = models.CharField(max_length=250, blank=True)
-    # first_contact_vet = models.ForeignKey(Vet_pofile)
-    first_contact_medical_place = models.CharField(max_length=250, blank=True)
-    # first_contact_medical_place = models.ForeignKey(Place_profile)
-
-    last_control_visit = models.DateTimeField(null=True, blank=True)
-
-    biometric_records = models.OneToOneField(
-        BiometricRecord, on_delete=models.SET_NULL, null=True
-    )
-
-
-# biometric_records_history = # relacja jeden do jeden w notatce
-# medical_records_history = None  # relacja jeden do jeden do notatki
-# feeding_records_history = None # relacja jeden do jeden w notatce
 
 
 class CurrentDiet(models.Model):
@@ -94,7 +92,7 @@ class CurrentMedicine(models.Model):
     notification_message = models.CharField(max_length=2500)
     notification_frequency_interval = models.DurationField(null=True, blank=True)
 
-    # co jeszcze odroznia medykament od pokarmu?
+    # co odroznia medykament od pokarmu?
     # dostępne inne produkty z kartoteki
     # zaplanować pod możliwość konwertowania datetime i ustawienia notyfikacji
 

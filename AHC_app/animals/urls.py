@@ -10,8 +10,8 @@ from . import views as animal_views
 urlpatterns = [
     path('animal/<int:h_pk>/', animal_views.profile, name='animal_profile'),
 
-    path('animals/', animal_views.profile, name='animals_manage'),
-    path('animal/create/', animal_views.profile, name='animal_create'),
+    path('animals/', animal_views.manager, name='animals_manage'),
+    path('animal/create/', animal_views.create, name='animal_create'),
 
 ]
 
