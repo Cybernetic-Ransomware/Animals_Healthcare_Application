@@ -1,5 +1,6 @@
 from django import forms
 from django.core.validators import MaxLengthValidator, MinLengthValidator
+from django.db.models import Q
 
 from .models import Animal
 
@@ -24,18 +25,10 @@ class AnimalRegisterForm(forms.ModelForm):
 
     def clean_full_name(self):
         full_name = self.cleaned_data.get("full_name")
-        # from django.db.models import Q
-        # Animal.objects.filter(Q(full_name='Alfik') & (Q(owner_id=10) | Q(allowed_users=None)))
-        if Animal.objects.filter(full_name=full_name).exists():
-            animals_data = Animal.objects.filter(full_name=full_name).only(
-                "owner", "allowed_users"
-            )
 
-            for animal in animals_data:
-                if self.user == animal.owner or self.user in animal.allowed_users.all():
-                    raise forms.ValidationError(
-                        "Animal name in now under your management."
-                    )
+        if Animal.objects.filter(Q(full_name=full_name) & (Q(owner=self.user) | Q(allowed_users=self.user))).exists():
+            raise forms.ValidationError("An animal with that name is already in your care.")
+
         return full_name
 
 

@@ -22,7 +22,7 @@ def profile(request, h_pk):
 
 @login_required
 # @permission_required(True, login_url='homepage')  # napisz własną funkcję weryfikującym właściciela z ID zweirzęcia
-def manager(request):
+def stable(request):
     if request.method == 'GET':
         return HttpResponse("501 Not Implemented: site in build")
     else:
