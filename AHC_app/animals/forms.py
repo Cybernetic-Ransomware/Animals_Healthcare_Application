@@ -32,5 +32,7 @@ class AnimalRegisterForm(forms.ModelForm):
         return full_name
 
 
-class AnimalUpdateForm(forms.ModelForm):
-    pass
+class ImageUploadForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ['profile_image']

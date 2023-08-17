@@ -29,6 +29,6 @@ urlpatterns = [
     path('user/', include('users.urls')),
     path('pet/', include('animals.urls')),
 
-    path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('icons/chinchilla.png'))),
+    path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('media/icons/chinchilla.png'))),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

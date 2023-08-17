@@ -3,19 +3,25 @@
 {% block content %}
     <div class="content-section">
         <div class="media">
-            <img class="rounded-circle account-img" src="{{ animal.profile_image.url}}" alt="Animal's profile picture">
+
             <div class="media-body">
-                <h2 class="account-heading">{{ animal.full_name }}</h2>
+                    <div class="grid">
+                        <a href="{{ upload_image_url }}">
+                          <img class="rounded-circle account-img" src="{{ image }}" alt="Animal's profile picture">
+                        </a>
+                        <h2 class="account-heading">{{ animal.full_name }}</h2>
+                     </div>
+
 
                 {% if animal.birthdate %}
-                <p class="text-secondary">{{ animal.owner }}</p>
+                <p class="text-secondary">{{ name }}</p>
                 <br>
                 {% endif %}
 
                 <p class="text-secondary">{{ animal.owner }}</p>
                 <br>
                 <p class="text-secondary">{{ animal.short_description }}</p>
-                <a role="button" class="secondary outline" href="#">Viev full description</a>
+                <a role="button" class="secondary outline" href="#">View full description</a>
             </div>
         </div>
         <h3>Manage details:</h3>

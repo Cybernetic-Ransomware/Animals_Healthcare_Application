@@ -2,11 +2,13 @@ import uuid
 
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import render, redirect
+from django.urls import reverse
 
-from .forms import AnimalRegisterForm
+from .forms import AnimalRegisterForm, ImageUploadForm
 from .models import Animal
 
 
@@ -20,6 +22,21 @@ def profile(request, h_pk):
         return HttpResponseNotAllowed("405 Method Not Allowed")
 
     return render(request, 'animals/profile.html', {'animal': animal})
+
+
+class AnimalProfileDetailView(LoginRequiredMixin, DetailView):
+    model = Animal
+    template_name = "animals/profile.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['animal'] = self.object
+        context['name'] = self.object.owner
+            # nie podstawia linku do obrazu z db, a domyślny,
+            # btw nie wyświetla faviconu
+        context['image'] = self.object.profile_image.url
+        context['upload_image_url'] = reverse('upload_image', kwargs={'pk': self.object.id})
+        return context
 
 
 @login_required
@@ -42,4 +59,25 @@ class CreateFormView(LoginRequiredMixin, FormView):
         new_animal = form.save(commit=False)
         new_animal.owner = self.request.user.profile
         new_animal.save()
+
+        self.success_url = reverse('animal_profile', kwargs={'h_pk': new_animal.id})
+
         return super().form_valid(form)
+
+
+class ImageUploadView(LoginRequiredMixin, FormView):
+    template_name = 'animals/image.html'
+    form_class = ImageUploadForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['animal_id'] = self.kwargs['pk']
+        return context
+
+    def form_valid(self, form):
+        form.save()
+
+        animal_id = self.kwargs['pk']
+
+        self.success_url = reverse('animal_profile', kwargs={'pk': animal_id})
+        return redirect(self.success_url)

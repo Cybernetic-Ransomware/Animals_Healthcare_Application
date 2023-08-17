@@ -8,11 +8,10 @@ from . import views as animal_views
 
 
 urlpatterns = [
-    path('animal/<int:h_pk>/', animal_views.profile, name='animal_profile'),
+    path('animal/<uuid:pk>/', animal_views.AnimalProfileDetailView.as_view(), name='animal_profile'),
+    path('animal/<uuid:pk>/upload-image/', animal_views.ImageUploadView.as_view(), name='upload_image'),
 
-    path('animals/', animal_views.stable, name='animals_manage'),
-    # path('animal/create/', animal_views.create, name='animal_create'),
+    path('animals/', animal_views.stable, name='animals_stable'),
     path('animal/create/', animal_views.CreateFormView.as_view(), name='animal_create'),
 
 ]
-
