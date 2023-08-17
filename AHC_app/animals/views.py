@@ -1,6 +1,8 @@
 import uuid
 
 from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic.edit import FormView
 from django.http import HttpResponse, HttpResponseNotFound, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import render, redirect
 
@@ -31,19 +33,13 @@ def stable(request):
     return render(request, 'animals/profile.html', {})
 
 
-@login_required
-def create(request):
-    if request.method == 'POST':
-        form = AnimalRegisterForm(request.POST, user=request.user)
+class CreateFormView(LoginRequiredMixin, FormView):
+    template_name = "animals/create.html"
+    form_class = AnimalRegisterForm
+    success_url = "/animals/"
 
-        if form.is_valid():
-            new_animal = form.save(commit=False)
-            new_animal.owner = request.user.profile
-            new_animal.save()
-
-            # przekieruj na profil zwierzęcia
-            return redirect('animals_manage')
-    else:
-        form = AnimalRegisterForm(user=request.user)
-
-    return render(request, 'animals/create.html', {'form': form})
+    def form_valid(self, form):
+        new_animal = form.save(commit=False)
+        new_animal.owner = self.request.user.profile
+        new_animal.save()
+        return super().form_valid(form)
