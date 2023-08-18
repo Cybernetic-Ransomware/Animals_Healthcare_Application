@@ -21,6 +21,7 @@
 
 * Styles:
   * https://picocss.com/
+  * https://uicookies.com/horizontal-timeline/
 * Graphics:
   * https://www.flaticon.com/authors/futuer
   * https://www.flaticon.com/authors/pixel-perfect

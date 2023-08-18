@@ -10,25 +10,71 @@
                         <a href="{{ upload_image_url }}">
                           <img class="rounded-circle account-img" src="{% static image %}" alt="Animal's profile picture">
                         </a>
-                        <h2 class="account-heading">{{ animal.full_name }}</h2>
-                     </div>
+                        <div class="content-section">
+                            <h2 class="account-heading">{{ animal.full_name }}</h2>
 
+                            {% if animal.birthdate %}
+                            <p class="text-secondary">{{ name }}</p>
+                            <br>
+                            {% endif %}
 
-                {% if animal.birthdate %}
-                <p class="text-secondary">{{ name }}</p>
-                <br>
-                {% endif %}
-
-                <p class="text-secondary">{{ animal.owner }}</p>
-                <br>
-                <p class="text-secondary">{{ animal.short_description }}</p>
-                <a role="button" class="secondary outline" href="#">View full description</a>
+                            <p class="text-secondary">{{ animal.owner }}</p>
+                            <br>
+                            <p class="text-secondary">{{ animal.short_description }}</p>
+                            <a role="button" class="secondary outline" href="#">View full description</a>
+                        </div>
+                    </div>
             </div>
         </div>
-        <h3>Manage details:</h3>
+        <br>
+        <h3>Last records:</h3>
         <div class="media-body">
-            <p>Placeholder for a timeline</p>
-         </div>
+                <link rel="stylesheet" type="text/css" href="{% static 'css/timeline.css' %}">
+                <script src="{% static 'js/timeline.js' %}"></script>
+                <section class="timeline">
+                  <ol>
+                    <li>
+                      <div>
+                        <time>2001-11-21</time>
+                         <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </a>
+                      </div>
+                    </li>
+                    <li>
+                      <div>
+                        <time>2002-12-22</time>
+                        <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </a>
+                      </div>
+                    </li>
+                    <li>
+                      <div>
+                        <time>2003-01-23</time>
+                        <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit </a>
+                      </div>
+                    </li>
+                    <li>
+                      <div>
+                        <time>2004-02-24</time>
+                        <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit </a>
+                      </div>
+                    </li>
+                    <li>
+                      <div>
+                        <time>2005-03-25</time>
+                        <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </a>
+                      </div>
+                    </li>
+                  </ol>
+
+                  <div class="arrows">
+                    <button class="arrow arrow__prev disabled" disabled>
+                      <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/162656/arrow_prev.svg" alt="prev timeline arrow">
+                    </button>
+                    <button class="arrow arrow__next">
+                      <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/162656/arrow_next.svg" alt="next timeline arrow">
+                    </button>
+                  </div>
+                </section>
+
 
         <h4>Manage details:</h4>
         <div class="grid">

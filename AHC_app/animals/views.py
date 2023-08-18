@@ -34,7 +34,6 @@ class AnimalProfileDetailView(LoginRequiredMixin, DetailView):
         context['name'] = self.object.owner
         context['image'] = self.object.profile_image.url
         context['upload_image_url'] = reverse('upload_image', kwargs={'pk': self.object.id})
-        print(context['image'])
         return context
 
 
