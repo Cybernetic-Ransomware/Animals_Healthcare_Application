@@ -29,9 +29,19 @@
         <br>
         <h3>Last records:</h3>
         <div class="media-body">
-                <link rel="stylesheet" type="text/css" href="{% static 'css/timeline.css' %}">
-                <script src="{% static 'js/timeline.js' %}"></script>
-                <section class="timeline">
+            <link rel="stylesheet" type="text/css" href="{% static 'css/timeline.css' %}">
+            <script src="{% static 'js/timeline.js' %}"></script>
+
+            <section class="timeline">
+
+                  <div class="info">
+                    <div>
+                        <a role="button" class="secondary outline" href="#">Plan a new visit</a>
+                        <a role="button" class="secondary outline" href="#">Add a new note</a>
+                        <a role="button" class="secondary outline" href="#">View the full timeline</a>
+                    </div>
+                  </div>
+
                   <ol>
                     <li>
                       <div>
@@ -63,43 +73,32 @@
                         <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </a>
                       </div>
                     </li>
+                    <li></li>
                   </ol>
-
-                  <div class="arrows">
-                    <button class="arrow arrow__prev disabled" disabled>
-                      <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/162656/arrow_prev.svg" alt="prev timeline arrow">
-                    </button>
-                    <button class="arrow arrow__next">
-                      <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/162656/arrow_next.svg" alt="next timeline arrow">
-                    </button>
-                  </div>
                 </section>
-
-
-        <h4>Manage details:</h4>
-        <div class="grid">
-            <a role="button" class="secondary outline" href="#">Plan a new visit</a>
-            <a role="button" class="secondary outline" href="#">Add a new note</a>
-            <a role="button" class="secondary outline" href="#">View the full timeline</a>
         </div>
-        <hr>
+        <br>
+        <div class="media-body">
+        <h4>Manage details:</h4>
+
+        <br>
         <div class="grid">
             <a role="button" class="secondary outline" href="#">Edit biometric records</a>
             <a role="button" class="secondary outline" href="#">Manage a current diet</a>
             <a role="button" class="secondary outline" href="#">Manage current medicines</a>
         </div>
-        <hr>
+        <br>
         <div class="grid">
             <a role="button" class="secondary outline" href="#">Change the birthdate</a>
             <a role="button" class="secondary outline" href="#">Change the profile picture</a>
         </div>
-            <hr>
+        <br>
         <div class="grid">
             <a role="button" class="secondary outline" href="#">Manage notofications</a>
             <a role="button" class="secondary outline" href="#">Change the owner</a>
             <a role="button" class="secondary outline" href="#">Manage keepers</a>
         </div>
-            <hr>
+        <br>
         <div class="grid">
             <a role="button" class="secondary outline" href="#">Manage vet first contacts</a>
             <a role="button" class="secondary outline" href="#">Remove from the files</a>
