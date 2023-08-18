@@ -32,7 +32,6 @@ class AnimalProfileDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['animal'] = self.object
         context['name'] = self.object.owner
-            # nie podstawia linku do obrazu z db, a domyślny,
         context['image'] = self.object.profile_image.url
         context['upload_image_url'] = reverse('upload_image', kwargs={'pk': self.object.id})
         print(context['image'])

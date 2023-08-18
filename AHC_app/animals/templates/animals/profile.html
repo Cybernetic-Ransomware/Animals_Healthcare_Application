@@ -1,5 +1,6 @@
 {% extends "homepage/base.html" %}
 {% load crispy_forms_tags %}
+{% load static %}
 {% block content %}
     <div class="content-section">
         <div class="media">
@@ -7,7 +8,7 @@
             <div class="media-body">
                     <div class="grid">
                         <a href="{{ upload_image_url }}">
-                          <img class="rounded-circle account-img" src="{{ image }}" alt="Animal's profile picture">
+                          <img class="rounded-circle account-img" src="{% static image %}" alt="Animal's profile picture">
                         </a>
                         <h2 class="account-heading">{{ animal.full_name }}</h2>
                      </div>
