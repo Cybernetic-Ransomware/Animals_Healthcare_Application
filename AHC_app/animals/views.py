@@ -33,9 +33,9 @@ class AnimalProfileDetailView(LoginRequiredMixin, DetailView):
         context['animal'] = self.object
         context['name'] = self.object.owner
             # nie podstawia linku do obrazu z db, a domyślny,
-            # btw nie wyświetla faviconu
         context['image'] = self.object.profile_image.url
         context['upload_image_url'] = reverse('upload_image', kwargs={'pk': self.object.id})
+        print(context['image'])
         return context
 
 
