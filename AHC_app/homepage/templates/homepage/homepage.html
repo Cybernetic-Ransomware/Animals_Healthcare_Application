@@ -8,21 +8,26 @@
   <p>Placeholder paragraph</p>
     {% if user.is_authenticated %}
 
-    <a role="button" class="secondary outline" href="{% url 'animal_profile' pk='a59c6564-3a7d-457f-8a8e-61422fae78f7' %}">The example animal profile</a>
-    <div class="grid">
-         {% if animal %}
-             <h4>Catalog:</h4>
-            {% for animal in animals %}
+    <a role="button" class="secondary outline" href="{% url 'animal_profile' pk=example_animal_id %}">The example animal profile</a>
+    <div class="container">
+        {% if recent_animals %}
+            <br>
+            <h4>Pinned up:</h4>
+            <div class="grid">
+            {% for animal in recent_animals %}
                 <a role="button"
-                   class="contrast" href="{% url '{{ animal.url }}' %}"
-                   style="background-image: url('{% static "{{ animal.image }}"%}')"
-                >{{ animal.title }}</a>
+                   class="contrast btn-with-bg"
+                   style="background-image: url('{{ animal.profile_image.url }}');"
+                   href="{% url 'animal_profile' pk=animal.id %}"
+                >{{ animal.full_name }}</a>
             {% endfor %}
-         {% endif %}
+            </div>
+        {% endif %}
+
     </div>
     <h4>Operations:</h4>
     <div class="grid">
-        <a role="button" class="secondary outline" href="{% url 'animals_stable' %}">Manage animals</a>
+        <a role="button" class="secondary outline" href="{% url 'animals_stable' %}">Manage all animals</a>
         <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
     </div>
     {% endif %}

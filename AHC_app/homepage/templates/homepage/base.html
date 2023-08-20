@@ -31,7 +31,7 @@
 <header class="container" style="height: 15vh;">
     <div class="grid" style="height: 100%;">
         <div class="container" style="margin: auto; flex: 1; width: 30vw">
-            <h1>Your pets manager</h1>
+            <a href="{% url 'Homepage' %}"><h2>Homepage</h2></a>
         </div>
         <div class="container" style="max-height: 100%; margin: auto; overflow: hidden;">
             <img src="{% static 'media/background/lizard2.jpg' %}" alt="Background lizard" style="max-height: 100%; width: auto; margin-top: -80px;">
@@ -47,7 +47,7 @@
     <div class="grid">
         <nav>
           <ul>
-            <li><a href="{% url 'Homepage' %}">Home</a></li>
+            <li><a href="#">Credits placeholder</a></li>
           </ul>
           <ul>
             {% if user.is_authenticated %}
