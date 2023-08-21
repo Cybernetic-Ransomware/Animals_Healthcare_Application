@@ -74,6 +74,12 @@ class ImageUploadView(LoginRequiredMixin, FormView):
         context["animal_id"] = self.kwargs["pk"]
         return context
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        animal_id = self.kwargs["pk"]
+        kwargs["instance"] = Animal.objects.get(id=animal_id)
+        return kwargs
+
     def form_valid(self, form):
         form.save()
 
