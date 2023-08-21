@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
+from django.views.generic import DeleteView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 
@@ -35,6 +36,9 @@ class AnimalProfileDetailView(LoginRequiredMixin, DetailView):
         context["image"] = self.object.profile_image.url
         context["upload_image_url"] = reverse(
             "upload_image", kwargs={"pk": self.object.id}
+        )
+        context["animal_delete_url"] = reverse(
+            "animal_delete", kwargs={"pk": self.object.id}
         )
         return context
 
@@ -87,3 +91,9 @@ class ImageUploadView(LoginRequiredMixin, FormView):
 
         self.success_url = reverse("animal_profile", kwargs={"pk": animal_id})
         return redirect(self.success_url)
+
+
+class AnimalDeleteView(DeleteView):
+    model = Animal
+    template_name = "animals/animal_confirm_delete.html"
+    success_url = reverse_lazy("homepage")
