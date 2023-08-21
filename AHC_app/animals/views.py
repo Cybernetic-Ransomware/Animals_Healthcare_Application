@@ -1,7 +1,7 @@
 import uuid
 
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
@@ -25,7 +25,7 @@ def profile(request, h_pk):
     return render(request, "animals/profile.html", {"animal": animal})
 
 
-class AnimalProfileDetailView(LoginRequiredMixin, DetailView):
+class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Animal
     template_name = "animals/profile.html"
 
@@ -40,7 +40,16 @@ class AnimalProfileDetailView(LoginRequiredMixin, DetailView):
         context["animal_delete_url"] = reverse(
             "animal_delete", kwargs={"pk": self.object.id}
         )
+
         return context
+
+    def test_func(self):
+        all_users = set(self.get_object().allowed_users.all())
+        all_users.add(self.get_object().owner)
+
+        user = self.request.user.profile
+
+        return user in all_users
 
 
 @login_required
@@ -69,7 +78,7 @@ class CreateFormView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
-class ImageUploadView(LoginRequiredMixin, FormView):
+class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "animals/image.html"
     form_class = ImageUploadForm
 
@@ -92,8 +101,25 @@ class ImageUploadView(LoginRequiredMixin, FormView):
         self.success_url = reverse("animal_profile", kwargs={"pk": animal_id})
         return redirect(self.success_url)
 
+    def test_func(self):
+        owner = Animal.objects.get(pk=self.kwargs['pk']).owner
+        user = self.request.user.profile
 
-class AnimalDeleteView(DeleteView):
+        return user == owner
+
+
+class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Animal
     template_name = "animals/animal_confirm_delete.html"
     success_url = reverse_lazy("Homepage")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        return context
+
+    def test_func(self):
+        owner = Animal.objects.get(pk=self.kwargs['pk']).owner
+        user = self.request.user.profile
+
+        return user == owner
