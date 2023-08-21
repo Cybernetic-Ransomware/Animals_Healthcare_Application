@@ -96,4 +96,4 @@ class ImageUploadView(LoginRequiredMixin, FormView):
 class AnimalDeleteView(DeleteView):
     model = Animal
     template_name = "animals/animal_confirm_delete.html"
-    success_url = reverse_lazy("homepage")
+    success_url = reverse_lazy("Homepage")
