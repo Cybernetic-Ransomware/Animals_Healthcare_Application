@@ -12,7 +12,7 @@ urlpatterns = [
     path('animal/<uuid:pk>/upload-image/', animal_views.ImageUploadView.as_view(), name='upload_image'),
     path('animal/<uuid:pk>/delete/', animal_views.AnimalDeleteView.as_view(), name='animal_delete'),
 
-    path('animals/', animal_views.stable, name='animals_stable'),
+    path('animals/', animal_views.StableView.as_view(), name='animals_stable'),
     path('animal/create/', animal_views.CreateFormView.as_view(), name='animal_create'),
 
 ]

@@ -3,9 +3,10 @@ import uuid
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseNotAllowed
+from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
-from django.views.generic import DeleteView
+from django.views.generic import DeleteView, TemplateView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from PIL import Image
@@ -55,14 +56,20 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         return user in all_users
 
 
-@login_required
-def stable(request):
-    if request.method == "GET":
-        return HttpResponse("501 Not Implemented: site in build")
-    else:
-        return HttpResponse("501 Not Implemented: site in build")
+class StableView(TemplateView, LoginRequiredMixin):
+    template_name = "animals/all_animals_stable.html"
 
-    # return render(request, 'animals/profile.html', {})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        query = Animal.objects.filter(
+            Q(owner=self.request.user.profile)
+            | Q(allowed_users=self.request.user.profile)
+        ).order_by("-creation_date")
+
+        context["animals"] = query
+
+        return context
 
 
 class CreateFormView(LoginRequiredMixin, FormView):

@@ -1,0 +1,23 @@
+/* styles.css */
+.stable_grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 20px;
+}
+
+.animal-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    text-align: center;
+    background-size: cover;
+    background-position: center center;
+    color: white;
+    text-decoration: none;
+    border: none;
+    transition: opacity 0.3s;
+}
+
+.animal-button:hover {
+    opacity: 0.8;
+}
