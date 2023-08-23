@@ -15,18 +15,6 @@ from .forms import AnimalRegisterForm, ImageUploadForm
 from .models import Animal
 
 
-@login_required
-# @permission_required(True, login_url='homepage')  # napisz własną funkcję weryfikującym właściciela z ID zweirzęcia
-def profile(request, h_pk):
-    if request.method == "GET":
-        animal_id = uuid.UUID(h_pk)
-        animal = Animal.objects.get(pk=animal_id)
-    else:
-        return HttpResponseNotAllowed("405 Method Not Allowed")
-
-    return render(request, "animals/profile.html", {"animal": animal})
-
-
 class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Animal
     template_name = "animals/profile.html"
