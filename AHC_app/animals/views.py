@@ -8,6 +8,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
+from PIL import Image
 
 from .forms import AnimalRegisterForm, ImageUploadForm
 from .models import Animal
@@ -40,6 +41,8 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context["animal_delete_url"] = reverse(
             "animal_delete", kwargs={"pk": self.object.id}
         )
+        # only for visibility of buttons, do not use as authentication
+        context["is_owner"] = self.object.owner == self.get_object().owner
 
         return context
 
@@ -53,7 +56,6 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
 
 
 @login_required
-# @permission_required(True, login_url='homepage')  # napisz własną funkcję weryfikującym właściciela z ID zweirzęcia
 def stable(request):
     if request.method == "GET":
         return HttpResponse("501 Not Implemented: site in build")
@@ -82,6 +84,16 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "animals/image.html"
     form_class = ImageUploadForm
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        img = Image.open(self.profile_image.path)
+
+        if any([img.height > 300, img.width > 300]):
+            output_size = (300, 300)
+            img.thumbnail(output_size)
+            img.save(self.profile_image.path)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["animal_id"] = self.kwargs["pk"]
@@ -96,9 +108,15 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def form_valid(self, form):
         form.save()
 
-        animal_id = self.kwargs["pk"]
+        animal_instance = form.instance
+        img = Image.open(animal_instance.profile_image.path)
 
-        self.success_url = reverse("animal_profile", kwargs={"pk": animal_id})
+        if any([img.height > 300, img.width > 300]):
+            output_size = (448, 448)
+            img.thumbnail(output_size)
+            img.save(animal_instance.profile_image.path)
+
+        self.success_url = reverse("animal_profile", kwargs={"pk": animal_instance.pk})
         return redirect(self.success_url)
 
     def test_func(self):
