@@ -1,6 +1,7 @@
 from django import forms
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db.models import Q
+from PIL import Image
 
 from .models import Animal
 
@@ -33,6 +34,30 @@ class AnimalRegisterForm(forms.ModelForm):
 
 
 class ImageUploadForm(forms.ModelForm):
+    ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png']
+    MAX_IMAGE_SIZE_MB = 5
+    MAX_IMAGE_DIMENSION = 1000
+
     class Meta:
         model = Animal
         fields = ['profile_image']
+
+    def clean_profile_image(self):
+        image = self.cleaned_data.get('profile_image')
+
+        if image:
+            extension = image.name.split('.')[-1].lower()
+            if extension not in self.ALLOWED_EXTENSIONS:
+                raise forms.ValidationError("Invalid file extension.")
+
+        if image:
+            if image.size > self.MAX_IMAGE_SIZE_MB * 1024 * 1024:
+                raise forms.ValidationError("Image size is too large.")
+
+        if image:
+            img = Image.open(image)
+            width, height = img.size
+            if width > self.MAX_IMAGE_DIMENSION or height > self.MAX_IMAGE_DIMENSION:
+                raise forms.ValidationError("Image dimensions are too large.")
+
+        return image

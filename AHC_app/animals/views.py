@@ -84,16 +84,6 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "animals/image.html"
     form_class = ImageUploadForm
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
-        img = Image.open(self.profile_image.path)
-
-        if any([img.height > 300, img.width > 300]):
-            output_size = (300, 300)
-            img.thumbnail(output_size)
-            img.save(self.profile_image.path)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["animal_id"] = self.kwargs["pk"]
