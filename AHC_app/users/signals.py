@@ -7,9 +7,9 @@ from .models import Profile
 
 
 @receiver(pre_save, sender=Profile)
-def create_basic_privelige(sender, instance, **kwargs):
+def create_basic_privilege(sender, instance, **kwargs):
     if not instance.privilege_tier:
-        privilege, _ = Privilege.objects.get_or_create(title="Empty Privilage")
+        privilege, _ = Privilege.objects.get_or_create(title="Empty Privilege")
         instance.privilege_tier = privilege
 
 

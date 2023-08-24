@@ -11,53 +11,8 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from PIL import Image
 
-from .forms import AnimalRegisterForm, ImageUploadForm
+from .forms import AnimalRegisterForm, ImageUploadForm, ManageKeepersForm
 from .models import Animal
-
-
-class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
-    model = Animal
-    template_name = "animals/profile.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["animal"] = self.object
-        context["name"] = self.object.owner
-        context["image"] = self.object.profile_image.url
-        context["upload_image_url"] = reverse(
-            "upload_image", kwargs={"pk": self.object.id}
-        )
-        context["animal_delete_url"] = reverse(
-            "animal_delete", kwargs={"pk": self.object.id}
-        )
-        # only for visibility of buttons, do not use as authentication
-        context["is_owner"] = self.object.owner == self.get_object().owner
-
-        return context
-
-    def test_func(self):
-        all_users = set(self.get_object().allowed_users.all())
-        all_users.add(self.get_object().owner)
-
-        user = self.request.user.profile
-
-        return user in all_users
-
-
-class StableView(TemplateView, LoginRequiredMixin):
-    template_name = "animals/all_animals_stable.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        query = Animal.objects.filter(
-            Q(owner=self.request.user.profile)
-            | Q(allowed_users=self.request.user.profile)
-        ).order_by("-creation_date")
-
-        context["animals"] = query
-
-        return context
 
 
 class CreateFormView(LoginRequiredMixin, FormView):
@@ -75,6 +30,55 @@ class CreateFormView(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 
+class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Animal
+    template_name = "animals/animal_confirm_delete.html"
+    success_url = reverse_lazy("Homepage")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        return context
+
+    def test_func(self):
+        owner = Animal.objects.get(pk=self.kwargs['pk']).owner
+        user = self.request.user.profile
+
+        return user == owner
+
+
+class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = Animal
+    template_name = "animals/profile.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal"] = self.object
+        context["name"] = self.object.owner
+        context["image"] = self.object.profile_image.url
+        context["upload_image_url"] = reverse(
+            "upload_image", kwargs={"pk": self.object.id}
+        )
+        context["animal_delete_url"] = reverse(
+            "animal_delete", kwargs={"pk": self.object.id}
+        )
+        context["manage_keepers_url"] = reverse(
+            "manage_keepers", kwargs={"pk": self.object.id}
+        )
+        # only for visibility of buttons, do not use as authentication
+        context["is_owner"] = self.object.owner == self.get_object().owner
+
+        return context
+
+    def test_func(self):
+        all_users = set(self.get_object().allowed_users.all())
+        all_users.add(self.get_object().owner)
+
+        user = self.request.user.profile
+
+        return user in all_users
+
+
 class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "animals/image.html"
     form_class = ImageUploadForm
@@ -82,13 +86,13 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["animal_id"] = self.kwargs["pk"]
-        return context
+        return context  # to the template
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         animal_id = self.kwargs["pk"]
         kwargs["instance"] = Animal.objects.get(id=animal_id)
-        return kwargs
+        return kwargs  # to the form
 
     def form_valid(self, form):
         form.save()
@@ -111,18 +115,55 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return user == owner
 
 
-class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    model = Animal
-    template_name = "animals/animal_confirm_delete.html"
-    success_url = reverse_lazy("Homepage")
+class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    template_name = "animals/manage_keepers.html"
+    form_class = ManageKeepersForm
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["animal_id"] = self.kwargs["pk"]
+        animal = Animal.objects.get(pk=self.kwargs['pk'])
+        context["full_name"] = animal.full_name
+        context["allowed_users"] = animal.allowed_users.all()
+        context["animal_url"] = reverse(
+            "animal_profile", kwargs={"pk": self.get_form().instance.id}
+        )
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = Animal.objects.get(pk=self.kwargs['pk'])
+        return kwargs
+
+    def form_valid(self, form):
+        animal = form.instance
+        # new_keeper = self.request.POST['input_user']
+        new_keeper = form.cleaned_data['input_user']
+        print(animal)
+        print(new_keeper)
+
+        animal.allowed_users.add(new_keeper)
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return self.request.path
 
     def test_func(self):
         owner = Animal.objects.get(pk=self.kwargs['pk']).owner
         user = self.request.user.profile
-
         return user == owner
+
+
+class StableView(TemplateView, LoginRequiredMixin):
+    template_name = "animals/all_animals_stable.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        query = Animal.objects.filter(
+            Q(owner=self.request.user.profile)
+            | Q(allowed_users=self.request.user.profile)
+        ).order_by("-creation_date")
+
+        context["animals"] = query
+
+        return context

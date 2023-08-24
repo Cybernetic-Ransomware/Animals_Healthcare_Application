@@ -4,6 +4,7 @@ from django.db.models import Q
 from PIL import Image
 
 from .models import Animal
+from users.models import Profile
 
 
 class AnimalRegisterForm(forms.ModelForm):
@@ -61,3 +62,24 @@ class ImageUploadForm(forms.ModelForm):
                 raise forms.ValidationError("Image dimensions are too large.")
 
         return image
+
+
+class ManageKeepersForm(forms.ModelForm):
+    input_user = forms.CharField(max_length=255, required=True, label="Full keeper profile name")
+
+    class Meta:
+        model = Animal
+        fields = ['allowed_users']
+
+    def clean_input_user(self):
+        input_user = self.cleaned_data.get('input_user')
+
+        if input_user == self.instance.owner:
+            raise forms.ValidationError("As the owner you can not set yourself as a keeper.")
+
+        if input_user in self.instance.allowed_users.all():
+            raise forms.ValidationError("User is already on the list of keepers.")
+
+        if not Profile.objects.filter(user__username=input_user).exists():
+            raise forms.ValidationError("User does not exist.")
+        return input_user
