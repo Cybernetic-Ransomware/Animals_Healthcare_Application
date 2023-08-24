@@ -1,10 +1,6 @@
-import uuid
-
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.http import HttpResponse, HttpResponseNotAllowed
 from django.db.models import Q
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView, TemplateView
 from django.views.generic.detail import DetailView
@@ -16,6 +12,7 @@ from .models import Animal
 
 
 class CreateFormView(LoginRequiredMixin, FormView):
+    # spróbuj na modala
     template_name = "animals/create.html"
     form_class = AnimalRegisterForm
     success_url = "/animals/"
@@ -41,7 +38,7 @@ class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return context
 
     def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs['pk']).owner
+        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
         user = self.request.user.profile
 
         return user == owner
@@ -50,6 +47,7 @@ class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Animal
     template_name = "animals/profile.html"
+    # dorzucić context_object_name, zredagować urls
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -88,6 +86,7 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         context["animal_id"] = self.kwargs["pk"]
         return context  # to the template
 
+    # sprawdź czy jest potrzebny na zakomentowanym
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         animal_id = self.kwargs["pk"]
@@ -100,16 +99,16 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         animal_instance = form.instance
         img = Image.open(animal_instance.profile_image.path)
 
-        if any([img.height > 300, img.width > 300]):
+        if img.height > 448 or img.width > 448:
             output_size = (448, 448)
             img.thumbnail(output_size)
             img.save(animal_instance.profile_image.path)
 
-        self.success_url = reverse("animal_profile", kwargs={"pk": animal_instance.pk})
-        return redirect(self.success_url)
+        success_url = reverse("animal_profile", kwargs={"pk": animal_instance.pk})
+        return redirect(success_url)
 
     def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs['pk']).owner
+        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
         user = self.request.user.profile
 
         return user == owner
@@ -121,7 +120,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        animal = Animal.objects.get(pk=self.kwargs['pk'])
+        animal = Animal.objects.get(pk=self.kwargs["pk"])
         context["full_name"] = animal.full_name
         context["allowed_users"] = animal.allowed_users.all()
         context["animal_url"] = reverse(
@@ -131,15 +130,12 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["instance"] = Animal.objects.get(pk=self.kwargs['pk'])
+        kwargs["instance"] = Animal.objects.get(pk=self.kwargs["pk"])
         return kwargs
 
     def form_valid(self, form):
         animal = form.instance
-        # new_keeper = self.request.POST['input_user']
-        new_keeper = form.cleaned_data['input_user']
-        print(animal)
-        print(new_keeper)
+        new_keeper = form.cleaned_data["input_user"]
 
         animal.allowed_users.add(new_keeper)
         return super().form_valid(form)
@@ -148,7 +144,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return self.request.path
 
     def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs['pk']).owner
+        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
         user = self.request.user.profile
         return user == owner
 

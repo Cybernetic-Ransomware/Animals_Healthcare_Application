@@ -8,7 +8,10 @@
   <p>Placeholder paragraph</p>
     {% if user.is_authenticated %}
 
+    {% if example_animal_id %}
     <a role="button" class="secondary outline" href="{% url 'animal_profile' pk=example_animal_id %}">The example animal profile</a>
+    {% endif %}
+
     <div class="container">
         {% if recent_animals %}
             <br>
