@@ -153,3 +153,4 @@ cython_debug/
 
 # Collected static files - temporary
 /AHC_app/static_collected/
+/AHC_app/static/media/profile_pics/animals/
