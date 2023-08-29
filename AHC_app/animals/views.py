@@ -47,22 +47,13 @@ class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Animal
     template_name = "animals/profile.html"
-    # dorzucić context_object_name, zredagować urls
+    context_object_name = "animal"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["animal"] = self.object
         context["name"] = self.object.owner
         context["image"] = self.object.profile_image.url
-        context["upload_image_url"] = reverse(
-            "upload_image", kwargs={"pk": self.object.id}
-        )
-        context["animal_delete_url"] = reverse(
-            "animal_delete", kwargs={"pk": self.object.id}
-        )
-        context["manage_keepers_url"] = reverse(
-            "manage_keepers", kwargs={"pk": self.object.id}
-        )
         # only for visibility of buttons, do not use as authentication
         context["is_owner"] = self.object.owner == self.get_object().owner
 

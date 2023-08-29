@@ -14,15 +14,15 @@
     </div>
     <div class="content-section">
         {% if allowed_users %}
-        {% endif %}
-        <div class="content-section">
+
+            <div class="content-section">
             <h4>Current Keepers:</h4>
             <ul class="">
                 {% for user in allowed_users %}
                     <li>{{ user }}</li>
                 {% endfor %}
             </ul>
-
+        {% endif %}
         </div>
         <div class="border-top pt-3">
             <small class="text-muted">

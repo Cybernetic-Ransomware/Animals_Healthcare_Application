@@ -106,16 +106,16 @@
                 <br>
                 <h6>Profile</h6>
                 <div class="grid">
-                    <a role="button" class="secondary outline" href="#">Change the birthdate</a>
-                    <a role="button" class="secondary outline" href="{{ upload_image_url }}">Change the profile picture</a>
-                    <a role="button" class="secondary outline" href="#">Manage vet first contacts</a>
+                    <a role="button" class="secondary outline" href="{% url 'animal_birthday' pk=animal.id %}">Change the birthdate</a>
+                    <a role="button" class="secondary outline" href="{% url 'upload_image' pk=animal.id %}">Change the profile picture</a>
+                    <a role="button" class="secondary outline" href="{% url 'animal_first_contact' pk=animal.id %}">Manage vet first contacts</a>
                 </div>
                 <br>
                 <h6>Ownership</h6>
                 <div class="grid">
-                    <a role="button" class="secondary outline" href="#">Change the owner</a>
-                    <a role="button" class="secondary outline" href="{{ manage_keepers_url }}">Manage keepers</a>
-                    <a role="button" class="secondary outline" href="{{ animal_delete_url }}">Remove the Animal from the
+                    <a role="button" class="secondary outline" href="{% url 'animal_ownership' pk=animal.id %}">Change the owner</a>
+                    <a role="button" class="secondary outline" href="{% url 'manage_keepers' pk=animal.id %}">Manage keepers</a>
+                    <a role="button" class="secondary outline" href="{% url 'animal_delete' pk=animal.id %}">Remove the Animal from the
                         files</a>
                 </div>
             </div>
