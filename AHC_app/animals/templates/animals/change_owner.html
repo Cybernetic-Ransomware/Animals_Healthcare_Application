@@ -1,0 +1,26 @@
+{% extends "homepage/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+    <div class="content-section">
+        <form method="POST">
+            {% csrf_token %}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Set a new keeper for {{ full_name }}:</legend>
+                {{ form.new_owner|as_crispy_field }}
+                <div class="grid">
+                    <button class="btn btn-outline-info" type="submit" name="set_keeper" value="False">Change the owner</button>
+                    <button class="btn btn-outline-info" type="submit" style="visibility: hidden"></button>
+                    <button class="btn btn-outline-info" type="submit" name="set_keeper" value="True">Change owner and set yourself as a keeper</button>
+                </div>
+            </fieldset>
+        </form>
+    </div>
+        <div class="border-top pt-3">
+            <small class="text-muted">
+                Return to <a class="ml-2" href="{{ animal_url }}">Pet profile</a> or <a class="ml-2"
+                                                                                        href="{% url 'animals_stable' %}">Stable</a>
+            </small>
+        </div>
+    </div>
+{% endblock %}

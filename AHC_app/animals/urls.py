@@ -9,7 +9,7 @@ from . import views as animal_views
 urlpatterns = [
     path('animal/create/', animal_views.CreateFormView.as_view(), name='animal_create'),
     path('animal/<uuid:pk>/delete/', animal_views.AnimalDeleteView.as_view(), name='animal_delete'),
-    path('animal/<uuid:pk>/owner/', animal_views.AnimalProfileDetailView.as_view(), name='animal_ownership'),  # TO change
+    path('animal/<uuid:pk>/owner/', animal_views.ChangeOwnerView.as_view(), name='animal_ownership'),
 
     path('animal/<uuid:pk>/btd/', animal_views.AnimalProfileDetailView.as_view(), name='animal_birthday'),  # TO change
     path('animal/<uuid:pk>/cnt/', animal_views.AnimalProfileDetailView.as_view(), name='animal_first_contact'),  # TO change

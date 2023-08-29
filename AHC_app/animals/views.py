@@ -7,7 +7,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from PIL import Image
 
-from .forms import AnimalRegisterForm, ImageUploadForm, ManageKeepersForm
+from .forms import AnimalRegisterForm, ChangeOwnerForm, ImageUploadForm, ManageKeepersForm
 from .models import Animal
 
 
@@ -53,7 +53,7 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
         context = super().get_context_data(**kwargs)
 
         # only for visibility of buttons, do not use as authentication
-        context["is_owner"] = self.object.owner == self.get_object().owner
+        context["is_owner"] = self.object.owner == self.request.user.profile
 
         return context
 
@@ -99,6 +99,45 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
         user = self.request.user.profile
 
+        return user == owner
+
+
+class ChangeOwnerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    template_name = "animals/change_owner.html"
+    form_class = ChangeOwnerForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        animal = Animal.objects.get(pk=self.kwargs["pk"])
+        context["full_name"] = animal.full_name
+        context["animal_url"] = reverse(
+            "animal_profile", kwargs={"pk": self.get_form().instance.id}
+        )
+        return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = Animal.objects.get(pk=self.kwargs["pk"])
+        return kwargs
+
+    def form_valid(self, form):
+        animal = form.instance
+        new_owner = form.cleaned_data["new_owner"]
+        set_keeper = form.cleaned_data["set_keeper"]
+        animal.owner = new_owner
+        animal.save()
+
+        if set_keeper:
+            animal.allowed_users.add(self.request.user.profile)
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return self.get_context_data()["animal_url"]
+
+    def test_func(self):
+        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
+        user = self.request.user.profile
         return user == owner
 
 

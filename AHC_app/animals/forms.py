@@ -68,6 +68,30 @@ class ImageUploadForm(forms.ModelForm):
         return image
 
 
+class ChangeOwnerForm(forms.Form):
+    new_owner = forms.CharField(
+        max_length=255, required=True, label="New owner's profile name"
+    )
+    set_keeper = forms.BooleanField(required=True, label="Set as keeper")
+
+    def __init__(self, *args, **kwargs):
+        self.instance = kwargs.pop("instance", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_new_owner(self):
+        new_owner = self.cleaned_data.get("new_owner")
+
+        if new_owner == self.instance.owner.user.username:
+            raise forms.ValidationError("You are already the owner.")
+
+        if not Profile.objects.filter(user__username=new_owner).exists():
+            raise forms.ValidationError("User does not exist.")
+
+        new_owner_profile = Profile.objects.get(user__username=new_owner)
+
+        return new_owner_profile
+
+
 class ManageKeepersForm(forms.Form):
     input_user = forms.CharField(
         max_length=255, required=True, label="Full keeper profile name"
@@ -80,7 +104,7 @@ class ManageKeepersForm(forms.Form):
     def clean_input_user(self):
         input_user = self.cleaned_data.get("input_user")
 
-        if input_user == str(self.instance.owner):
+        if input_user == self.instance.owner.user.username:
             raise forms.ValidationError(
                 "As the owner you can not set yourself as a keeper."
             )
