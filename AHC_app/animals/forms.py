@@ -72,7 +72,7 @@ class ChangeOwnerForm(forms.Form):
     new_owner = forms.CharField(
         max_length=255, required=True, label="New owner's profile name"
     )
-    set_keeper = forms.BooleanField(required=True, label="Set as keeper")
+    set_keeper = forms.BooleanField(required=False, label="Set as keeper")
 
     def __init__(self, *args, **kwargs):
         self.instance = kwargs.pop("instance", None)
@@ -80,6 +80,7 @@ class ChangeOwnerForm(forms.Form):
 
     def clean_new_owner(self):
         new_owner = self.cleaned_data.get("new_owner")
+        print(self.cleaned_data.keys())
 
         if new_owner == self.instance.owner.user.username:
             raise forms.ValidationError("You are already the owner.")

@@ -133,7 +133,7 @@ class ChangeOwnerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return self.get_context_data()["animal_url"]
+        return reverse('animals_stable')
 
     def test_func(self):
         owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
