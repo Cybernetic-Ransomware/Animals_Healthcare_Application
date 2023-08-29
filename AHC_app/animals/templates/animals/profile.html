@@ -7,15 +7,15 @@
 
             <div class="media-body">
                 <div class="grid">
-                    <a href="{{ upload_image_url }}">
-                        <img class="rounded-circle account-img" src="{% static image %}" alt="Animal's profile picture"
+                    <a href="{% url 'upload_image' pk=animal.id %}">
+                        <img class="rounded-circle account-img" src="{% static animal.profile_image.url %}" alt="Animal's profile picture"
                              title="Change a picture">
                     </a>
                     <div class="content-section">
                         <h2 class="account-heading">{{ animal.full_name }}</h2>
 
                         {% if animal.birthdate %}
-                            <p class="text-secondary">{{ name }}</p>
+                            <p class="text-secondary">{{ animal.birthdate }}</p>
                             <br>
                         {% endif %}
 

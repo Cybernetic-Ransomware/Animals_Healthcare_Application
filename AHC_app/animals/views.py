@@ -51,9 +51,7 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["animal"] = self.object
-        context["name"] = self.object.owner
-        context["image"] = self.object.profile_image.url
+
         # only for visibility of buttons, do not use as authentication
         context["is_owner"] = self.object.owner == self.get_object().owner
 
@@ -77,12 +75,11 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         context["animal_id"] = self.kwargs["pk"]
         return context  # to the template
 
-    # sprawdź czy jest potrzebny na zakomentowanym
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         animal_id = self.kwargs["pk"]
         kwargs["instance"] = Animal.objects.get(id=animal_id)
-        return kwargs  # to the form
+        return kwargs
 
     def form_valid(self, form):
         form.save()
