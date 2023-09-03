@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "crispy_forms",
     "crispy_bootstrap4",
+    "bootstrap_modal_forms",
     "compressor",
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",

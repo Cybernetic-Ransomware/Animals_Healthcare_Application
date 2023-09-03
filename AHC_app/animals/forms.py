@@ -1,3 +1,4 @@
+from bootstrap_modal_forms.forms import BSModalForm
 from django import forms
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db.models import Q
@@ -68,7 +69,7 @@ class ImageUploadForm(forms.ModelForm):
         return image
 
 
-class ChangeOwnerForm(forms.Form):
+class ChangeOwnerForm(BSModalForm):
     new_owner = forms.CharField(
         max_length=255, required=True, label="New owner's profile name"
     )
