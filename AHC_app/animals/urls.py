@@ -1,10 +1,7 @@
-from django.contrib import admin
 from django.urls import path
-from django.contrib.auth import views as auth_views
-from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView, \
-    PasswordResetConfirmView, PasswordResetCompleteView
 
 from . import views as animal_views
+
 
 urlpatterns = [
     path('animal/create/', animal_views.CreateFormView.as_view(), name='animal_create'),
