@@ -15,7 +15,8 @@
                         <h2 class="account-heading">{{ animal.full_name }}</h2>
 
                         {% if animal.birthdate %}
-                            <p class="text-secondary">{{ animal.birthdate }}</p>
+                            <p class="text-secondary">Age: {{ animal.birthdate|timesince:now }}</p>
+                            <p class="text-secondary">Next birthday: {{ animal.birthdate|date:"d-m" }}</p>
                             <br>
                         {% endif %}
 
