@@ -1,5 +1,6 @@
 from django import forms
 from PIL import Image
+from datetime import date
 
 from users.models import Profile
 from ..models import Animal
@@ -86,3 +87,21 @@ class ManageKeepersForm(forms.Form):
         input_user_id = Profile.objects.filter(user__username=input_user).first().id
 
         return input_user_id
+
+
+class ChangeBirthdayForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ["birthdate"]
+        widgets = {
+            "birthdate": forms.DateInput(attrs={"type": "date"})
+        }
+
+    def clean_birthdate(self):
+        birthdate = self.cleaned_data.get("birthdate")
+        current_date = date.today()
+
+        if birthdate > current_date:
+            raise forms.ValidationError("Date could not be set further than current day.")
+
+        return birthdate

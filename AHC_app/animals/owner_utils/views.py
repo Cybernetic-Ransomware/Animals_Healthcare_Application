@@ -1,11 +1,12 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, UpdateView
 from PIL import Image
 
-from .forms import ChangeOwnerForm, ImageUploadForm, ManageKeepersForm
+from .forms import ChangeOwnerForm, ImageUploadForm, ManageKeepersForm, ChangeBirthdayForm
 from ..models import Animal
 
 
@@ -134,3 +135,27 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
         user = self.request.user.profile
         return user == owner
+
+
+class ChangeBirthdayView(FormView):
+    form_class = ChangeBirthdayForm
+    template_name = 'animals/change_birthday.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        print(kwargs["instance"])
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        return context
+
+    def form_valid(self, form):
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        animal.birthdate = form.cleaned_data["birthdate"]
+        animal.save()
+
+        success_url = reverse("animal_profile", kwargs={"pk": self.kwargs["pk"]})
+        return redirect(success_url)

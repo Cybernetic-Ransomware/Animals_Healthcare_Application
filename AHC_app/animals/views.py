@@ -7,7 +7,7 @@ from django.views.generic.edit import FormView
 
 from .forms import AnimalRegisterForm
 from .models import Animal
-from .owner_utils.views import AnimalDeleteView, ImageUploadView, ChangeOwnerView, ManageKeepersView
+from .owner_utils.views import AnimalDeleteView, ImageUploadView, ChangeOwnerView, ManageKeepersView, ChangeBirthdayView
 
 
 class CreateFormView(LoginRequiredMixin, FormView):
