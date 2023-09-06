@@ -1,6 +1,7 @@
 {% extends "homepage/base.html" %}
 {% load crispy_forms_tags %}
 {% load static %}
+{% load custom_timesince %}
 {% block content %}
     <div class="content-section">
         <div class="media">
@@ -15,8 +16,8 @@
                         <h2 class="account-heading">{{ animal.full_name }}</h2>
 
                         {% if animal.birthdate %}
-                            <p class="text-secondary">Age: {{ animal.birthdate|timesince:now }}</p>
-                            <p class="text-secondary">Next birthday: {{ animal.birthdate|date:"d-m" }}</p>
+                            <p class="text-secondary">Age: {{ animal.birthdate|years_and_months_since:now }}</p>
+                            <p class="text-secondary">Next birthday: {{ animal.birthdate|date:"d-m" }}-{{now|date:"Y"}}</p>
                             <br>
                         {% endif %}
 
