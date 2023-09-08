@@ -6,7 +6,7 @@ from django.views.generic import DeleteView
 from django.views.generic.edit import FormView, UpdateView
 from PIL import Image
 
-from .forms import ChangeOwnerForm, ImageUploadForm, ManageKeepersForm, ChangeBirthdayForm
+from .forms import ChangeOwnerForm, ImageUploadForm, ManageKeepersForm, ChangeBirthdayForm, ChangeFirstContactForm
 from ..models import Animal
 
 
@@ -137,7 +137,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return user == owner
 
 
-class ChangeBirthdayView(FormView):
+class ChangeBirthdayView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     form_class = ChangeBirthdayForm
     template_name = 'animals/change_birthday.html'
 
@@ -159,3 +159,36 @@ class ChangeBirthdayView(FormView):
 
         success_url = reverse("animal_profile", kwargs={"pk": self.kwargs["pk"]})
         return redirect(success_url)
+
+    def test_func(self):
+        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
+        user = self.request.user.profile
+        return user == owner
+
+
+class ChangeFirstContactView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    form_class = ChangeFirstContactForm
+    template_name = 'animals/change_first_contact.html'
+
+    def get_context_data(self, **kwargs):
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        context["vet"] = animal.first_contact_vet
+        context["place"] = animal.first_contact_medical_place
+        return context
+
+    def form_valid(self, form):
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        animal.first_contact_vet = form.cleaned_data["first_contact_vet"]
+        animal.first_contact_medical_place = form.cleaned_data["first_contact_medical_place"]
+        animal.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return self.request.path
+
+    def test_func(self):
+        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
+        user = self.request.user.profile
+        return user == owner

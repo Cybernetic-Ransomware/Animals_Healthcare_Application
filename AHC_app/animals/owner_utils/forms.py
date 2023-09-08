@@ -105,3 +105,13 @@ class ChangeBirthdayForm(forms.ModelForm):
             raise forms.ValidationError("Date could not be set further than current day.")
 
         return birthdate
+
+
+class ChangeFirstContactForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ["first_contact_vet", "first_contact_medical_place"]
+        widgets = {
+            "first_contact_vet": forms.Textarea(attrs={"rows": 4, "cols": 2}),
+            "first_contact_medical_place": forms.Textarea(attrs={"rows": 4, "cols": 2}),
+        }

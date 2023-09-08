@@ -2,11 +2,11 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <form method="post">
-    {% csrf_token %}
-    {{ form.birthdate }}
-    <button type="submit">Change</button>
-  </form>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.birthdate }}
+        <button type="submit">Change</button>
+    </form>
 
-  <p><a href="{% url 'animal_profile' pk=animal_id %}">Return to profile</a></p>
+    <p><a href="{% url 'animal_profile' pk=animal_id %}">Return to profile</a></p>
 {% endblock %}
