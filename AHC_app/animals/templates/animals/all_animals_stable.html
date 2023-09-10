@@ -1,0 +1,36 @@
+{% extends 'homepage/base.html' %}
+{% load static %}
+
+
+{% block content %}
+
+  <h3>Placeholder title</h3>
+  <p>Placeholder paragraph</p>
+    {% if user.is_authenticated %}
+
+    <div class="container">
+        {% if animals %}
+            <br>
+            <link rel="stylesheet" type="text/css" href="{% static 'css/stable_grid.css' %}">
+            <h3>All pets:</h3>
+            <div class="stable_grid">
+            {% for animal in animals %}
+                <a role="button"
+                   class="contrast btn-with-bg"
+                   style="background-image: url('{{ animal.profile_image.url }}');"
+                   href="{% url 'animal_profile' pk=animal.id %}"
+                >{{ animal.full_name }}</a>
+            {% endfor %}
+            </div>
+        {% endif %}
+
+    </div>
+    <h4>Operations:</h4>
+    <div class="grid">
+        <a role="button" class="secondary outline" style="visibility: hidden" href="#">Placeholder</a>
+        <a role="button" class="secondary outline" style="visibility: hidden" href="#">Placeholder</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
+    </div>
+    {% endif %}
+
+{% endblock %}

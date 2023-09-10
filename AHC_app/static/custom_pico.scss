@@ -1,0 +1,16 @@
+/* Custom Yellow version */
+
+// Override default variables
+$primary-500: #ffeb3b;
+$primary-600: #fdd835;
+$primary-700: #fbc02d;
+
+$grey-100: #fbc02d;
+$grey-600: #F0AD05;
+
+@mixin set-color-variable($dark) {
+  --secondary: #bbbbbb;
+}
+
+// Import Pico
+@import "css/pico-1.5.9/scss/pico";

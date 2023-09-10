@@ -9,7 +9,16 @@
     <title>AHC</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{% static "css/pico/pico.min.css" %}">
+<!--
+    <link rel="stylesheet" href="{% static "css/pico-1.5.9/css/pico.css" %}">
+-->
+    <link rel="shortcut icon" type="image/png" href="{% static 'media/icons/chinchilla.png' %}" >
+
+    {% load compress %}
+    {% compress css %}
+        <link type="text/x-scss" href="{% static 'custom_pico.scss' %}" rel="stylesheet" media="screen">
+    {% endcompress %}
+
 
     {% if title %}
         <title>{{ title }}</title>
@@ -20,13 +29,38 @@
 </head>
 <body>
 
-<main class="container">
-     <h1>Hello, world!</h1>
+<header class="container" style="height: 15vh;">
+    <div class="grid" style="height: 100%;">
+        <div class="container" style="margin: auto; flex: 1; width: 30vw">
+            <a href="{% url 'Homepage' %}"><h2>Homepage</h2></a>
+        </div>
+        <div class="container" style="max-height: 100%; margin: auto; overflow: hidden;">
+            <img src="{% static 'media/background/lizard2.jpg' %}" alt="Background lizard" style="max-height: 100%; width: auto; margin-top: -80px;">
+        </div>
+    </div>
+</header>
+
+<main class="container" style="margin-top: 15vh;">
      {% block content %}{% endblock %}
 </main>
 
 <footer class="container">
-    <a href="{% url 'user/login' }" > Login </a>
+    <div class="grid">
+        <nav>
+          <ul>
+            <li><a href="#">Credits placeholder</a></li>
+          </ul>
+          <ul>
+            {% if user.is_authenticated %}
+            <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
+            <li><a role="button" class="secondary outline" href="{% url 'logout' %}">Logout</a></li>
+            {% else %}
+            <li><a role="button" class="secondary outline" href="{% url 'login' %}">Login</a></li>
+            <li><a role="button" class="secondary outline" href="{% url 'register' %}">Register</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+    </div>
 </footer>
 
 </body>

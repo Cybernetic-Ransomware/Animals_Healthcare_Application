@@ -1,0 +1,34 @@
+{% extends "homepage/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+    <div class="content-section">
+        <form method="POST">
+            {% csrf_token %}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Set a new keeper for {{ full_name }}:</legend>
+                {{ form.input_user|as_crispy_field }}
+                <button class="btn btn-outline-info" type="submit">Save</button>
+            </fieldset>
+        </form>
+    </div>
+    <div class="content-section">
+        {% if allowed_users %}
+
+            <div class="content-section">
+            <h4>Current Keepers:</h4>
+            <ul class="">
+                {% for user in allowed_users %}
+                    <li>{{ user }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        </div>
+        <div class="border-top pt-3">
+            <small class="text-muted">
+                Return to <a class="ml-2" href="{{ animal_url }}">Pet profile</a> or <a class="ml-2"
+                                                                                        href="{% url 'animals_stable' %}">Stable</a>
+            </small>
+        </div>
+    </div>
+{% endblock %}

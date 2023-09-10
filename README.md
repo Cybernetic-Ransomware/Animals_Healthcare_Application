@@ -12,16 +12,22 @@
 
 ---
 ### Requirements:
-Python 3.11.3\
-[Packages](AHC_app/requirements.txt)
+- Python 3.11.3
+- [Packages](AHC_app/requirements.txt)
+- [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
 
 ---
 ### Sources:
 
 * Styles:
   * https://picocss.com/
+  * https://uicookies.com/horizontal-timeline/
 * Graphics:
   * https://www.flaticon.com/authors/futuer
+  * https://www.flaticon.com/authors/pixel-perfect
+  * https://www.flaticon.com/authors/riajulislam
+  * https://www.midjourney.com/
+  * https://pixabay.com/
 * Fonts:
   * to link
 * Knowledge:

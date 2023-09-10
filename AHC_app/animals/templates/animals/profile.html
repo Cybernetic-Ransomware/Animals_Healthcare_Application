@@ -1,0 +1,156 @@
+{% extends "homepage/base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+{% load custom_timesince %}
+{% block content %}
+    <div class="content-section">
+        <div class="media">
+
+            <div class="media-body">
+                <div class="grid">
+                    <a href="{% url 'upload_image' pk=animal.id %}">
+                        <img class="rounded-circle account-img" src="{% static animal.profile_image.url %}"
+                             alt="Animal's profile picture"
+                             title="Change a picture">
+                    </a>
+                    <div class="content-section">
+                        <h2 class="account-heading">{{ animal.full_name }}</h2>
+
+                        {% if animal.birthdate %}
+                            <p class="text-secondary">Age: {{ animal.birthdate|years_and_months_since:now }}</p>
+                            <p class="text-secondary">Next birthday:
+                                {{ animal.birthdate|date:"d-m" }}-{{ now|date:"Y"}}</p>
+                            <br>
+                        {% endif %}
+
+                        <p class="text-secondary">Owner: {{ animal.owner }}</p>
+                        <br>
+                        {% if animal.short_description %}
+                            <p class="text-secondary">{{ animal.short_description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="media-body">
+            <link rel="stylesheet" type="text/css" href="{% static 'css/expanding_sections.css' %}">
+            <script src="{% static 'js/expanding_sections.js' %}"></script>
+            <br>
+            <div class="section">
+                <h4 class="button secondary outline section-header">Expand: full description</h4>
+                <div class="text-secondary section-content">
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+                        incididunt ut labore et dolore magna aliqua.</p>
+                </div>
+            </div>
+            <div class="section">
+                <h4 class="button secondary outline section-header">Expand: first contact details</h4>
+                <div class="text-secondary section-content">
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+                        incididunt ut labore et dolore magna aliqua.</p>
+                </div>
+            </div>
+        </div>
+        <br>
+        <br>
+        <h3>Last records:</h3>
+        <div class="media-body">
+            <link rel="stylesheet" type="text/css" href="{% static 'css/timeline.css' %}">
+            <script src="{% static 'js/timeline.js' %}"></script>
+
+            <section class="timeline">
+
+                <div class="info">
+                    <div>
+                        <a role="button" class="secondary outline" href="#">Plan a new visit</a>
+                        <a role="button" class="secondary outline" href="#">Add a new note</a>
+                        <a role="button" class="secondary outline" href="#">View the full timeline</a>
+                    </div>
+                </div>
+
+                <ol>
+                    <li>
+                        <div>
+                            <time>2001-11-21</time>
+                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+                                incididunt ut labore et dolore magna aliqua. </a>
+                        </div>
+                    </li>
+                    <li>
+                        <div>
+                            <time>2002-12-22</time>
+                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+                                incididunt ut labore et dolore magna aliqua. </a>
+                        </div>
+                    </li>
+                    <li>
+                        <div>
+                            <time>2003-01-23</time>
+                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit </a>
+                        </div>
+                    </li>
+                    <li>
+                        <div>
+                            <time>2004-02-24</time>
+                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit </a>
+                        </div>
+                    </li>
+                    <li>
+                        <div>
+                            <time>2005-03-25</time>
+                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+                                incididunt ut labore et dolore magna aliqua. </a>
+                        </div>
+                    </li>
+                    <li></li>
+                </ol>
+            </section>
+        </div>
+        <br>
+        <div class="media-body">
+            <h3>Manage details:</h3>
+
+            <br>
+            <h4>Common options:</h4>
+            <div class="grid">
+                <a role="button" class="secondary outline" href="#">Add biometric record</a>
+                <a role="button" class="secondary outline" href="#">Manage notofications</a>
+            </div>
+        </div>
+        {% if is_owner %}
+            <div class="media-body">
+                <br>
+                <h4>Owner options</h4>
+                <h6>Records</h6>
+                <div class="grid">
+                    <a role="button" class="secondary outline" href="#">Edit biometric records</a>
+                    <a role="button" class="secondary outline" href="#">Manage a current diet</a>
+                    <a role="button" class="secondary outline" href="#">Manage current medicines</a>
+                </div>
+                <br>
+                <h6>Profile</h6>
+                <div class="grid">
+                    <a role="button" class="secondary outline" href="{% url 'animal_birthday' pk=animal.id %}">Change
+                        the birthdate</a>
+                    <a role="button" class="secondary outline" href="{% url 'upload_image' pk=animal.id %}">Change the
+                        profile picture</a>
+                    <a role="button" class="secondary outline" href="{% url 'animal_first_contact' pk=animal.id %}">Manage
+                        vet first contacts</a>
+                </div>
+                <br>
+                <h6>Ownership</h6>
+                <div class="grid">
+                    <a role="button" class="secondary outline" href="{% url 'animal_ownership' pk=animal.id %}">Change
+                        the owner</a>
+                    <a role="button" class="secondary outline" href="{% url 'manage_keepers' pk=animal.id %}">Manage
+                        keepers</a>
+                    <a role="button" class="secondary outline" href="{% url 'animal_delete' pk=animal.id %}">Remove the
+                        Animal from the
+                        files</a>
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
+
+{% endblock %}
