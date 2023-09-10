@@ -1,0 +1,11 @@
+.section {
+
+}
+
+.section-header {
+    cursor: pointer;
+}
+
+.section-content {
+    display: none;
+}
