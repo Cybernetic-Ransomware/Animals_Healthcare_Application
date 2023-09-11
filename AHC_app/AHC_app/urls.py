@@ -28,6 +28,7 @@ urlpatterns = [
     path('', include('homepage.urls')),
     path('user/', include('users.urls')),
     path('pet/', include('animals.urls')),
+    path('note/', include('medical_notes.urls')),
 
     path('favicon.ico', RedirectView.as_view(url=staticfiles_storage.url('media/icons/chinchilla.png'))),
 

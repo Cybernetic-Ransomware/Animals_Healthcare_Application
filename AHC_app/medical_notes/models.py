@@ -21,6 +21,7 @@ class MedicalRecord(models.Model):
     full_description = models.CharField(max_length=2500)
 
     type_of_event = models.CharField(max_length=50)
+
     # reference to a new table, if needed for some types of records
     event_details = None
 
