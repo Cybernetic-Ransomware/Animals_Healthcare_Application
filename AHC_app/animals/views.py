@@ -12,7 +12,7 @@ from .owner_utils.views import (AnimalDeleteView, ImageUploadView, ChangeOwnerVi
                                 ChangeBirthdayView, ChangeFirstContactView)
 
 
-class CreateFormView(LoginRequiredMixin, FormView):
+class CreateAnimalView(LoginRequiredMixin, FormView):
     template_name = "animals/create.html"
     form_class = AnimalRegisterForm
     success_url = "/animals/"
