@@ -6,6 +6,7 @@
             {% csrf_token %}
             <fieldset class="form-group">
                 <legend class="border-bottom mb-4">Register a new note:</legend>
+                <br>
                 {{ form|crispy }}
             </fieldset>
             <div class="form-group">
@@ -14,7 +15,7 @@
         </form>
         <div class="border-top pt-3">
             <small class="text-muted">
-                <a class="ml-2" href="{{ request.path }}">Return to the pet profile</a>
+                <a class="ml-2" href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet profile</a>
             </small>
         </div>
     </div>
