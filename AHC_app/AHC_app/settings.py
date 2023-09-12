@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",
     "animals.apps.AnimalsConfig",
+    "medical_notes.apps.MedicalNotesConfig",
 ]
 
 MIDDLEWARE = [

@@ -63,7 +63,7 @@
                 <div class="info">
                     <div>
                         <a role="button" class="secondary outline" href="#">Plan a new visit</a>
-                        <a role="button" class="secondary outline" href="#">Add a new note</a>
+                        <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}">Add a new note</a>
                         <a role="button" class="secondary outline" href="#">View the full timeline</a>
                     </div>
                 </div>
