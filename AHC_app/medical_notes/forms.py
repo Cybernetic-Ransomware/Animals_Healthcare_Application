@@ -17,7 +17,6 @@ class MedicalRecordForm(forms.ModelForm):
             'full_description',
             'date_event_started',
             'date_event_ended'
-
         ]
 
         TYPES_OF_EVENTS = (
@@ -27,6 +26,7 @@ class MedicalRecordForm(forms.ModelForm):
             ('medicament_note',   'Medicament note'),
             ('other_user_note',   'Other'),
         )
+
         widgets = {
             "date_event_started": forms.DateInput(attrs={"type": "date", "required": False}),
             "date_event_ended": forms.DateInput(attrs={"type": "date", "required": False}),

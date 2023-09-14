@@ -14,11 +14,11 @@ class MedicalRecord(models.Model):
     date_event_ended = models.DateField(null=True, blank=True)
 
     # to change to a new app models
-    participants = models.CharField(max_length=80)
-    place = models.CharField(max_length=80)
+    participants = models.CharField(max_length=80, blank=True)
+    place = models.CharField(max_length=80, blank=True)
 
     short_description = models.CharField(max_length=125)
-    full_description = models.CharField(max_length=2500)
+    full_description = models.CharField(max_length=2500, blank=True)
 
     type_of_event = models.CharField(max_length=50)
 

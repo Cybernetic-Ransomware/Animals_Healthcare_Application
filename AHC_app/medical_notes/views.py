@@ -11,6 +11,19 @@ from .forms import MedicalRecordForm
 class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = 'medical_notes/create.html'
     form_class = MedicalRecordForm
+    success_url = "/pet/animals/"
+
+    def form_valid(self, form):
+        animal_id = self.kwargs.get('pk')
+        animal = get_object_or_404(AnimalProfile, id=animal_id)
+
+        new_note = form.save(commit=False)
+        new_note.animal = animal
+        new_note.save()
+
+        form.save()
+
+        return super().form_valid(form)
 
     def test_func(self):
         user = self.request.user.profile
