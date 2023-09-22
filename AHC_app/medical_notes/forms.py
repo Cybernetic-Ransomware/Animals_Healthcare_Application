@@ -20,6 +20,7 @@ class MedicalRecordForm(forms.ModelForm):
         ]
 
         TYPES_OF_EVENTS = (
+            ('fast_note',         'Fast note'),
             ('medical_visit',     'Medical visit'),
             ('biometric_record',  'Biometric record'),
             ('diet_note',         'Diet note'),
@@ -36,3 +37,7 @@ class MedicalRecordForm(forms.ModelForm):
             "participants": forms.TextInput(attrs={"required": False}),
             "place": forms.TextInput(attrs={"required": False})
         }
+
+    def __init__(self, *args, **kwargs):
+        super(MedicalRecordForm, self).__init__(*args, **kwargs)
+        self.initial['type_of_event'] = 'fast_note'
