@@ -1,20 +1,19 @@
+from animals.models import Animal as AnimalProfile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db import models
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.views.generic.edit import FormView
 
-from animals.models import Animal as AnimalProfile
-from .models import MedicalRecord
 from .forms import MedicalRecordForm
 
 
 class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
-    template_name = 'medical_notes/create.html'
+    template_name = "medical_notes/create.html"
     form_class = MedicalRecordForm
-    success_url = "/pet/animals/"
+    # success_url = "/pet/animals/"
 
     def form_valid(self, form):
-        animal_id = self.kwargs.get('pk')
+        animal_id = self.kwargs.get("pk")
         animal = get_object_or_404(AnimalProfile, id=animal_id)
 
         new_note = form.save(commit=False)
@@ -28,10 +27,14 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def test_func(self):
         user = self.request.user.profile
 
-        animal_id = self.kwargs.get('pk')
+        animal_id = self.kwargs.get("pk")
         animal = get_object_or_404(AnimalProfile, id=animal_id)
 
         all_users = set(animal.allowed_users.all())
         all_users.add(animal.owner)
 
         return user in all_users
+
+    def get_success_url(self):
+        animal_id = self.kwargs.get("pk")
+        return reverse("animal_profile", kwargs={"pk": animal_id})
