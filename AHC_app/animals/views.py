@@ -9,6 +9,7 @@ from medical_notes.models import MedicalRecord
 
 from .forms import AnimalRegisterForm
 from .models import Animal
+from .utils_owner.views import *
 
 
 class CreateAnimalView(LoginRequiredMixin, FormView):
