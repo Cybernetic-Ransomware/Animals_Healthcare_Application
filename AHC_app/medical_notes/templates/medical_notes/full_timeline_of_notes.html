@@ -13,9 +13,14 @@
                     <small class="text-muted">{{ note.date_creation }}</small>
                 </div>
                 <p class="article-content">{{ note.short_description }}</p>
-                {% if note.note_tags %}
-                  <a class="text-muted" href="#">{{ note.note_tags }}</a>
-                {% endif %}
+                    {% if note.note_tags.all %}
+                    <p>
+                        Tags:
+                        {% for tag in note.note_tags.all %}
+                            {{ tag.name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
+                    {% endif %}
                 <a class="text-muted" href="#">View full note</a>
             </div>
         </article>

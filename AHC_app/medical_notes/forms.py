@@ -16,7 +16,8 @@ class MedicalRecordForm(forms.ModelForm):
             'short_description',
             'full_description',
             'date_event_started',
-            'date_event_ended'
+            'date_event_ended',
+            'note_tags'
         ]
 
         TYPES_OF_EVENTS = (
@@ -35,7 +36,8 @@ class MedicalRecordForm(forms.ModelForm):
             "full_description": forms.Textarea(attrs={"rows": 12, "cols": 2, "required": False}),
             "type_of_event": forms.Select(choices=TYPES_OF_EVENTS, attrs={'class': 'custom-select'}),
             "participants": forms.TextInput(attrs={"required": False}),
-            "place": forms.TextInput(attrs={"required": False})
+            "place": forms.TextInput(attrs={"required": False}),
+            "note_tags": forms.TextInput(attrs={"required": False})
         }
 
     def __init__(self, *args, **kwargs):

@@ -22,8 +22,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         new_note = form.save(commit=False)
         new_note.animal = animal
         new_note.save()
-
-        form.save()
+        form.save_m2m()
 
         return super().form_valid(form)
 
@@ -43,6 +42,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return reverse("animal_profile", kwargs={"pk": animal_id})
 
 
+# dodaj widok dziedziczacy z filtrem po tagach
 class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = MedicalRecord
     template_name = 'medical_notes/full_timeline_of_notes.html'

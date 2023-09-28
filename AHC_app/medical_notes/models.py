@@ -1,7 +1,16 @@
 import uuid
 
 from django.db import models
+from taggit.managers import TaggableManager
+from taggit.models import GenericUUIDTaggedItemBase, TaggedItemBase
+
 from animals.models import Animal
+
+
+class UUIDTaggedItem(GenericUUIDTaggedItemBase, TaggedItemBase):
+    class Meta:
+        verbose_name = ("Tag")
+        verbose_name_plural = ("Tags")
 
 
 class MedicalRecord(models.Model):
@@ -25,7 +34,7 @@ class MedicalRecord(models.Model):
     event_details = None
 
     # to use for hashtags
-    note_tags = None
+    note_tags = TaggableManager(through=UUIDTaggedItem, blank=True)
 
 
 class BiometricRecord(models.Model):

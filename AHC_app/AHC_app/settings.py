@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "crispy_bootstrap4",
     "bootstrap_modal_forms",
     "compressor",
+    "taggit",
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",
     "animals.apps.AnimalsConfig",
