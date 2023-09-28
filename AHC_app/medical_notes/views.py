@@ -70,3 +70,17 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         all_users.add(animal.owner)
 
         return user in all_users
+
+
+class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        animal_id = self.kwargs.get("pk")
+        animal = get_object_or_404(AnimalProfile, id=animal_id)
+
+        tag_name = self.kwargs.get("tag_name")
+        query = MedicalRecord.objects.filter(animal=animal, note_tags__slug=tag_name)
+
+        context["notes"] = query
+        return context

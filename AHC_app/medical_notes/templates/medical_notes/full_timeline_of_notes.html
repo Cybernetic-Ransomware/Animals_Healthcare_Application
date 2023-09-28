@@ -17,7 +17,7 @@
                     <p>
                         Tags:
                         {% for tag in note.note_tags.all %}
-                            {{ tag.name }}{% if not forloop.last %}, {% endif %}
+                            <a class="mr-2" href="{% url 'tag_filtered_timeline_of_notes' pk=note.animal.id tag_name=tag.slug %}">{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
                         {% endfor %}
                     </p>
                     {% endif %}
@@ -53,7 +53,6 @@
                     <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
                 {% endif %}
             {% endfor %}
-
 
             {% if page_obj.has_next %}
                 <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
