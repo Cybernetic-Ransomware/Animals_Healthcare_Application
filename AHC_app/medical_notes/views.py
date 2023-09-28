@@ -42,12 +42,11 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return reverse("animal_profile", kwargs={"pk": animal_id})
 
 
-# dodaj widok dziedziczacy z filtrem po tagach
 class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = MedicalRecord
-    template_name = 'medical_notes/full_timeline_of_notes.html'
-    context_object_name = 'notes'
-    ordering = ['-date_creation']
+    template_name = "medical_notes/full_timeline_of_notes.html"
+    context_object_name = "notes"
+    ordering = ["-date_creation"]
     paginate_by = 4
 
     def get_context_data(self, **kwargs):

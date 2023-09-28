@@ -19,6 +19,30 @@ document.addEventListener('DOMContentLoaded', function() {
             fulldescriptionField.style.display = 'block';
             eventstartedField.style.display = 'block';
             eventendedField.style.display = 'none';
+        } else if (typeOfEventField.value === 'biometric_record') {
+            participantsField.style.display = 'none';
+            placeField.style.display = 'none';
+            fulldescriptionField.style.display = 'block';
+            eventstartedField.style.display = 'block';
+            eventendedField.style.display = 'none';
+        } else if (typeOfEventField.value === 'diet_note') {
+            participantsField.style.display = 'none';
+            placeField.style.display = 'none';
+            fulldescriptionField.style.display = 'block';
+            eventstartedField.style.display = 'block';
+            eventendedField.style.display = 'block';
+        } else if (typeOfEventField.value === 'medicament_note') {
+            participantsField.style.display = 'none';
+            placeField.style.display = 'none';
+            fulldescriptionField.style.display = 'block';
+            eventstartedField.style.display = 'block';
+            eventendedField.style.display = 'block';
+        } else if (typeOfEventField.value === 'other_user_note') {
+            participantsField.style.display = 'block';
+            placeField.style.display = 'block';
+            fulldescriptionField.style.display = 'block';
+            eventstartedField.style.display = 'block';
+            eventendedField.style.display = 'block';
         }
     }
 

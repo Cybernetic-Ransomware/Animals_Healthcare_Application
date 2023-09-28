@@ -2,23 +2,24 @@
 {% load crispy_forms_tags %}
 {% load static %}
 {% block content %}
-    <div class="content-section">
-        <form method="POST">
+<div class="content-section">
+    <form method="POST">
         <script src="{% static 'js/hiding_note_fields_in_form.js' %}"></script>
-            {% csrf_token %}
-            <fieldset class="form-group">
-                <legend class="border-bottom mb-4">Register a new note:</legend>
-                <br>
-                {{ form|crispy }}
-            </fieldset>
-            <div class="form-group">
-                <button class="btn btn-outline-info" type="submit">Submit!</button>
-            </div>
-        </form>
-        <div class="border-top pt-3">
-            <small class="text-muted">
-                <a class="ml-2" href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet profile</a>
-            </small>
+        {% csrf_token %}
+        <fieldset class="form-group">
+            <legend class="border-bottom mb-4">Register a new note:</legend>
+            <br>
+            {{ form|crispy }}
+        </fieldset>
+        <div class="form-group">
+            <button class="btn btn-outline-info" type="submit">Submit!</button>
         </div>
+    </form>
+    <div class="border-top pt-3">
+        <small class="text-muted">
+            <a class="ml-2" href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet
+                profile</a>
+        </small>
     </div>
+</div>
 {% endblock %}
