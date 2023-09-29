@@ -2,7 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
 
 from animals.models import Animal as AnimalProfile
@@ -88,3 +88,18 @@ class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
 
         context["notes"] = query
         return context
+
+
+# to fix injecting a tags, fixed type of note and redirecting to notes?
+class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = MedicalRecord
+    form_class = MedicalRecordForm
+    template_name = 'medical_notes/edit.html'
+    context_object_name = 'note'
+    success_url = "/pet/animals/"
+
+    # to do a checkup if all connected animals (after changing to ManyToMany relationship) are under care or are ownership
+    # should append author to a note
+    # need to view to change animal connection from note
+    def test_func(self):
+        return True

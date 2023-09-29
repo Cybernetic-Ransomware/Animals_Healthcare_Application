@@ -21,7 +21,7 @@
             {% endfor %}
         </p>
         {% endif %}
-        <a class="text-muted" href="#">View full note</a>
+        <a class="text-muted" href="{% url 'note_edit' pk=note.id %}">View full note</a>
     </div>
 </article>
 {% endfor %}
