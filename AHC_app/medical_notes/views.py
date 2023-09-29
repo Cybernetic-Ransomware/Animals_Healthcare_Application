@@ -1,10 +1,11 @@
-from animals.models import Animal as AnimalProfile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic.edit import FormView
 from django.views.generic.list import ListView
 
+from animals.models import Animal as AnimalProfile
 from .forms import MedicalRecordForm
 from .models import MedicalRecord
 
@@ -46,7 +47,6 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = MedicalRecord
     template_name = "medical_notes/full_timeline_of_notes.html"
     context_object_name = "notes"
-    ordering = ["-date_creation"]
     paginate_by = 4
 
     def get_context_data(self, **kwargs):
@@ -54,9 +54,14 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
         animal_id = self.kwargs.get("pk")
         animal = get_object_or_404(AnimalProfile, id=animal_id)
-        query = MedicalRecord.objects.filter(animal=animal)
+        query = MedicalRecord.objects.filter(animal=animal).order_by("-date_creation")
 
-        context["notes"] = query
+        # context["notes"] = query
+
+        paginator = Paginator(query, per_page=self.paginate_by)
+        page_number = self.request.GET.get('page')
+        context["notes"] = paginator.get_page(page_number)
+
         return context
 
     def test_func(self):
