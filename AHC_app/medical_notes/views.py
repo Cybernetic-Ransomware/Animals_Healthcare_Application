@@ -6,7 +6,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
 
 from animals.models import Animal as AnimalProfile
-from .forms import MedicalRecordForm
+from .forms import MedicalRecordForm, MedicalRecordEditForm
 from .models import MedicalRecord
 
 
@@ -90,10 +90,10 @@ class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
         return context
 
 
-# to fix injecting a tags, fixed type of note and redirecting to notes?
+# fixed showing type of note and redirecting to notes?
 class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = MedicalRecord
-    form_class = MedicalRecordForm
+    form_class = MedicalRecordEditForm
     template_name = 'medical_notes/edit.html'
     context_object_name = 'note'
     success_url = "/pet/animals/"
