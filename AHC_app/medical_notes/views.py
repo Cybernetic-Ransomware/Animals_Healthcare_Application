@@ -90,7 +90,7 @@ class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
         return context
 
 
-# fixed showing type of note and redirecting to notes?
+# to add redirecting back to notes, button for cancel and return, delete view
 class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = MedicalRecord
     form_class = MedicalRecordEditForm

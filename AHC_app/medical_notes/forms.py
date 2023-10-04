@@ -1,8 +1,8 @@
 from django import forms
-from django.core.validators import MaxLengthValidator, MinLengthValidator
-from django.db.models import Q
+# from django.core.validators import MaxLengthValidator, MinLengthValidator
+# from django.db.models import Q
 
-from animals.models import Animal as AnimalProfile
+# from animals.models import Animal as AnimalProfile
 from .models import MedicalRecord
 
 
@@ -45,30 +45,13 @@ class MedicalRecordForm(forms.ModelForm):
         self.initial['type_of_event'] = 'fast_note'
 
 
-class MedicalRecordEditForm(forms.ModelForm):
-    class Meta:
-        model = MedicalRecord
-        fields = [
-            'participants',
-            'place',
-            'short_description',
-            'full_description',
-            'date_event_started',
-            'date_event_ended',
-            'note_tags'
-        ]
-
-        widgets = {
-            "date_event_started": forms.DateInput(attrs={"type": "date", "required": False}),
-            "date_event_ended": forms.DateInput(attrs={"type": "date", "required": False}),
-            "short_description": forms.Textarea(attrs={"rows": 3, "cols": 2}),
-            "full_description": forms.Textarea(attrs={"rows": 12, "cols": 2, "required": False}),
-            "participants": forms.TextInput(attrs={"required": False}),
-            "place": forms.TextInput(attrs={"required": False}),
-            "note_tags": forms.TextInput(attrs={"required": False})
-        }
+class MedicalRecordEditForm(MedicalRecordForm):
 
     def __init__(self, *args, **kwargs):
-        super(MedicalRecordEditForm, self).__init__(*args, **kwargs)
+        super(MedicalRecordEditForm, self).__init__(*args, **kwargs
+                                                    )
         tag_names = list(self.instance.note_tags.values_list('name', flat=True))
         self.initial['note_tags'] = ', '.join(tag_names)
+
+        self.initial['type_of_event'] = self.instance.type_of_event
+        self.fields['type_of_event'].disabled = True
