@@ -5,6 +5,7 @@ from taggit.managers import TaggableManager
 from taggit.models import GenericUUIDTaggedItemBase, TaggedItemBase
 
 from animals.models import Animal
+from users.models import Profile as UserProfile
 
 
 class UUIDTaggedItem(GenericUUIDTaggedItemBase, TaggedItemBase):
@@ -16,6 +17,7 @@ class UUIDTaggedItem(GenericUUIDTaggedItemBase, TaggedItemBase):
 class MedicalRecord(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
+    author = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True)
 
     date_creation = models.DateTimeField(auto_now_add=True, editable=False)
     date_updated = models.DateTimeField(auto_now=True, editable=True)

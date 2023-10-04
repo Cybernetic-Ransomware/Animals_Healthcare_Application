@@ -22,6 +22,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
         new_note = form.save(commit=False)
         new_note.animal = animal
+        new_note.author = self.request.user.profile
         new_note.save()
         form.save_m2m()
 
