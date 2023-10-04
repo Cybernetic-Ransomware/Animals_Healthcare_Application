@@ -17,6 +17,7 @@ class UUIDTaggedItem(GenericUUIDTaggedItemBase, TaggedItemBase):
 class MedicalRecord(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
+    additional_animals = models.ManyToManyField(Animal, related_name='additional_animals', blank=True)
     author = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True)
 
     date_creation = models.DateTimeField(auto_now_add=True, editable=False)

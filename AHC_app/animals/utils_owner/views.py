@@ -144,7 +144,7 @@ class ChangeBirthdayView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["instance"] = get_object_or_404(Animal, pk=self.kwargs["pk"])
-        print(kwargs["instance"])
+        # print(kwargs["instance"])
         return kwargs
 
     def get_context_data(self, **kwargs):

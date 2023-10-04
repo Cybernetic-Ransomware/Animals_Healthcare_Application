@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views.generic.edit import FormView, UpdateView, DeleteView
@@ -10,11 +11,22 @@ from .forms import MedicalRecordForm, MedicalRecordEditForm
 from .models import MedicalRecord
 
 
-# change animal into ManyToMany (animal -> animals), append create field for other animals, hashtags,
+# append viewing other related animals on note_views and notelist
 class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = MedicalRecordForm
-    # success_url = "/pet/animals/"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+
+        query = AnimalProfile.objects.filter(
+            Q(owner=self.request.user.profile)
+            | Q(allowed_users=self.request.user.profile)
+        ).order_by("-creation_date")
+
+        animal_choices = [(animal.id, animal.full_name) for animal in query]
+        kwargs['animal_choices'] = animal_choices
+        return kwargs
 
     def form_valid(self, form):
         animal_id = self.kwargs.get("pk")
@@ -97,6 +109,18 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'medical_notes/edit.html'
     context_object_name = 'note'
     success_url = "/pet/animals/"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+
+        query = AnimalProfile.objects.filter(
+            Q(owner=self.request.user.profile)
+            | Q(allowed_users=self.request.user.profile)
+        ).order_by("-creation_date")
+
+        animal_choices = [(animal.id, animal.full_name) for animal in query]
+        kwargs['animal_choices'] = animal_choices
+        return kwargs
 
     # to do a checkup if all connected animals (after changing to ManyToMany relationship) are under care or are ownership
     # should append author to a note

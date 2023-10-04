@@ -17,7 +17,8 @@ class MedicalRecordForm(forms.ModelForm):
             'full_description',
             'date_event_started',
             'date_event_ended',
-            'note_tags'
+            'note_tags',
+            'additional_animals'
         ]
 
         TYPES_OF_EVENTS = (
@@ -37,12 +38,18 @@ class MedicalRecordForm(forms.ModelForm):
             "type_of_event": forms.Select(choices=TYPES_OF_EVENTS, attrs={'class': 'custom-select'}),
             "participants": forms.TextInput(attrs={"required": False}),
             "place": forms.TextInput(attrs={"required": False}),
-            "note_tags": forms.TextInput(attrs={"required": False})
+            "note_tags": forms.TextInput(attrs={"required": False}),
+            "additional_animals": forms.SelectMultiple(attrs={"required": False})
         }
 
     def __init__(self, *args, **kwargs):
+        animal_choices = kwargs.pop('animal_choices', None)
         super(MedicalRecordForm, self).__init__(*args, **kwargs)
+
+        if animal_choices:
+            self.fields['additional_animals'].widget.choices = animal_choices
         self.initial['type_of_event'] = 'fast_note'
+        self.fields['additional_animals'].label = 'Related animals'
 
 
 class MedicalRecordEditForm(MedicalRecordForm):
