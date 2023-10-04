@@ -112,4 +112,9 @@ class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     success_url = "/pet/animals/"
 
     def test_func(self):
-        return True
+        user = self.request.user.profile
+
+        note_id = self.kwargs.get("pk")
+        note_author = get_object_or_404(MedicalRecord, id=note_id).author
+
+        return user == note_author
