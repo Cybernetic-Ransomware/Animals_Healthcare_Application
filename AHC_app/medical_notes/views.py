@@ -1,8 +1,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
-from django.views.generic.edit import FormView, UpdateView
+from django.urls import reverse, reverse_lazy
+from django.views.generic.edit import FormView, UpdateView, DeleteView
 from django.views.generic.list import ListView
 
 from animals.models import Animal as AnimalProfile
@@ -84,13 +84,12 @@ class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
         animal = get_object_or_404(AnimalProfile, id=animal_id)
 
         tag_name = self.kwargs.get("tag_name")
-        query = MedicalRecord.objects.filter(animal=animal, note_tags__slug=tag_name)
+        query = MedicalRecord.objects.filter(animal=animal, note_tags__slug=tag_name).order_by("-date_creation")
 
         context["notes"] = query
         return context
 
 
-# delete view
 class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = MedicalRecord
     form_class = MedicalRecordEditForm
@@ -101,5 +100,15 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     # to do a checkup if all connected animals (after changing to ManyToMany relationship) are under care or are ownership
     # should append author to a note
     # need to view to change animal connection from note
+    def test_func(self):
+        return True
+
+
+class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = MedicalRecord
+    template_name = 'medical_notes/delete_confirm.html'
+    context_object_name = 'note'
+    success_url = "/pet/animals/"
+
     def test_func(self):
         return True
