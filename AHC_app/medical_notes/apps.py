@@ -6,4 +6,4 @@ class MedicalNotesConfig(AppConfig):
     name = 'medical_notes'
 
     def ready(self):
-        import medical_notes.signals
+        import medical_notes.type_measurement_notes.signals
