@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic.edit import FormView, UpdateView, DeleteView
 from django.views.generic.list import ListView
@@ -38,7 +38,15 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         new_note.save()
         form.save_m2m()
 
-        return super().form_valid(form)
+        # return super().form_valid(form)
+        type_of_event = form.cleaned_data.get("type_of_event")
+
+        if type_of_event == 'biometric_record':
+            medical_create_url = reverse('medical_create', kwargs={'pk': animal_id, 'note_id': new_note.id})
+            return redirect(medical_create_url)
+        else:
+            full_timeline_url = reverse('full_timeline_of_notes', kwargs={'pk': animal_id})
+            return redirect(full_timeline_url)
 
     def test_func(self):
         user = self.request.user.profile
