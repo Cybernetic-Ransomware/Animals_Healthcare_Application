@@ -2,12 +2,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.views.generic.edit import FormView, UpdateView, DeleteView
 from django.views.generic.list import ListView
 
 from animals.models import Animal as AnimalProfile
-from .forms import MedicalRecordForm, MedicalRecordEditForm
+from .forms import MedicalRecordForm, MedicalRecordEditForm, MedicalRecordEditRelatedAnimalsForm
 from .models import MedicalRecord
 
 
@@ -122,9 +122,46 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         kwargs['animal_choices'] = animal_choices
         return kwargs
 
-    # to do a checkup if all connected animals (after changing to ManyToMany relationship) are under care or are ownership
-    # should append author to a note
-    # need to view to change animal connection from note
+    def form_valid(self, form):
+        note_id = self.kwargs.get("pk")
+        note = get_object_or_404(MedicalRecord, id=note_id)
+
+        if 'animal' in form.cleaned_data:
+            note.animal = form.cleaned_data['animal']
+
+        note.save()
+
+        additional_animals = form.cleaned_data.get('additional_animals')
+        note.additional_animals.set(additional_animals)
+
+        return super().form_valid(form)
+
+    def test_func(self):
+        user = self.request.user.profile
+
+        note_id = self.kwargs.get("pk")
+        note_author = get_object_or_404(MedicalRecord, id=note_id).author
+
+        return user == note_author
+
+
+class EditRelatedAnimalsView(EditNoteView):
+    model = MedicalRecord
+    form_class = MedicalRecordEditRelatedAnimalsForm
+    template_name = 'medical_notes/edit.html'
+    context_object_name = 'note'
+    success_url = "/pet/animals/"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+
+        user = self.request.user.profile
+        author = MedicalRecord.objects.filter(author=user)
+
+        kwargs['is_author'] = author.exists()
+
+        return kwargs
+
     def test_func(self):
         return True
 

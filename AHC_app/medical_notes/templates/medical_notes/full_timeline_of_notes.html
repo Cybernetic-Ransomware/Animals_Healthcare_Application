@@ -13,6 +13,13 @@
             <small class="text-muted">{{ note.date_creation }}</small>
         </div>
         <p class="article-content">{{ note.short_description }}</p>
+        {% if note.additional_animals.all|length != 0 %}
+            <p class="article-content">Related also to:
+                {% for animal in note.additional_animals.all %}
+                    <a class="mr-2" href="{% url 'animal_profile' pk=animal.id %}">{{ animal.full_name }}</a>{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            </p>
+        {% endif %}
         {% if note.note_tags.all %}
         <p>
             Tags:
@@ -23,6 +30,7 @@
         {% endif %}
         <div class="grid">
             <a class="text-muted" href="{% url 'note_edit' pk=note.id %}">View full note</a>
+            <a class="text-muted" href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
             <a class="text-muted" href="{% url 'note_delete' pk=note.id %}">Delete</a>
         </div>
     </div>

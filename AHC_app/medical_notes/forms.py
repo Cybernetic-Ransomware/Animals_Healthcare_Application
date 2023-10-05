@@ -55,10 +55,31 @@ class MedicalRecordForm(forms.ModelForm):
 class MedicalRecordEditForm(MedicalRecordForm):
 
     def __init__(self, *args, **kwargs):
-        super(MedicalRecordEditForm, self).__init__(*args, **kwargs
-                                                    )
+        super(MedicalRecordEditForm, self).__init__(*args, **kwargs)
         tag_names = list(self.instance.note_tags.values_list('name', flat=True))
         self.initial['note_tags'] = ', '.join(tag_names)
 
         self.initial['type_of_event'] = self.instance.type_of_event
         self.fields['type_of_event'].disabled = True
+
+
+class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
+    class Meta:
+        model = MedicalRecord
+        fields = [
+            'animal',
+            'additional_animals'
+        ]
+
+    def __init__(self, *args, **kwargs):
+
+        animal_choices = kwargs.pop('animal_choices', None)
+        is_author = kwargs.pop('is_author', None)
+        super(MedicalRecordEditRelatedAnimalsForm, self).__init__(*args, **kwargs)
+
+        if animal_choices:
+            self.fields['animal'].widget.choices = animal_choices
+            self.fields['additional_animals'].widget.choices = animal_choices
+
+        if not is_author:
+            del self.fields['animal']

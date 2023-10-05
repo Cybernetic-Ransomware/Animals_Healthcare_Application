@@ -36,7 +36,6 @@ class MedicalRecord(models.Model):
     # reference to a new table, if needed for some types of records
     event_details = None
 
-    # to use for hashtags
     note_tags = TaggableManager(through=UUIDTaggedItem, blank=True)
 
 
