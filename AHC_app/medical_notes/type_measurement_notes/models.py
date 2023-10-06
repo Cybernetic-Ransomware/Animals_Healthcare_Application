@@ -7,13 +7,13 @@ from medical_notes.models import MedicalRecord
 class BiometricHeightRecords(models.Model):
     height = models.IntegerField(default=0)
     # always in grams, set validation to int values (if is float, ask if save as integer grams)
-    height_unit_to_present = models.CharField(max_length=3, default="g", blank=False)
+    height_unit_to_present = models.CharField(max_length=3, default="mm", blank=False)
 
 
 class BiometricWeightRecords(models.Model):
     weight = models.IntegerField(default=0)
     # always in mm, set validation to int values (if is float, ask if save as integer grams)
-    weight_unit_to_present = models.CharField(max_length=3, default="mm", blank=False)
+    weight_unit_to_present = models.CharField(max_length=3, default="g", blank=False)
 
 
 class BiometricCustomRecords(models.Model):
@@ -27,6 +27,6 @@ class BiometricRecord(models.Model):
     related_note = models.ForeignKey(MedicalRecord, on_delete=models.SET_NULL, blank=True, null=True)
     date_updated = models.DateTimeField(auto_now_add=True, editable=True)
 
-    weight_biometric_record = models.OneToOneField(BiometricHeightRecords, on_delete=models.CASCADE, blank=True, null=True)
-    height_biometric_record = models.OneToOneField(BiometricWeightRecords, on_delete=models.CASCADE, blank=True, null=True)
+    weight_biometric_record = models.OneToOneField(BiometricWeightRecords, on_delete=models.CASCADE, blank=True, null=True)
+    height_biometric_record = models.OneToOneField(BiometricHeightRecords, on_delete=models.CASCADE, blank=True, null=True)
     custom_biometric_record = models.OneToOneField(BiometricCustomRecords, on_delete=models.CASCADE, blank=True, null=True)

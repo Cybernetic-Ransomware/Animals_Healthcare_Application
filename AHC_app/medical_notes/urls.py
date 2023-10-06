@@ -13,6 +13,6 @@ urlpatterns = [
     path('<uuid:pk>/notes/', notes_views.FullTimelineOfNotes.as_view(), name='full_timeline_of_notes'),
     path('<uuid:pk>/notes/<str:tag_name>', notes_views.TagFilteredTimelineOfNotes.as_view(), name='tag_filtered_timeline_of_notes'),
 
-    path('<uuid:pk>/medical_create/<int:note_id>', measurement_views.BiometricRecordCreateView.as_view(), name='medical_create'),
+    path('<uuid:pk>/<uuid:note_id>/medical_create/', measurement_views.BiometricRecordCreateView.as_view(), name='medical_create'),
 
 ]
