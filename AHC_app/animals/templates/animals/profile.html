@@ -88,7 +88,7 @@
             <br>
             <h4>Common options:</h4>
             <div class="grid">
-                <a role="button" class="secondary outline" href="#">Add biometric record</a>
+                <a role="button" class="secondary outline" id="biometric-record-button" href="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record" >Add biometric record</a>
                 <a role="button" class="secondary outline" href="#">Manage notofications</a>
             </div>
         </div>

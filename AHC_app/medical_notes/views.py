@@ -1,13 +1,17 @@
+from animals.models import Animal as AnimalProfile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
-from django.views.generic.edit import FormView, UpdateView, DeleteView
+from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
 
-from animals.models import Animal as AnimalProfile
-from .forms import MedicalRecordForm, MedicalRecordEditForm, MedicalRecordEditRelatedAnimalsForm
+from .forms import (
+    MedicalRecordEditForm,
+    MedicalRecordEditRelatedAnimalsForm,
+    MedicalRecordForm,
+)
 from .models import MedicalRecord
 
 
@@ -25,7 +29,8 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         ).order_by("-creation_date")
 
         animal_choices = [(animal.id, animal.full_name) for animal in query]
-        kwargs['animal_choices'] = animal_choices
+        kwargs["animal_choices"] = animal_choices
+        kwargs["type_of_event_param"] = self.request.GET.get("type_of_event")
         return kwargs
 
     def form_valid(self, form):
@@ -41,11 +46,15 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         # return super().form_valid(form)
         type_of_event = form.cleaned_data.get("type_of_event")
 
-        if type_of_event == 'biometric_record':
-            medical_create_url = reverse('medical_create', kwargs={'pk': animal_id, 'note_id': new_note.id})
+        if type_of_event == "biometric_record":
+            medical_create_url = reverse(
+                "medical_create", kwargs={"pk": animal_id, "note_id": new_note.id}
+            )
             return redirect(medical_create_url)
         else:
-            full_timeline_url = reverse('full_timeline_of_notes', kwargs={'pk': animal_id})
+            full_timeline_url = reverse(
+                "full_timeline_of_notes", kwargs={"pk": animal_id}
+            )
             return redirect(full_timeline_url)
 
     def test_func(self):
@@ -80,7 +89,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         # context["notes"] = query
 
         paginator = Paginator(query, per_page=self.paginate_by)
-        page_number = self.request.GET.get('page')
+        page_number = self.request.GET.get("page")
         context["notes"] = paginator.get_page(page_number)
 
         return context
@@ -105,7 +114,9 @@ class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
         animal = get_object_or_404(AnimalProfile, id=animal_id)
 
         tag_name = self.kwargs.get("tag_name")
-        query = MedicalRecord.objects.filter(animal=animal, note_tags__slug=tag_name).order_by("-date_creation")
+        query = MedicalRecord.objects.filter(
+            animal=animal, note_tags__slug=tag_name
+        ).order_by("-date_creation")
 
         context["notes"] = query
         return context
@@ -114,8 +125,8 @@ class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
 class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = MedicalRecord
     form_class = MedicalRecordEditForm
-    template_name = 'medical_notes/edit.html'
-    context_object_name = 'note'
+    template_name = "medical_notes/edit.html"
+    context_object_name = "note"
     success_url = "/pet/animals/"
 
     def get_form_kwargs(self):
@@ -127,19 +138,19 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         ).order_by("-creation_date")
 
         animal_choices = [(animal.id, animal.full_name) for animal in query]
-        kwargs['animal_choices'] = animal_choices
+        kwargs["animal_choices"] = animal_choices
         return kwargs
 
     def form_valid(self, form):
         note_id = self.kwargs.get("pk")
         note = get_object_or_404(MedicalRecord, id=note_id)
 
-        if 'animal' in form.cleaned_data:
-            note.animal = form.cleaned_data['animal']
+        if "animal" in form.cleaned_data:
+            note.animal = form.cleaned_data["animal"]
 
         note.save()
 
-        additional_animals = form.cleaned_data.get('additional_animals')
+        additional_animals = form.cleaned_data.get("additional_animals")
         note.additional_animals.set(additional_animals)
 
         return super().form_valid(form)
@@ -156,8 +167,8 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 class EditRelatedAnimalsView(EditNoteView):
     model = MedicalRecord
     form_class = MedicalRecordEditRelatedAnimalsForm
-    template_name = 'medical_notes/edit.html'
-    context_object_name = 'note'
+    template_name = "medical_notes/edit.html"
+    context_object_name = "note"
     success_url = "/pet/animals/"
 
     def get_form_kwargs(self):
@@ -166,7 +177,7 @@ class EditRelatedAnimalsView(EditNoteView):
         user = self.request.user.profile
         author = MedicalRecord.objects.filter(author=user)
 
-        kwargs['is_author'] = author.exists()
+        kwargs["is_author"] = author.exists()
 
         return kwargs
 
@@ -176,8 +187,8 @@ class EditRelatedAnimalsView(EditNoteView):
 
 class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = MedicalRecord
-    template_name = 'medical_notes/delete_confirm.html'
-    context_object_name = 'note'
+    template_name = "medical_notes/delete_confirm.html"
+    context_object_name = "note"
     success_url = "/pet/animals/"
 
     def test_func(self):
