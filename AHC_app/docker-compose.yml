@@ -1,0 +1,38 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        python manage.py makemigrations
+        python manage.py migrate
+        python manage.py runserver 0.0.0.0:8000
+
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: movies-library-db
+    environment:
+      - POSTGRES_DB=ahc_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - animals_db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 30s
+      retries: 6
+    restart: always
+
+volumes:
+  animals_db:

@@ -97,10 +97,10 @@ DATABASES = {
     # },
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "adr_main",
-        "USER": "adr_controller",
-        "PASSWORD": "123dupabanana",
-        "HOST": "localhost",
+        "NAME": "ahc_db",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "HOST": "postgres_db",
         "PORT": "5432",
     }
 }
