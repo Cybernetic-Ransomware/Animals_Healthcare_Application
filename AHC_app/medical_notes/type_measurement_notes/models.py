@@ -5,13 +5,13 @@ from medical_notes.models import MedicalRecord
 
 
 class BiometricHeightRecords(models.Model):
-    height = models.IntegerField(default=0)
+    height = models.DecimalField(default=0, max_digits=8, decimal_places=3)
     # always in grams, set validation to int values (if is float, ask if save as integer grams)
     height_unit_to_present = models.CharField(max_length=3, default="mm", blank=False)
 
 
 class BiometricWeightRecords(models.Model):
-    weight = models.IntegerField(default=0)
+    weight = models.DecimalField(default=0, max_digits=8, decimal_places=3)
     # always in mm, set validation to int values (if is float, ask if save as integer grams)
     weight_unit_to_present = models.CharField(max_length=3, default="g", blank=False)
 

@@ -15,7 +15,7 @@ class ProfileBackground(models.Model):
     # content = models.ImageField(default='AHC_app/static/media/background/background-1169534_1920.png',
     #                             upload_to='AHC_app/static/media/background')
     content = models.ImageField(
-        default=ImageGenerator.default_profile_image(),
+        default=ImageGenerator.default_profile_image,
         upload_to="static/media/background",
     )
 
