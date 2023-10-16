@@ -26,7 +26,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         query = AnimalProfile.objects.filter(
             Q(owner=self.request.user.profile)
             | Q(allowed_users=self.request.user.profile)
-        ).order_by("-creation_date")
+        ).exclude(id=self.kwargs.get("pk")).order_by("-creation_date")
 
         animal_choices = [(animal.id, animal.full_name) for animal in query]
         kwargs["animal_choices"] = animal_choices
