@@ -11,15 +11,20 @@ class BiometricRecordCreateView(FormView):
     template_name = 'medical_notes/create.html'
     form_class = BiometricRecordForm
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_name'] = str(self.form_class.__name__)
+        return context
+
     def form_valid(self, form):
         record_type = form.cleaned_data['record_type']
         animal_id = self.kwargs.get('pk')
         note_id = self.kwargs.get('note_id')
 
         animal = get_object_or_404(AnimalProfile, id=animal_id)
-        print(f'{note_id=}')
+        # print(f'{note_id=}')
         related_note = get_object_or_404(MedicalRecord, id=note_id)
-        print(f'{related_note=}')
+        # print(f'{related_note=}')
 
         if record_type == 'weight':
             weight = form.cleaned_data['weight']

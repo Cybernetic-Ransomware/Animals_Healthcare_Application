@@ -33,6 +33,11 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         kwargs["type_of_event_param"] = self.request.GET.get("type_of_event")
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_name'] = str(self.form_class.__name__)
+        return context
+
     def form_valid(self, form):
         animal_id = self.kwargs.get("pk")
         animal = get_object_or_404(AnimalProfile, id=animal_id)
