@@ -81,10 +81,7 @@ class MedicalRecordEditForm(MedicalRecordForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        print(cleaned_data)
         additional_animals = cleaned_data.get("additional_animals")
-        print(f'{self.animal=}')
-        print(f'{additional_animals=}')
 
         if self.animal in additional_animals:
             raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
