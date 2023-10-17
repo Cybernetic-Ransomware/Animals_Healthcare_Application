@@ -94,3 +94,13 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
 
         if not is_author:
             del self.fields["animal"]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        animal = cleaned_data.get("animal")
+        additional_animals = cleaned_data.get("additional_animals")
+
+        if animal in additional_animals:
+            raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
+
+        return cleaned_data
