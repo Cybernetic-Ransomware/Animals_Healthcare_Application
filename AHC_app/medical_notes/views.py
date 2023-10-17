@@ -178,7 +178,6 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         note_id = self.kwargs.get("pk")
         note_author = get_object_or_404(MedicalRecord, id=note_id).author
-
         return user == note_author
 
 
