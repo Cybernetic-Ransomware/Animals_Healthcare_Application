@@ -132,7 +132,6 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     form_class = MedicalRecordEditForm
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
-    success_url = "/pet/animals/"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -159,6 +158,12 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         note.additional_animals.set(additional_animals)
 
         return super().form_valid(form)
+
+    def get_success_url(self):
+        note_id = self.kwargs.get('pk')
+        note = get_object_or_404(MedicalRecord, pk=note_id)
+        animal_id = note.animal.id
+        return reverse('full_timeline_of_notes', kwargs={'pk': animal_id})
 
     def test_func(self):
         user = self.request.user.profile
@@ -194,7 +199,6 @@ class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = MedicalRecord
     template_name = "medical_notes/delete_confirm.html"
     context_object_name = "note"
-    success_url = "/pet/animals/"
 
     def test_func(self):
         user = self.request.user.profile
@@ -203,3 +207,9 @@ class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         note_author = get_object_or_404(MedicalRecord, id=note_id).author
 
         return user == note_author
+
+    def get_success_url(self):
+        note_id = self.kwargs.get('pk')
+        note = get_object_or_404(MedicalRecord, pk=note_id)
+        animal_id = note.animal.id
+        return reverse('full_timeline_of_notes', kwargs={'pk': animal_id})
