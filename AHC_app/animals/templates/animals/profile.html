@@ -69,11 +69,11 @@
                 </div>
 
                 <ol>
-                    {% for record in recent_records reversed  %}
+                    {% for record in recent_records reversed %}
                     <li>
                         <div>
                             <time>{{ record.date_creation|date:"Y-m-d" }}</time>
-                            <a href="#">{{ record.short_description }}</a>
+                            <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
                         </div>
                     </li>
                     {% endfor %}
