@@ -179,7 +179,6 @@ class EditRelatedAnimalsView(EditNoteView):
     form_class = MedicalRecordEditRelatedAnimalsForm
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
-    success_url = "/pet/animals/"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -192,7 +191,17 @@ class EditRelatedAnimalsView(EditNoteView):
         return kwargs
 
     def test_func(self):
-        return True
+        user = self.request.user.profile
+
+        note_id = self.kwargs.get('pk')
+        note = get_object_or_404(MedicalRecord, pk=note_id)
+        animal_id = note.animal.id
+        animal = get_object_or_404(AnimalProfile, id=animal_id)
+
+        all_users = set(animal.allowed_users.all())
+        all_users.add(animal.owner)
+
+        return user in all_users
 
 
 class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
