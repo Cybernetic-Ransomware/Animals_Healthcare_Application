@@ -7,7 +7,7 @@
         <script src="{% static 'js/hiding_note_fields_in_form.js' %}"></script>
         {% csrf_token %}
         <fieldset class="form-group">
-            <legend class="border-bottom mb-4">Edit a note:</legend>
+            <legend class="border-bottom mb-4">Edit a note related with {{ note.animal.full_name }}:</legend>
             <br>
             {{ form|crispy }}
         </fieldset>

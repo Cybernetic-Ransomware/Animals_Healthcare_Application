@@ -143,6 +143,14 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         animal_choices = [(animal.id, animal.full_name) for animal in query]
         kwargs["animal_choices"] = animal_choices
+
+        note_id = self.kwargs.get('pk')
+        note = get_object_or_404(MedicalRecord, pk=note_id)
+        animal_id = note.animal.id
+        animal = get_object_or_404(AnimalProfile, id=animal_id)
+        kwargs["animal"] = animal
+        print(kwargs["animal"])
+
         return kwargs
 
     def form_valid(self, form):
@@ -170,7 +178,6 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         note_id = self.kwargs.get("pk")
         note_author = get_object_or_404(MedicalRecord, id=note_id).author
-
         return user == note_author
 
 

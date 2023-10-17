@@ -59,8 +59,9 @@ class MedicalRecordForm(forms.ModelForm):
         if animal_choices:
             self.fields["additional_animals"].widget.choices = animal_choices
 
-        if type_of_event_param == "biometric_record":
-            self.fields["type_of_event"].initial = "biometric_record"
+        type_of_event = {"fast_note", "medical_visit", "biometric_record", "diet_note", "medicament_note", "other_user_note"}
+        if type_of_event_param in set(event[0] for event in type_of_event):
+            self.fields["type_of_event"].initial = type_of_event_param
         else:
             self.fields["type_of_event"].initial = "fast_note"
 
@@ -69,12 +70,26 @@ class MedicalRecordForm(forms.ModelForm):
 
 class MedicalRecordEditForm(MedicalRecordForm):
     def __init__(self, *args, **kwargs):
+        animal = kwargs.pop('animal', None)
         super(MedicalRecordEditForm, self).__init__(*args, **kwargs)
+        self.animal = animal
         tag_names = list(self.instance.note_tags.values_list("name", flat=True))
         self.initial["note_tags"] = ", ".join(tag_names)
 
         self.initial["type_of_event"] = self.instance.type_of_event
         self.fields["type_of_event"].disabled = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        print(cleaned_data)
+        additional_animals = cleaned_data.get("additional_animals")
+        print(f'{self.animal=}')
+        print(f'{additional_animals=}')
+
+        if self.animal in additional_animals:
+            raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
+
+        return cleaned_data
 
 
 class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
@@ -97,6 +112,7 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        print(cleaned_data)
         animal = cleaned_data.get("animal")
         additional_animals = cleaned_data.get("additional_animals")
 
