@@ -178,6 +178,7 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         note_id = self.kwargs.get("pk")
         note_author = get_object_or_404(MedicalRecord, id=note_id).author
+
         return user == note_author
 
 
@@ -186,6 +187,7 @@ class EditRelatedAnimalsView(EditNoteView):
     form_class = MedicalRecordEditRelatedAnimalsForm
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
+    success_url = "/pet/animals/"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
