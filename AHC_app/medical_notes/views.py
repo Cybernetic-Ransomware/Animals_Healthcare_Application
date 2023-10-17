@@ -187,7 +187,6 @@ class EditRelatedAnimalsView(EditNoteView):
     form_class = MedicalRecordEditRelatedAnimalsForm
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
-    success_url = "/pet/animals/"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
