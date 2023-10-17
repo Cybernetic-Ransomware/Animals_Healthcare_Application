@@ -9,6 +9,8 @@ services:
     depends_on:
       postgres_db:
         condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
