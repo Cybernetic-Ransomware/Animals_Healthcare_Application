@@ -1,12 +1,13 @@
 from django import forms
+
 from .models import BiometricHeightRecords, BiometricWeightRecords
 
 
 class BiometricRecordForm(forms.Form):
     RECORD_CHOICES = [
-        ('weight', 'BiometricWeightRecords'),
-        ('height', 'BiometricHeightRecords'),
-        ('custom', 'BiometricCustomRecords'),
+        ("weight", "Weight Record"),
+        ("height", "Height Record"),
+        ("custom", "Custom Record"),
     ]
 
     record_type = forms.ChoiceField(choices=RECORD_CHOICES)
@@ -24,8 +25,12 @@ class BiometricRecordForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super(BiometricRecordForm, self).__init__(*args, **kwargs)
 
-        default_height_unit_to_present = BiometricHeightRecords._meta.get_field('height_unit_to_present').get_default()
-        default_weight_unit_to_present = BiometricWeightRecords._meta.get_field('weight_unit_to_present').get_default()
+        default_height_unit_to_present = BiometricHeightRecords._meta.get_field(
+            "height_unit_to_present"
+        ).get_default()
+        default_weight_unit_to_present = BiometricWeightRecords._meta.get_field(
+            "weight_unit_to_present"
+        ).get_default()
 
-        self.fields['height_unit_to_present'].initial = default_height_unit_to_present
-        self.fields['weight_unit_to_present'].initial = default_weight_unit_to_present
+        self.fields["height_unit_to_present"].initial = default_height_unit_to_present
+        self.fields["weight_unit_to_present"].initial = default_weight_unit_to_present
