@@ -13,14 +13,16 @@ services:
         condition: service_started
     environment:
       - PYTHONUNBUFFERED=1
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: ["/bin/bash", "-c"]
     command:
       - |
+        apt-get update
+        apt-get install -y cron
         python manage.py makemigrations
         python manage.py migrate
-        python manage.py runserver 0.0.0.0:8000
         python manage.py crontab remove
         python manage.py crontab add
+        python manage.py runserver 0.0.0.0:8000
 
   postgres_db:
     image: postgres:15-alpine

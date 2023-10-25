@@ -1,7 +1,8 @@
-from animals.models import Animal
 from django.conf import settings
 from django.db.models import Q
 from django.views.generic import TemplateView
+
+from animals.models import Animal
 
 
 class HomepageView(TemplateView):

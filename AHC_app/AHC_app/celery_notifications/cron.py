@@ -1,17 +1,16 @@
 
 
-@staticmethod
-def sent_notifification():
-    pass
+def create_message():
+    print('test')
 
 
-def send_emails(sent_notifification):
-    pass
+def send_emails():
+    create_message()
 
 
-def send_sms(sent_notifification):
-    pass
+def send_sms():
+    create_message()
 
 
-def send_discord_notes(sent_notifification):
-    pass
+def send_discord_notes():
+    create_message()
