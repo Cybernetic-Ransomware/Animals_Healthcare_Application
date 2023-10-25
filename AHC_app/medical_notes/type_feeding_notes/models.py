@@ -22,8 +22,6 @@ class FeedingNote(models.Model):
     # create an app for the product catalog, build a registration of products, a purchases history and aggregation of costs
     # create separate catalogs of basic fodder and medicines/supplements
 
-    # na klase abstrakcyjną i dziedziczyć przez każdy rodzaj notyfikacji, sprawdź w ćwiczeniach
-
 
 class FeedingNotification(models.Model):
     related_note = models.ForeignKey(
@@ -32,7 +30,6 @@ class FeedingNotification(models.Model):
     description = models.CharField(max_length=250)
 
     is_active = models.BooleanField(default=False, null=False)
-    form = models.CharField(max_length=50)
 
     reciever_name = models.CharField(max_length=30)
     message = models.CharField(max_length=2500)
@@ -41,11 +38,21 @@ class FeedingNotification(models.Model):
     end_date = models.DateField(null=True, blank=True)
     frequency_interval = models.DurationField(null=True, blank=True)
 
+    class Meta:
+        abstract = True
 
-class EmailNotification(models.Model):
-    related_note = models.ForeignKey(
-        FeedingNotification, on_delete=models.SET_NULL, blank=True, null=True
-    )
+
+class EmailNotification(FeedingNotification):
     email = models.EmailField()
 
-    # append sms and at least one communicator (e.g. Discord)
+
+class SMSNotification(FeedingNotification):
+    number = models.PositiveIntegerField(null=False, blank=False)
+    country_code = models.CharField(max_length=5, default='+48', null=False, blank=True)
+
+    message = models.CharField(max_length=160)
+
+
+class DiscordNotification(FeedingNotification):
+    user_id = models.PositiveBigIntegerField(null=False, blank=False)
+    bot_id = models.PositiveBigIntegerField(null=False, blank=False)
