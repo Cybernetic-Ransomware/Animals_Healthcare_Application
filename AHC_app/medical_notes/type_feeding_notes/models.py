@@ -42,7 +42,10 @@ class FeedingNotification(models.Model):
         abstract = True
 
 
-class EmailNotification(FeedingNotification):
+class EmailNotification(models.Model):
+    related_note = models.ForeignKey(
+        FeedingNotification, on_delete=models.SET_NULL, blank=True, null=True
+    )
     email = models.EmailField()
 
 
