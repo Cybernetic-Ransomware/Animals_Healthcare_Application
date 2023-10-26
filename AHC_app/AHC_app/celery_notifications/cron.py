@@ -1,31 +1,42 @@
-from django.core.mail import send_mail
+from config import send_notifications
+from datetime import datetime, timedelta
+from django.db.models import Q, F, ExpressionWrapper, DateTimeField
+from django.urls import reverse
+from django.utils import timezone
+
+from medical_notes.type_feeding_notes.models import EmailNotification
 
 
-def create_message(max_length: int = 2500) -> str:
-    print('test')
-    message = 'test message'
-    if len(message) > max_length:
-        message = message[:max_length-4]
-        message = message + '...'
-    return message
+def send_emails():
+    current_time = datetime.now()
+    next_hour = current_time + timedelta(hours=1)
 
-
-def send_emails(*args):
-    print(*args)
-    text_message: str = create_message()
-
-    send_mail(
-        "Animal notification",
-        text_message,
-        "from@example.com",
-        ["Scorpos6@gmail.com"],
-        fail_silently=True,
+    notifications_to_send = EmailNotification.objects.filter(
+        Q(
+            related_note__start_date__lte=next_hour,
+            related_note__end_date__gte=current_time,
+            related_note__is_active=True,
+        ),
+        related_note__start_date__lte=F('related_note__start_date') + ExpressionWrapper(
+            (F('related_note__start_date') - F('related_note__start_date')) % F('related_note__frequency_interval'),
+            output_field=DateTimeField()
+        )
     )
+
+    for notification in notifications_to_send:
+
+        note_url = reverse('note_edit', kwargs={"pk": notification.related_note.id})
+
+        send_notifications.delay(notify_type="email",
+                                 email=notification.email,
+                                 message=notification.message,
+                                 receiver_name=notification.receiver_name,
+                                 related_note=note_url)
 
 
 def send_sms():
-    create_message()
+    pass
 
 
 def send_discord_notes():
-    create_message()
+    pass

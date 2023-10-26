@@ -37,7 +37,7 @@ class HomepageView(TemplateView):
         recipient_email = 'scorpos6@gmail.com'
         subject = 'Test subject'
         message = 'Test message'
-        sender_email = None
+        sender_email = settings.EMAIL_HOST_USER
 
         send_mail(subject, message, sender_email, [recipient_email], fail_silently=False)
 
