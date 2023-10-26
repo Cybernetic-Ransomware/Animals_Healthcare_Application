@@ -1,5 +1,7 @@
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db.models import Q
+from django.shortcuts import redirect
 from django.views.generic import TemplateView
 
 from animals.models import Animal
@@ -30,3 +32,18 @@ class HomepageView(TemplateView):
             context["example_animal_id"] = query.latest("creation_date").id
 
         return context
+
+    def send_email(self):
+        recipient_email = 'scorpos6@gmail.com'
+        subject = 'Test subject'
+        message = 'Test message'
+        sender_email = None
+
+        send_mail(subject, message, sender_email, [recipient_email], fail_silently=True)
+
+    def post(self, request, *args, **kwargs):
+        if 'send_email' in request.POST:
+            self.send_email()
+            self.extra_context = {'email_sent': True}
+            return redirect(request.path)
+        return super().post(request, *args, **kwargs)

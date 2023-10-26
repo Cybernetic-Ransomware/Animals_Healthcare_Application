@@ -32,6 +32,10 @@
     <div class="grid">
         <a role="button" class="secondary outline" href="{% url 'animals_stable' %}">Manage all animals</a>
         <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
+        <form method="post" action="">
+            {% csrf_token %}
+            <input type="submit" name="send_email" value="Send a sample email">
+        </form>
     </div>
     {% endif %}
 
