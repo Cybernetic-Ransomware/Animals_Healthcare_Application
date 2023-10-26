@@ -39,7 +39,7 @@ class HomepageView(TemplateView):
         message = 'Test message'
         sender_email = None
 
-        send_mail(subject, message, sender_email, [recipient_email], fail_silently=True)
+        send_mail(subject, message, sender_email, [recipient_email], fail_silently=False)
 
     def post(self, request, *args, **kwargs):
         if 'send_email' in request.POST:
