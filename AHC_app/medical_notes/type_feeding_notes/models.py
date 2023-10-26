@@ -36,7 +36,9 @@ class FeedingNotification(models.Model):
 
     start_date = models.DateField(null=False, blank=False)
     end_date = models.DateField(null=True, blank=True)
-    frequency_interval = models.DurationField(null=True, blank=True)
+    frequency_interval = models.DurationField(
+        null=True, blank=True
+    )  # przetwórz na godzinę hh:mm plus nowe pole na dni tygodnia (ArrayField w Postgresie)
 
     class Meta:
         abstract = True
@@ -51,7 +53,7 @@ class EmailNotification(models.Model):
 
 class SMSNotification(FeedingNotification):
     number = models.PositiveIntegerField(null=False, blank=False)
-    country_code = models.CharField(max_length=5, default='+48', null=False, blank=True)
+    country_code = models.CharField(max_length=5, default="+48", null=False, blank=True)
 
     message = models.CharField(max_length=160)
 
