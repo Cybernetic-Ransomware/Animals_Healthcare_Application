@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
-from medical_notes.models import MedicalRecord
+from medical_notes.models.type_basic_note import MedicalRecord
 
 from .forms import AnimalRegisterForm
 from .models import Animal

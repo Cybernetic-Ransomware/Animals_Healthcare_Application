@@ -4,7 +4,7 @@ from django.db.models import Q, F, ExpressionWrapper, DateTimeField
 from django.urls import reverse
 from django.utils import timezone
 
-from medical_notes.type_feeding_notes.models import EmailNotification
+from medical_notes.models.type_feeding_notes import EmailNotification
 
 
 def send_emails():
@@ -27,11 +27,18 @@ def send_emails():
 
         note_url = reverse('note_edit', kwargs={"pk": notification.related_note.id})
 
-        send_notifications.delay(notify_type="email",
-                                 email=notification.email,
-                                 message=notification.message,
-                                 receiver_name=notification.receiver_name,
-                                 related_note=note_url)
+        # send_notifications.apply_async
+        # Call the task with a delay, example:
+        # arg1_value = 'some_value'
+        # arg2_value = 42
+        # delayed_task = my_task.apply_async(args=[arg1_value, arg2_value], countdown=60)
+
+        # send_notifications.delay(notify_type="email",
+        #                          email=notification.email,
+        #                          message=notification.message,
+        #                          receiver_name=notification.receiver_name,
+        #                          related_note=note_url)
+        pass
 
 
 def send_sms():

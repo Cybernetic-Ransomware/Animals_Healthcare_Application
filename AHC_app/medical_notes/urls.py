@@ -1,7 +1,8 @@
 from django.urls import path
 
-from . import views as notes_views
-from .type_measurement_notes import views as measurement_views
+# from . import views as notes_views
+from medical_notes.views import type_basic_note as notes_views
+from medical_notes.views import type_measurement_notes as measurement_views
 
 
 urlpatterns = [

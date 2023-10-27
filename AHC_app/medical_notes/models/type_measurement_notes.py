@@ -1,6 +1,6 @@
 from animals.models import Animal
 from django.db import models
-from medical_notes.models import MedicalRecord
+from medical_notes.models.type_basic_note import MedicalRecord
 
 
 class BiometricHeightRecords(models.Model):

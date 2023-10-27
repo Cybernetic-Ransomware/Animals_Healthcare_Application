@@ -1,7 +1,7 @@
 from celery import Celery
 from celery.utils.log import get_task_logger
 
-from utils import send_via_email, send_via_sms, send_via_discord
+from sending_utils import send_via_email, send_via_sms, send_via_discord
 
 
 logger = get_task_logger(__name__)
@@ -11,13 +11,15 @@ celery_obj = Celery(
 
 
 @celery_obj.task()
-def send_notifications(notify_type, **kwargs):
-    match notify_type:
-        case "email":
-            send_via_email(**kwargs)
-        case "sms":
-            send_via_sms(**kwargs)
-        case "chatbot":
-            send_via_discord(**kwargs)
-        case _:
-            raise ValueError("Unexpected type of notification")
+def send_email_notifications(**kwargs):
+    send_via_email(**kwargs)
+
+
+@celery_obj.task()
+def send_sms_notifications(**kwargs):
+    send_via_sms(**kwargs)
+
+
+@celery_obj.task()
+def send_discord_notifications(**kwargs):
+    send_via_discord(**kwargs)

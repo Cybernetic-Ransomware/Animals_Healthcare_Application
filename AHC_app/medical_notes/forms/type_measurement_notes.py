@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import BiometricHeightRecords, BiometricWeightRecords
+from medical_notes.models.type_measurement_notes import BiometricHeightRecords, BiometricWeightRecords
 
 
 class BiometricRecordForm(forms.Form):

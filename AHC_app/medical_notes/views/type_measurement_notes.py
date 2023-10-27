@@ -1,10 +1,10 @@
 from django.shortcuts import get_object_or_404, reverse, redirect
 from django.views.generic.edit import FormView
 
-from .forms import BiometricRecordForm
-from .models import BiometricRecord, BiometricHeightRecords, BiometricWeightRecords, BiometricCustomRecords
+from medical_notes.forms.type_measurement_notes import BiometricRecordForm
 from animals.models import Animal as AnimalProfile
-from medical_notes.models import MedicalRecord
+from medical_notes.models.type_measurement_notes import BiometricRecord, BiometricHeightRecords, BiometricWeightRecords, BiometricCustomRecords
+from medical_notes.models.type_basic_note import MedicalRecord
 
 
 class BiometricRecordCreateView(FormView):

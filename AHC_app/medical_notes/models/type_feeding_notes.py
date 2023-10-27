@@ -1,5 +1,6 @@
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from medical_notes.models import MedicalRecord
+from medical_notes.models.type_basic_note import MedicalRecord
 
 
 class FeedingNote(models.Model):
@@ -36,9 +37,10 @@ class FeedingNotification(models.Model):
 
     start_date = models.DateField(null=False, blank=False)
     end_date = models.DateField(null=True, blank=True)
-    frequency_interval = models.DurationField(
-        null=True, blank=True
-    )  # przetwórz na godzinę hh:mm plus nowe pole na dni tygodnia (ArrayField w Postgresie)
+    daily_timestamp = models.TimeField(null=True, blank=True)
+    # 0 -> Monday, 6 -> Sunday
+    days_of_week = models.ArrayField(ArrayField(
+        models.BooleanField(default=False, blank=True), size=1), size=7,)
 
     class Meta:
         abstract = True
