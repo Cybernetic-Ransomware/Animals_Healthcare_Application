@@ -1,7 +1,7 @@
 from celery import Celery
 from celery.utils.log import get_task_logger
 
-from sending_utils import send_via_email, send_via_sms, send_via_discord
+# from utils.sending_utils import send_via_email, send_via_sms, send_via_discord
 
 
 logger = get_task_logger(__name__)
@@ -12,14 +12,17 @@ celery_obj = Celery(
 
 @celery_obj.task()
 def send_email_notifications(**kwargs):
-    send_via_email(**kwargs)
+    # send_via_email(**kwargs)
+    pass
 
 
 @celery_obj.task()
 def send_sms_notifications(**kwargs):
-    send_via_sms(**kwargs)
+    # send_via_sms(**kwargs)
+    pass
 
 
 @celery_obj.task()
 def send_discord_notifications(**kwargs):
-    send_via_discord(**kwargs)
+    # send_via_discord(**kwargs)
+    pass

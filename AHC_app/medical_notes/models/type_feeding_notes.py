@@ -1,5 +1,6 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from timezone_field import TimeZoneField
 from medical_notes.models.type_basic_note import MedicalRecord
 
 
@@ -37,6 +38,7 @@ class FeedingNotification(models.Model):
 
     start_date = models.DateField(null=False, blank=False)
     end_date = models.DateField(null=True, blank=True)
+    timezone = TimeZoneField(default='GTM')
     daily_timestamp = models.TimeField(null=True, blank=True)
     # 0 -> Monday, 6 -> Sunday
     days_of_week = models.ArrayField(ArrayField(
