@@ -43,18 +43,29 @@ def send_emails() -> None:
         if user_weekday_number in notification.related_note.days_of_week:
             break
 
-        email: str = notification.email
+        email: list[str] = list(notification.email)
+
+        animal: str = notification.related_note.related_note.animal
+
         receiver_name: str = notification.related_note.receiver_name
-        message: str = notification.related_note.receiver_name
+        header: str = f'Hi, {receiver_name}'
+
+        message: str = notification.related_note.message
         note_url: str = reverse('note_edit', kwargs={"pk": notification.related_note.id})
+        center: str = (f'{message} \n\n '
+                       f'For further information:\n{note_url}')
+
+        sender: str = notification.related_note.related_note.author
+        footer: str = f'Best regards \n{sender}'
+
+        subject = f'Subscription for feeding plan of {animal}'
+        content = f'{header}\n\n{center}\n\n{footer}'
         delay: int = calculate_time_difference(notification.related_note.daily_timestamp)
 
-        send_notifications.apply_async(kwargs={'email': email,
-                                               'receiver_name': receiver_name,
-                                               'message': message,
-                                               'note_url': note_url,
-                                               'delay': delay},
-                                       countdown=60)
+        send_notifications.apply_async(kwargs={'recipient_list': email,
+                                               'subject': subject,
+                                               'message': content},
+                                       countdown=delay)
 
 
 def send_sms():
