@@ -27,7 +27,7 @@ services:
 
   postgres_db:
     image: postgres:15-alpine
-    container_name: movies-library-db
+    container_name: main-db
     environment:
       - POSTGRES_DB=ahc_db
       - POSTGRES_USER=postgres
