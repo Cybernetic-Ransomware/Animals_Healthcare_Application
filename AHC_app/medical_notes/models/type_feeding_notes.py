@@ -6,16 +6,17 @@ from medical_notes.models.type_basic_note import MedicalRecord
 
 class FeedingNote(models.Model):
     related_note = models.ForeignKey(
-        MedicalRecord, on_delete=models.SET_NULL, blank=True, null=True
+        MedicalRecord, on_delete=models.CASCADE, null=False, blank=False
     )
 
     # planned  dates are from MedicalRecord
-    real_start_date = models.DateField(null=True, blank=True)
-    real_end_date = models.DateField(null=True, blank=True)
+    real_start_date = models.DateField(null=True, blank=False)
+    real_end_date = models.DateField(null=True, blank=False)
 
-    is_medicine = models.BooleanField(default=False)
+    is_medicine = models.BooleanField(default=False, null=False, blank=True)
 
-    type = models.CharField(max_length=50)
+    # to create app with products catalog
+    category = models.CharField(max_length=50, null=False, blank=False)
     product_name = models.CharField(max_length=80)
     producer = models.CharField(max_length=120)
     dose_annotations = models.CharField(max_length=250)
@@ -27,7 +28,7 @@ class FeedingNote(models.Model):
 
 class FeedingNotification(models.Model):
     related_note = models.ForeignKey(
-        FeedingNote, on_delete=models.SET_NULL, blank=True, null=True
+        FeedingNote, on_delete=models.CASCADE, blank=True, null=True
     )
     description = models.CharField(max_length=250)
 
@@ -41,17 +42,14 @@ class FeedingNotification(models.Model):
     timezone = TimeZoneField(default='GTM')
     daily_timestamp = models.TimeField(null=True, blank=True)
     # 0 -> Monday, 6 -> Sunday
-    days_of_week = models.ArrayField(ArrayField(
+    days_of_week = ArrayField(ArrayField(
         models.BooleanField(default=False, blank=True), size=1), size=7,)
 
     class Meta:
         abstract = True
 
 
-class EmailNotification(models.Model):
-    related_note = models.ForeignKey(
-        FeedingNotification, on_delete=models.SET_NULL, blank=True, null=True
-    )
+class EmailNotification(FeedingNotification):
     email = models.EmailField()
 
 

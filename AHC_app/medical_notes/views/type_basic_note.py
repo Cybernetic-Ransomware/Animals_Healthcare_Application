@@ -49,7 +49,12 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
         if type_of_event == "biometric_record":
             medical_create_url = reverse(
-                "medical_create", kwargs={"pk": animal_id, "note_id": new_note.id}
+                "biometric_create", kwargs={"pk": animal_id, "note_id": new_note.id}
+            )
+            return redirect(medical_create_url)
+        elif type_of_event == "diet_note":
+            medical_create_url = reverse(
+                "feeding_create", kwargs={"pk": animal_id, "note_id": new_note.id}
             )
             return redirect(medical_create_url)
         else:
@@ -87,8 +92,6 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         animal = get_object_or_404(AnimalProfile, id=animal_id)
         query = MedicalRecord.objects.filter(animal=animal).order_by("-date_creation")
 
-        # context["notes"] = query
-
         paginator = Paginator(query, per_page=self.paginate_by)
         page_number = self.request.GET.get("page")
         context["notes"] = paginator.get_page(page_number)
@@ -117,6 +120,22 @@ class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
         tag_name = self.kwargs.get("tag_name")
         query = MedicalRecord.objects.filter(
             animal=animal, note_tags__slug=tag_name
+        ).order_by("-date_creation")
+
+        context["notes"] = query
+        return context
+
+
+class TypeFilteredTimelineOfNotes(FullTimelineOfNotes):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        animal_id = self.kwargs.get("pk")
+        animal = get_object_or_404(AnimalProfile, id=animal_id)
+
+        type_of_event = self.kwargs.get("type_of_event")
+        query = MedicalRecord.objects.filter(
+            animal=animal, type_of_event=type_of_event
         ).order_by("-date_creation")
 
         context["notes"] = query
