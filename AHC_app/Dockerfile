@@ -1,7 +1,8 @@
 FROM python:3.11.3
 LABEL authors="AM"
 WORKDIR /app
-COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip &&  \
-    pip install --no-cache-dir -r requirements.txt
+COPY Pipfile Pipfile.lock ./
+RUN python -m pip install --upgrade pip
+RUN pip install pipenv &&  \
+    pipenv install --dev --system --deploy
 COPY . .
