@@ -99,7 +99,9 @@
                 <h6>Records</h6>
                 <div class="grid">
                     <a role="button" class="secondary outline" href="#">Edit biometric records</a>
-                    <a role="button" class="secondary outline" href="{% url 'type_filtered_timeline_of_notes' pk=animal.id type_of_event='diet_note' %}">Manage a current diet</a>
+                    <a role="button" class="secondary outline" href="#">Manage a current diet</a>
+{#                    <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id ?type_of_event='diet_note' %}">Manage a current diet</a>#}
+                    <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=diet_note">Manage a current diet</a>
                     <a role="button" class="secondary outline" href="#">Manage current medicines</a>
                 </div>
                 <br>

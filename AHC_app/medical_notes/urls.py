@@ -13,8 +13,6 @@ urlpatterns = [
     path('<uuid:pk>/realted/', notes_views.EditRelatedAnimalsView.as_view(), name='note_animals_edit'),
 
     path('<uuid:pk>/notes/', notes_views.FullTimelineOfNotes.as_view(), name='full_timeline_of_notes'),
-    path('<uuid:pk>/notes/<str:tag_name>', notes_views.TagFilteredTimelineOfNotes.as_view(), name='tag_filtered_timeline_of_notes'),
-    path('<uuid:pk>/notes_type/<str:type_of_event>', notes_views.TypeFilteredTimelineOfNotes.as_view(), name='type_filtered_timeline_of_notes'),
 
     path('<uuid:pk>/<uuid:note_id>/feeding_create/', feeding_views.DietRecordCreateView.as_view(), name='feeding_create'),
     path('<uuid:pk>/feeding_edit/', feeding_views.EditDietRecordView.as_view(), name='feeding_edit'),

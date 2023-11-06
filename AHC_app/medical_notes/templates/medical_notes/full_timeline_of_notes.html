@@ -14,7 +14,7 @@
             <br>
             <small class="text-muted">
             Type:
-            <a class="mr-2" href="{% url 'type_filtered_timeline_of_notes' pk=note.animal.id type_of_event=note.type_of_event %}">#{{ note.type_of_event }}</a>
+            <a class="mr-2" href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}type_of_event={{ note.type_of_event }}">{{ note.type_of_event }}</a>
             </small>
         </div>
         <br>
@@ -32,8 +32,7 @@
         <p>
             Tags:
             {% for tag in note.note_tags.all %}
-            <a class="mr-2" href="{% url 'tag_filtered_timeline_of_notes' pk=note.animal.id tag_name=tag.slug %}">{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
-            {% endfor %}
+            <a class="mr-2" href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}tag_name={{ tag.slug }}">#{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}            {% endfor %}
         </p>
         {% endif %}
         <div class="grid">

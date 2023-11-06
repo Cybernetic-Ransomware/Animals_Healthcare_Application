@@ -92,6 +92,14 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         animal = get_object_or_404(AnimalProfile, id=animal_id)
         query = MedicalRecord.objects.filter(animal=animal).order_by("-date_creation")
 
+        type_of_event = self.request.GET.get("type_of_event")
+        if type_of_event:
+            query = query.filter(type_of_event=type_of_event)
+
+        tag_name = self.request.GET.get("tag_name")
+        if tag_name:
+            query = query.filter(note_tags__slug=tag_name)
+
         paginator = Paginator(query, per_page=self.paginate_by)
         page_number = self.request.GET.get("page")
         context["notes"] = paginator.get_page(page_number)
@@ -108,38 +116,6 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         all_users.add(animal.owner)
 
         return user in all_users
-
-
-class TagFilteredTimelineOfNotes(FullTimelineOfNotes):
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        animal_id = self.kwargs.get("pk")
-        animal = get_object_or_404(AnimalProfile, id=animal_id)
-
-        tag_name = self.kwargs.get("tag_name")
-        query = MedicalRecord.objects.filter(
-            animal=animal, note_tags__slug=tag_name
-        ).order_by("-date_creation")
-
-        context["notes"] = query
-        return context
-
-
-class TypeFilteredTimelineOfNotes(FullTimelineOfNotes):
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        animal_id = self.kwargs.get("pk")
-        animal = get_object_or_404(AnimalProfile, id=animal_id)
-
-        type_of_event = self.kwargs.get("type_of_event")
-        query = MedicalRecord.objects.filter(
-            animal=animal, type_of_event=type_of_event
-        ).order_by("-date_creation")
-
-        context["notes"] = query
-        return context
 
 
 class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
