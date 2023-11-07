@@ -1,5 +1,6 @@
 from celery import Celery
 from celery.utils.log import get_task_logger
+from django.conf import settings
 
 from AHC_app.celery_notifications.utils.sending_utils import (
     send_via_email,  # , send_via_sms, send_via_discord
@@ -13,14 +14,13 @@ celery_obj = Celery(
 
 @celery_obj.task()
 def send_email_notifications(**kwargs):
-    send_via_email(**kwargs)
 
-    # recipient_list = kwargs.get('email')
-    # subject = kwargs.get('subject')
-    # message = kwargs.get('message')
-    # sender_email = settings.EMAIL_HOST_USER
-    #
-    # send_mail(subject=subject, message=message, from_email=sender_email, recipient_list=recipient_list, fail_silently=True)
+    recipient_list = kwargs.get('email')
+    subject = kwargs.get('subject')
+    message = kwargs.get('message')
+    sender_email = settings.EMAIL_HOST_USER
+
+    send_via_email(subject=subject, message=message, from_email=sender_email, recipient_list=recipient_list, fail_silently=True)
 
 
 @celery_obj.task()
