@@ -34,12 +34,12 @@ class FeedingNotification(models.Model):
 
     is_active = models.BooleanField(default=False, null=False)
 
-    reciever_name = models.CharField(max_length=30)
+    receiver_name = models.CharField(max_length=30)
     message = models.CharField(max_length=2500)
 
     start_date = models.DateField(null=False, blank=False)
     end_date = models.DateField(null=True, blank=True)
-    timezone = TimeZoneField(default='GTM')
+    timezone = TimeZoneField(default='Europe/London')
     daily_timestamp = models.TimeField(null=True, blank=True)
     # 0 -> Monday, 6 -> Sunday
     days_of_week = ArrayField(ArrayField(

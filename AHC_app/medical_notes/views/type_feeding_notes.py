@@ -1,10 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, reverse, redirect
-from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.edit import CreateView, FormView, UpdateView
 
-from medical_notes.forms.type_feeding_notes import DietRecordForm
+from medical_notes.forms.type_feeding_notes import DietRecordForm, NotificationRecordForm
 from animals.models import Animal as AnimalProfile
-from medical_notes.models.type_feeding_notes import FeedingNote
+from medical_notes.models.type_feeding_notes import FeedingNote, EmailNotification
 from medical_notes.models.type_basic_note import MedicalRecord
 
 
@@ -18,10 +18,10 @@ class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return context
 
     def form_valid(self, form):
-        animal_id = self.kwargs.get('pk')
+        # animal_id = self.kwargs.get('pk')
         note_id = self.kwargs.get('note_id')
 
-        animal = get_object_or_404(AnimalProfile, id=animal_id)
+        # animal = get_object_or_404(AnimalProfile, id=animal_id)
         related_note = get_object_or_404(MedicalRecord, id=note_id)
 
         feeding_note = form.save(commit=False)
@@ -102,3 +102,32 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         note_id = self.kwargs.get("pk")
         note_author = get_object_or_404(MedicalRecord, id=note_id).author
         return user == note_author
+
+
+class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    template_name = 'medical_notes/create.html'
+    form_class = NotificationRecordForm
+    success_url = '/'  # -> manage notifications
+
+    def get_object(self, queryset=None):
+        note_id = self.kwargs.get('pk')
+        return get_object_or_404(MedicalRecord, id=note_id)
+
+    def form_valid(self, form):
+        note_id = self.kwargs.get('pk')
+        related_note = get_object_or_404(MedicalRecord, id=note_id)
+
+        notify = form.save(commit=False)
+
+        days_of_week = [False for i in range(7)]
+        for i in notify.days_of_week:
+            days_of_week[i] = True
+
+        notify.related_note = related_note
+        notify.days_of_week = days_of_week
+        notify.save()
+
+        return super().form_valid(form)
+
+    def test_func(self):
+        return True
