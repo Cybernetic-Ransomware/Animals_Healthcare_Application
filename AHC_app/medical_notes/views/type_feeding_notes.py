@@ -5,7 +5,7 @@ from django.views.generic.list import ListView
 
 from medical_notes.forms.type_feeding_notes import DietRecordForm, NotificationRecordForm
 from animals.models import Animal as AnimalProfile
-from medical_notes.models.type_feeding_notes import FeedingNote, EmailNotification
+from medical_notes.models.type_feeding_notes import FeedingNote, EmailNotification, SMSNotification, DiscordNotification
 from medical_notes.models.type_basic_note import MedicalRecord
 
 
@@ -139,12 +139,9 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
     def form_valid(self, form):
         note_id = self.kwargs.get('pk')
-        print(f'{note_id=}')
         related_note = get_object_or_404(FeedingNote, id=note_id)
-        print(f'{related_note=}')
 
         notify = form.save(commit=False)
-        print(f'{notify=}')
         days_of_week = [int(day) for day in self.request.POST.getlist('days_of_week')]
 
         processed_days_of_week = [False] * 7
@@ -159,3 +156,29 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
     def test_func(self):
         return True
+
+
+class NotificationListView(ListView):
+    template_name = 'medical_notes/notification_list.html'  # Szablon do wyrenderowania listy notyfikacji
+    context_object_name = 'notifications'
+
+    def get_queryset(self):
+        medical_record_pk = self.kwargs.get('pk')
+        print(f'{medical_record_pk=}')
+        medical_record = MedicalRecord.objects.get(pk=medical_record_pk)
+        print(f'{medical_record=}')
+
+        feeding_notes = FeedingNote.objects.filter(related_note=medical_record)
+        print(f'{feeding_notes=}')
+
+        notifications = []
+        for feeding_note in feeding_notes:
+            print(f'{feeding_note.pk=}')
+            email_notifications = EmailNotification.objects.filter(related_note__in=feeding_notes)
+            sms_notifications = SMSNotification.objects.filter(related_note__in=feeding_notes)
+            discord_notifications = DiscordNotification.objects.filter(related_note__in=feeding_notes)
+
+            notifications.extend(list(email_notifications) + list(sms_notifications) + list(discord_notifications))
+
+        print(f'{notifications=}')
+        return notifications
