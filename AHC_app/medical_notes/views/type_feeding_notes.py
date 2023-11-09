@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, reverse, redirect
 from django.views.generic.edit import CreateView, FormView, UpdateView
+from django.views.generic.list import ListView
 
 from medical_notes.forms.type_feeding_notes import DietRecordForm, NotificationRecordForm
 from animals.models import Animal as AnimalProfile
@@ -28,7 +29,7 @@ class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         feeding_note.related_note = related_note
         feeding_note.save()
 
-        success_url = reverse("animal_profile", kwargs={"pk": animal_id})
+        success_url = reverse("animal_profile", kwargs={"pk": "animal_id"})
         return redirect(success_url)
 
     def test_func(self):
@@ -104,27 +105,54 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return user == note_author
 
 
+class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin,ListView):
+    model = FeedingNote
+    template_name = "medical_notes/feeding_notes_list.html"
+    context_object_name = "feeding_notes"
+
+    def get_queryset(self):
+        record_id = self.kwargs.get("pk")
+        print(f'{record_id=}')
+
+        medical_record = get_object_or_404(MedicalRecord, pk=record_id)
+        print(f'{medical_record.id=}')
+        queryset = FeedingNote.objects.filter(related_note=medical_record.id)
+        print(f'{queryset=}')
+
+        # medical_record_id = FeedingNote.objects.filter(id=record_id).first().id
+        # queryset = FeedingNote.objects.filter(related_notes__id=medical_record_id)
+
+        return queryset
+
+    def test_func(self):
+        return True
+
+
 class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
-    template_name = 'medical_notes/create.html'
+    template_name = 'medical_notes/create_notify.html'
     form_class = NotificationRecordForm
     success_url = '/'  # -> manage notifications
 
-    def get_object(self, queryset=None):
+    def get_object(self):
         note_id = self.kwargs.get('pk')
-        return get_object_or_404(MedicalRecord, id=note_id)
+        return get_object_or_404(FeedingNote, id=note_id)
 
     def form_valid(self, form):
         note_id = self.kwargs.get('pk')
-        related_note = get_object_or_404(MedicalRecord, id=note_id)
+        print(f'{note_id=}')
+        related_note = get_object_or_404(FeedingNote, id=note_id)
+        print(f'{related_note=}')
 
         notify = form.save(commit=False)
+        print(f'{notify=}')
+        days_of_week = [int(day) for day in self.request.POST.getlist('days_of_week')]
 
-        days_of_week = [False for i in range(7)]
-        for i in notify.days_of_week:
-            days_of_week[i] = True
+        processed_days_of_week = [False] * 7
+        for i in days_of_week:
+            processed_days_of_week[i] = True
 
         notify.related_note = related_note
-        notify.days_of_week = days_of_week
+        notify.days_of_week = processed_days_of_week
         notify.save()
 
         return super().form_valid(form)

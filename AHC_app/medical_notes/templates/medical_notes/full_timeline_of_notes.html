@@ -40,7 +40,7 @@
             <a class="text-muted" href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
             {% if note.type_of_event == 'diet_note' %}
             <a class="text-muted" href="{% url 'feeding_edit' pk=note.id%}">Edit diet</a>
-            <a class="text-muted" href="{% url 'notification_create' pk=note.id%}">Set notification</a>
+            <a class="text-muted" href="{% url 'note_related_notifications' pk=note.id%}">Check notifications</a>
             {% endif %}
             <a class="text-muted" href="{% url 'note_delete' pk=note.id %}">Delete</a>
         </div>

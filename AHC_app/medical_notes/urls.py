@@ -16,7 +16,8 @@ urlpatterns = [
 
     path('<uuid:pk>/<uuid:note_id>/feeding_create/', feeding_views.DietRecordCreateView.as_view(), name='feeding_create'),
     path('<uuid:pk>/feeding_edit/', feeding_views.EditDietRecordView.as_view(), name='feeding_edit'),
-    path('<uuid:pk>/notify_create/', feeding_views.CreateNotificationView.as_view(), name='notification_create'),
+    path('<uuid:pk>/note_notifies/', feeding_views.FeedingNoteListView.as_view(), name='note_related_notifications'),
+    path('<pk>/notify_create/', feeding_views.CreateNotificationView.as_view(), name='notification_create'),
 
     path('<uuid:pk>/<uuid:note_id>/medical_create/', measurement_views.BiometricRecordCreateView.as_view(), name='biometric_create'),
 

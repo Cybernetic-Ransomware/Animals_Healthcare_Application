@@ -1,0 +1,73 @@
+{% extends "homepage/base.html" %}
+{% block content %}
+
+<div class="container">
+  <h2>Feeding Notes</h2>
+  <div class="row">
+    <div class="col-12">
+      <div class="list-group">
+        {% for note in feeding_notes %}
+        <div class="list-group-item list-group-item-action">
+          <h4 class="list-group-item-heading">{{ note.product_name }}</h4>
+          <p class="list-group-item-text">Category: {{ note.category }}</p>
+          <p class="list-group-item-text">Producer: {{ note.producer }}</p>
+          <p class="list-group-item-text">Dose Annotations: {{ note.dose_annotations }}</p>
+          <p class="list-group-item-text">Real Start Date: {{ note.real_start_date }}</p>
+          <p class="list-group-item-text">Real End Date: {{ note.real_end_date }}</p>
+          <p class="list-group-item-text">Is Medicine: {{ note.is_medicine }}</p>
+          <p class="list-group-item-text">Have Active Notifications: {{ note.related_note.is_active }}</p>
+          <!-- Add similar lines for SMSNotification and DiscordNotification if needed -->
+          <div class="btn-group" role="group">
+          <div class="grid">
+            <a role="button" class="secondary outline" href="{% url 'feeding_edit' pk=note.related_note.id %}" class="btn btn-info">Edit</a>
+            <a role="button" class="secondary outline" href="#">Delete</a>
+            <a role="button" class="secondary outline" href="#">Check Related Notifications</a>
+            <a role="button" class="secondary outline" href="{% url 'notification_create' pk=note.id %}">Set a new</a>
+          </div>
+          </div>
+        </div>
+        {% empty %}
+        <p>No feeding notes found for this MedicalRecord.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+    <br>
+  <div class="border-top pt-3">
+      <div class="grid">
+          {#    <a href="{% url 'full_timeline_of_notes' pk=feeding_notes.related_note.animal.id %}" class="btn btn-secondary">Return to Full Timeline of Notes</a>#}
+          {#    <a href="{% url 'animal_profile' pk=note.feeding_notes.animal.id %}" class="btn btn-secondary">Return to Animal Profile</a>#}
+          <a role="button" class="secondary outline" href="#" >All User Notifications</a>
+      </div>
+  </div>
+
+    {% if notes.paginator.page_range|length > 1 %}
+    <div>
+    <small class="text-muted">
+        Pages:
+    </small>
+
+    {% if notes.has_previous %}
+    <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ notes.previous_page_number }}">Previous</a>
+    {% endif %}
+
+
+    {% for num in notes.paginator.page_range %}
+    {% if notes.number == num %}
+    <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
+    {% elif num > notes.number|add:'-3' and num < notes.number|add:'3' %}
+    <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
+    {% endif %}
+    {% endfor %}
+
+    {% if notes.has_next %}
+    <a class="btn btn-outline-info mb-4" href="?page={{ notes.next_page_number }}">Next</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ notes.paginator.num_pages }}">Last</a>
+    {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
