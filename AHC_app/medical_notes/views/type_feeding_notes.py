@@ -1,26 +1,28 @@
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.shortcuts import get_object_or_404, reverse, redirect
-from django.views.generic.edit import CreateView, FormView, UpdateView
-from django.views.generic.list import ListView
-
-from medical_notes.forms.type_feeding_notes import DietRecordForm, NotificationRecordForm
 from animals.models import Animal as AnimalProfile
-from medical_notes.models.type_feeding_notes import FeedingNote, EmailNotification, SMSNotification, DiscordNotification
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.shortcuts import get_object_or_404, redirect, reverse
+from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.list import ListView
+from medical_notes.forms.type_feeding_notes import (
+    DietRecordForm,
+    NotificationRecordForm,
+)
 from medical_notes.models.type_basic_note import MedicalRecord
+from medical_notes.models.type_feeding_notes import EmailNotification, FeedingNote
 
 
 class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
-    template_name = 'medical_notes/create.html'
+    template_name = "medical_notes/create.html"
     form_class = DietRecordForm
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form_name'] = str(self.form_class.__name__)
+        context["form_name"] = str(self.form_class.__name__)
         return context
 
     def form_valid(self, form):
         # animal_id = self.kwargs.get('pk')
-        note_id = self.kwargs.get('note_id')
+        note_id = self.kwargs.get("note_id")
 
         # animal = get_object_or_404(AnimalProfile, id=animal_id)
         related_note = get_object_or_404(MedicalRecord, id=note_id)
@@ -85,17 +87,17 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     #     return super().form_valid(form)
 
     def get_object(self, queryset=None):
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         return get_object_or_404(FeedingNote, related_note__id=note_id)
 
     def form_valid(self, form):
         return super().form_valid(form)
 
     def get_success_url(self):
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         note = get_object_or_404(MedicalRecord, pk=note_id)
         animal_id = note.animal.id
-        return reverse('full_timeline_of_notes', kwargs={'pk': animal_id})
+        return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
 
     def test_func(self):
         user = self.request.user.profile
@@ -105,19 +107,19 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return user == note_author
 
 
-class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin,ListView):
+class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = FeedingNote
     template_name = "medical_notes/feeding_notes_list.html"
     context_object_name = "feeding_notes"
 
     def get_queryset(self):
         record_id = self.kwargs.get("pk")
-        print(f'{record_id=}')
+        print(f"{record_id=}")
 
         medical_record = get_object_or_404(MedicalRecord, pk=record_id)
-        print(f'{medical_record.id=}')
+        print(f"{medical_record.id=}")
         queryset = FeedingNote.objects.filter(related_note=medical_record.id)
-        print(f'{queryset=}')
+        print(f"{queryset=}")
 
         # medical_record_id = FeedingNote.objects.filter(id=record_id).first().id
         # queryset = FeedingNote.objects.filter(related_notes__id=medical_record_id)
@@ -129,20 +131,20 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin,ListView):
 
 
 class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
-    template_name = 'medical_notes/create_notify.html'
+    template_name = "medical_notes/create_notify.html"
     form_class = NotificationRecordForm
-    success_url = '/'  # -> manage notifications
+    success_url = "/"  # -> manage notifications
 
     def get_object(self):
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         return get_object_or_404(FeedingNote, id=note_id)
 
     def form_valid(self, form):
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         related_note = get_object_or_404(FeedingNote, id=note_id)
 
         notify = form.save(commit=False)
-        days_of_week = [int(day) for day in self.request.POST.getlist('days_of_week')]
+        days_of_week = [int(day) for day in self.request.POST.getlist("days_of_week")]
 
         processed_days_of_week = [False] * 7
         for i in days_of_week:
@@ -159,26 +161,28 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
 
 class NotificationListView(ListView):
-    template_name = 'medical_notes/notification_list.html'  # Szablon do wyrenderowania listy notyfikacji
-    context_object_name = 'notifications'
+    template_name = "medical_notes/notification_list.html"  # Szablon do wyrenderowania listy notyfikacji
+    context_object_name = "notifications"
 
     def get_queryset(self):
-        medical_record_pk = self.kwargs.get('pk')
-        print(f'{medical_record_pk=}')
+        medical_record_pk = self.kwargs.get("pk")
+        print(f"{medical_record_pk=}")
         medical_record = MedicalRecord.objects.get(pk=medical_record_pk)
-        print(f'{medical_record=}')
+        print(f"{medical_record=}")
 
-        feeding_notes = FeedingNote.objects.filter(related_note=medical_record)
-        print(f'{feeding_notes=}')
+        feeding_notes = FeedingNote.objects.filter(related_note=medical_record).all()
+        print(f"{feeding_notes=}")
 
         notifications = []
         for feeding_note in feeding_notes:
-            print(f'{feeding_note.pk=}')
-            email_notifications = EmailNotification.objects.filter(related_note__in=feeding_notes)
-            sms_notifications = SMSNotification.objects.filter(related_note__in=feeding_notes)
-            discord_notifications = DiscordNotification.objects.filter(related_note__in=feeding_notes)
-
-            notifications.extend(list(email_notifications) + list(sms_notifications) + list(discord_notifications))
-
-        print(f'{notifications=}')
+            print(f"{feeding_note.pk=}")
+            email_notifications = EmailNotification.objects.filter(
+                related_note=feeding_note
+            ).all()
+            # sms_notifications = SMSNotification.objects.filter(related_note__in=feeding_notes)
+            # discord_notifications = DiscordNotification.objects.filter(related_note__in=feeding_notes)
+            #
+            # notifications.extend(list(email_notifications) + list(sms_notifications) + list(discord_notifications))
+            notifications.extend(email_notifications)
+        print(f"{notifications=}")
         return notifications

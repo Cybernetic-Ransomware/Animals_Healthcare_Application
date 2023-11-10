@@ -1,3 +1,4 @@
+from animals.models import Animal as AnimalProfile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -5,9 +6,11 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
-
-from animals.models import Animal as AnimalProfile
-from medical_notes.forms.type_basic_note import (MedicalRecordEditForm, MedicalRecordEditRelatedAnimalsForm, MedicalRecordForm)
+from medical_notes.forms.type_basic_note import (
+    MedicalRecordEditForm,
+    MedicalRecordEditRelatedAnimalsForm,
+    MedicalRecordForm,
+)
 from medical_notes.models.type_basic_note import MedicalRecord
 
 
@@ -19,10 +22,14 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
 
-        query = AnimalProfile.objects.filter(
-            Q(owner=self.request.user.profile)
-            | Q(allowed_users=self.request.user.profile)
-        ).exclude(id=self.kwargs.get("pk")).order_by("-creation_date")
+        query = (
+            AnimalProfile.objects.filter(
+                Q(owner=self.request.user.profile)
+                | Q(allowed_users=self.request.user.profile)
+            )
+            .exclude(id=self.kwargs.get("pk"))
+            .order_by("-creation_date")
+        )
 
         animal_choices = [(animal.id, animal.full_name) for animal in query]
         kwargs["animal_choices"] = animal_choices
@@ -31,7 +38,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form_name'] = str(self.form_class.__name__)
+        context["form_name"] = str(self.form_class.__name__)
         return context
 
     def form_valid(self, form):
@@ -90,7 +97,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
         animal_id = self.kwargs.get("pk")
         animal = get_object_or_404(AnimalProfile, id=animal_id)
-        query = MedicalRecord.objects.filter(animal=animal).order_by("-date_creation")
+        query = MedicalRecord.objects.filter(animal=animal)
 
         type_of_event = self.request.GET.get("type_of_event")
         if type_of_event:
@@ -100,7 +107,9 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         if tag_name:
             query = query.filter(note_tags__slug=tag_name)
 
-        paginator = Paginator(query, per_page=self.paginate_by)
+        paginator = Paginator(
+            list(query.order_by("-date_creation")), per_page=self.paginate_by
+        )
         page_number = self.request.GET.get("page")
         context["notes"] = paginator.get_page(page_number)
 
@@ -135,7 +144,7 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         animal_choices = [(animal.id, animal.full_name) for animal in query]
         kwargs["animal_choices"] = animal_choices
 
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         note = get_object_or_404(MedicalRecord, pk=note_id)
         animal_id = note.animal.id
         animal = get_object_or_404(AnimalProfile, id=animal_id)
@@ -159,10 +168,10 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         note = get_object_or_404(MedicalRecord, pk=note_id)
         animal_id = note.animal.id
-        return reverse('full_timeline_of_notes', kwargs={'pk': animal_id})
+        return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
 
     def test_func(self):
         user = self.request.user.profile
@@ -191,7 +200,7 @@ class EditRelatedAnimalsView(EditNoteView):
     def test_func(self):
         user = self.request.user.profile
 
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         note = get_object_or_404(MedicalRecord, pk=note_id)
         animal_id = note.animal.id
         animal = get_object_or_404(AnimalProfile, id=animal_id)
@@ -216,7 +225,7 @@ class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return user == note_author
 
     def get_success_url(self):
-        note_id = self.kwargs.get('pk')
+        note_id = self.kwargs.get("pk")
         note = get_object_or_404(MedicalRecord, pk=note_id)
         animal_id = note.animal.id
-        return reverse('full_timeline_of_notes', kwargs={'pk': animal_id})
+        return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
