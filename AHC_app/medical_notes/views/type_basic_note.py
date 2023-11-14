@@ -61,7 +61,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
             return redirect(medical_create_url)
         elif type_of_event == "diet_note":
             medical_create_url = reverse(
-                "feeding_create", kwargs={"pk": animal_id, "note_id": new_note.id}
+                "feeding_create", kwargs={"pk": new_note.id}
             )
             return redirect(medical_create_url)
         else:

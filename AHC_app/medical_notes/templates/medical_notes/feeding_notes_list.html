@@ -23,6 +23,7 @@
             <a role="button" class="secondary outline" href="#">Delete</a>
             <a role="button" class="secondary outline" href="#">Check Related Notifications</a>
             <a role="button" class="secondary outline" href="{% url 'notification_create' pk=note.id %}">Set a new</a>
+              <p>{{ note.id }}</p>
           </div>
           </div>
         </div>
@@ -37,6 +38,7 @@
       <div class="grid">
           {#    <a href="{% url 'full_timeline_of_notes' pk=feeding_notes.related_note.animal.id %}" class="btn btn-secondary">Return to Full Timeline of Notes</a>#}
           {#    <a href="{% url 'animal_profile' pk=note.feeding_notes.animal.id %}" class="btn btn-secondary">Return to Animal Profile</a>#}
+          <a role="button" class="secondary outline" href="{% url 'feeding_create' pk=medical_record_id  %}" >Add a new product</a>
           <a role="button" class="secondary outline" href="#" >All User Notifications</a>
       </div>
   </div>

@@ -21,24 +21,24 @@ class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return context
 
     def form_valid(self, form):
-        # animal_id = self.kwargs.get('pk')
-        note_id = self.kwargs.get("note_id")
+        note_id = self.kwargs.get("pk")
 
-        # animal = get_object_or_404(AnimalProfile, id=animal_id)
         related_note = get_object_or_404(MedicalRecord, id=note_id)
+        animal = get_object_or_404(AnimalProfile, id=related_note.id)
 
         feeding_note = form.save(commit=False)
         feeding_note.related_note = related_note
         feeding_note.save()
 
-        success_url = reverse("animal_profile", kwargs={"pk": "animal_id"})
+        success_url = reverse("animal_profile", kwargs={"pk": animal.id})
         return redirect(success_url)
 
     def test_func(self):
         user = self.request.user.profile
 
-        animal_id = self.kwargs.get("pk")
-        animal = get_object_or_404(AnimalProfile, id=animal_id)
+        note_id = self.kwargs.get("pk")
+        related_note = get_object_or_404(MedicalRecord, id=note_id)
+        animal = get_object_or_404(AnimalProfile, id=related_note.animal.id)
 
         all_users = set(animal.allowed_users.all())
         all_users.add(animal.owner)
@@ -125,6 +125,11 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         # queryset = FeedingNote.objects.filter(related_notes__id=medical_record_id)
 
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['medical_record_id'] = self.kwargs['pk']
+        return context
 
     def test_func(self):
         return True
