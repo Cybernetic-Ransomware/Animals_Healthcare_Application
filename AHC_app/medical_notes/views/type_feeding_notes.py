@@ -21,7 +21,9 @@ class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return context
 
     def form_valid(self, form):
+        print("Validating form")
         note_id = self.kwargs.get("pk")
+        print("")
 
         related_note = get_object_or_404(MedicalRecord, id=note_id)
         animal = get_object_or_404(AnimalProfile, id=related_note.id)
@@ -120,6 +122,7 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         print(f"{medical_record.id=}")
         queryset = FeedingNote.objects.filter(related_note=medical_record.id)
         print(f"{queryset=}")
+        id("dupa1")
 
         # medical_record_id = FeedingNote.objects.filter(id=record_id).first().id
         # queryset = FeedingNote.objects.filter(related_notes__id=medical_record_id)
