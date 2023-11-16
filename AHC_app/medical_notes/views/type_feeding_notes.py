@@ -21,18 +21,16 @@ class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return context
 
     def form_valid(self, form):
-        print("Validating form")
         note_id = self.kwargs.get("pk")
-        print("")
 
         related_note = get_object_or_404(MedicalRecord, id=note_id)
-        animal = get_object_or_404(AnimalProfile, id=related_note.id)
+        animal = related_note.animal
 
         feeding_note = form.save(commit=False)
         feeding_note.related_note = related_note
         feeding_note.save()
 
-        success_url = reverse("animal_profile", kwargs={"pk": animal.id})
+        success_url = reverse("note_related_diets", kwargs={"pk": note_id})
         return redirect(success_url)
 
     def test_func(self):
@@ -116,22 +114,15 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
     def get_queryset(self):
         record_id = self.kwargs.get("pk")
-        print(f"{record_id=}")
-
         medical_record = get_object_or_404(MedicalRecord, pk=record_id)
-        print(f"{medical_record.id=}")
         queryset = FeedingNote.objects.filter(related_note=medical_record.id)
-        print(f"{queryset=}")
-        id("dupa1")
-
-        # medical_record_id = FeedingNote.objects.filter(id=record_id).first().id
-        # queryset = FeedingNote.objects.filter(related_notes__id=medical_record_id)
 
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['medical_record_id'] = self.kwargs['pk']
+        context['medical_record_id'] = self.kwargs.get("pk")
+        context['animal_id'] = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk")).animal.id
         return context
 
     def test_func(self):
@@ -141,7 +132,6 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "medical_notes/create_notify.html"
     form_class = NotificationRecordForm
-    success_url = "/"  # -> manage notifications
 
     def get_object(self):
         note_id = self.kwargs.get("pk")
@@ -174,16 +164,12 @@ class NotificationListView(ListView):
 
     def get_queryset(self):
         medical_record_pk = self.kwargs.get("pk")
-        print(f"{medical_record_pk=}")
         medical_record = MedicalRecord.objects.get(pk=medical_record_pk)
-        print(f"{medical_record=}")
 
         feeding_notes = FeedingNote.objects.filter(related_note=medical_record).all()
-        print(f"{feeding_notes=}")
 
         notifications = []
         for feeding_note in feeding_notes:
-            print(f"{feeding_note.pk=}")
             email_notifications = EmailNotification.objects.filter(
                 related_note=feeding_note
             ).all()
@@ -192,5 +178,4 @@ class NotificationListView(ListView):
             #
             # notifications.extend(list(email_notifications) + list(sms_notifications) + list(discord_notifications))
             notifications.extend(email_notifications)
-        print(f"{notifications=}")
         return notifications

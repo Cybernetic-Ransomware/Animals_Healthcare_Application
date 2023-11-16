@@ -15,16 +15,15 @@
           <p class="list-group-item-text">Real Start Date: {{ note.real_start_date }}</p>
           <p class="list-group-item-text">Real End Date: {{ note.real_end_date }}</p>
           <p class="list-group-item-text">Is Medicine: {{ note.is_medicine }}</p>
-          <p class="list-group-item-text">Have Active Notifications: {{ note.related_note.is_active }}</p>
-          <!-- Add similar lines for SMSNotification and DiscordNotification if needed -->
+          <p class="list-group-item-text">Have Active Notifications: {{ note.related_note.is_active|yesno:"Yes,No,None" }}</p>
           <div class="btn-group" role="group">
-          <div class="grid">
-            <a role="button" class="secondary outline" href="{% url 'feeding_edit' pk=note.related_note.id %}" class="btn btn-info">Edit</a>
-            <a role="button" class="secondary outline" href="#">Delete</a>
-            <a role="button" class="secondary outline" href="#">Check Related Notifications</a>
-            <a role="button" class="secondary outline" href="{% url 'notification_create' pk=note.id %}">Set a new</a>
-              <p>{{ note.id }}</p>
-          </div>
+              <div class="grid">
+                <a role="button" class="secondary outline" href="{% url 'feeding_edit' pk=note.related_note.id %}" class="btn btn-info">Edit</a>
+                <a role="button" class="secondary outline" href="#">Delete</a>
+                <a role="button" class="secondary outline" href="#">Check Related Notifications</a>
+                <a role="button" class="secondary outline" href="{% url 'notification_create' pk=note.id %}">Set a new</a>
+              </div>
+              <br>
           </div>
         </div>
         {% empty %}
@@ -36,10 +35,13 @@
     <br>
   <div class="border-top pt-3">
       <div class="grid">
-          {#    <a href="{% url 'full_timeline_of_notes' pk=feeding_notes.related_note.animal.id %}" class="btn btn-secondary">Return to Full Timeline of Notes</a>#}
-          {#    <a href="{% url 'animal_profile' pk=note.feeding_notes.animal.id %}" class="btn btn-secondary">Return to Animal Profile</a>#}
-          <a role="button" class="secondary outline" href="{% url 'feeding_create' pk=medical_record_id  %}" >Add a new product</a>
+          <a role="button" class="secondary outline" href="{% url 'feeding_create' pk=medical_record_id %}" >Add a new product</a>
+          <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal_id %}" class="btn btn-secondary">Return to Full Timeline of Notes</a>
+      </div>
+      <br>
+      <div class="grid">
           <a role="button" class="secondary outline" href="#" >All User Notifications</a>
+          <a role="button" class="secondary outline" href="{% url 'animal_profile' pk=animal_id %}" class="btn btn-secondary">Return to Animal Profile</a>
       </div>
   </div>
 
