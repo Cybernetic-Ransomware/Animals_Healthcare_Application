@@ -15,8 +15,10 @@ urlpatterns = [
     path('<uuid:pk>/notes/', notes_views.FullTimelineOfNotes.as_view(), name='full_timeline_of_notes'),
 
     path('<uuid:pk>/feeding_create/', feeding_views.DietRecordCreateView.as_view(), name='feeding_create'),
-    path('<uuid:pk>/feeding_edit/', feeding_views.EditDietRecordView.as_view(), name='feeding_edit'),
+    path('<pk>/feeding_edit/', feeding_views.EditDietRecordView.as_view(), name='feeding_edit'),
+
     path('<uuid:pk>/diet_list/', feeding_views.FeedingNoteListView.as_view(), name='note_related_diets'),
+
     path('<pk>/notify_create/', feeding_views.CreateNotificationView.as_view(), name='notification_create'),
     path('<uuid:pk>/notifications/', feeding_views.NotificationListView.as_view(), name='note_related_notifications'),
 

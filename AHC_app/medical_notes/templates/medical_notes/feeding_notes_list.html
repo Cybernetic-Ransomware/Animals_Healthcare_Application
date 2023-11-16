@@ -18,7 +18,7 @@
           <p class="list-group-item-text">Have Active Notifications: {{ note.related_note.is_active|yesno:"Yes,No,None" }}</p>
           <div class="btn-group" role="group">
               <div class="grid">
-                <a role="button" class="secondary outline" href="{% url 'feeding_edit' pk=note.related_note.id %}" class="btn btn-info">Edit</a>
+                <a role="button" class="secondary outline" href="{% url 'feeding_edit' pk=note.id %}">Edit</a>
                 <a role="button" class="secondary outline" href="#">Delete</a>
                 <a role="button" class="secondary outline" href="#">Check Related Notifications</a>
                 <a role="button" class="secondary outline" href="{% url 'notification_create' pk=note.id %}">Set a new</a>
