@@ -66,7 +66,6 @@ tzdata = "==2023.3"
 urllib3 = "==2.0.7"
 vine = "==5.0.0"
 wcwidth = "==0.2.8"
-icecream = "*"
 
 [dev-packages]
 pre-commit = "*"
