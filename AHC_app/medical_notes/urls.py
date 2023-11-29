@@ -20,7 +20,7 @@ urlpatterns = [
     path('<uuid:pk>/diet_list/', feeding_views.FeedingNoteListView.as_view(), name='note_related_diets'),
 
     path('<pk>/notify_create/', feeding_views.CreateNotificationView.as_view(), name='notification_create'),
-    path('<uuid:pk>/notifications/', feeding_views.NotificationListView.as_view(), name='note_related_notifications'),
+    path('<pk>/notifications/', feeding_views.NotificationListView.as_view(), name='note_related_notifications'),
 
     path('<uuid:pk>/<uuid:note_id>/medical_create/', measurement_views.BiometricRecordCreateView.as_view(), name='biometric_create'),
 

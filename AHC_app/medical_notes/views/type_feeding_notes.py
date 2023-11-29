@@ -122,6 +122,7 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "medical_notes/create_notify.html"
     form_class = NotificationRecordForm
+    success_url = "/"
 
     def get_object(self):
         note_id = self.kwargs.get("pk")
@@ -149,23 +150,14 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
 
 class NotificationListView(ListView):
-    template_name = "medical_notes/notification_list.html"  # Szablon do wyrenderowania listy notyfikacji
+    template_name = "medical_notes/notification_list.html"
     context_object_name = "notifications"
 
     def get_queryset(self):
-        medical_record_pk = self.kwargs.get("pk")
-        medical_record = MedicalRecord.objects.get(pk=medical_record_pk)
+        feeding_note_record_pk = self.kwargs.get("pk")
+        feeding_note = get_object_or_404(FeedingNote, pk=feeding_note_record_pk)
 
-        feeding_notes = FeedingNote.objects.filter(related_note=medical_record).all()
+        email_notifications = EmailNotification.objects.filter(related_note=feeding_note)
+        flattened_email_notifications = list(email_notifications)
 
-        notifications = []
-        for feeding_note in feeding_notes:
-            email_notifications = EmailNotification.objects.filter(
-                related_note=feeding_note
-            ).all()
-            # sms_notifications = SMSNotification.objects.filter(related_note__in=feeding_notes)
-            # discord_notifications = DiscordNotification.objects.filter(related_note__in=feeding_notes)
-            #
-            # notifications.extend(list(email_notifications) + list(sms_notifications) + list(discord_notifications))
-            notifications.extend(email_notifications)
-        return notifications
+        return flattened_email_notifications

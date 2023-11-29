@@ -1,66 +1,48 @@
 {% extends "homepage/base.html" %}
 {% block content %}
 
+
 {% for note in notifications %}
 <article class="media content-section">
     <div class="media-body">
-        <a class="mr-2" href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>
-        <div class="article-metadata">
-            <small class="text-muted">{{ note.date_creation }}</small>
-            <br>
-            <small class="text-muted">
-                Type: {{ note.get_type_of_event_display }}
-            </small>
-        </div>
+{#        <a class="mr-2" href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>#}
+    <div class="article-metadata">
+        <small class="text-muted">{{ note.start_date }}</small>
         <br>
-        <p class="article-content">{{ note.description }}</p>
+        <small class="text-muted">
+            Type: {{ note.message }}
+        </small>
+    </div>
+    <br>
+    <p class="article-content">{{ note.description }}</p>
 
-        {% if note.additional_animals.all|length != 0 %}
-            <p class="article-content">Related also to:
-                {% for animal in note.additional_animals.all %}
-                    <a class="mr-2" href="{% url 'animal_profile' pk=animal.id %}">{{ animal.full_name }}</a>{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            </p>
-        {% endif %}
 
-        {% if note.note_tags.all %}
-        <p>
-            Tags:
-            {% for tag in note.note_tags.all %}
-            <a class="mr-2" href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}tag_name={{ tag.slug }}">#{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        </p>
-        {% endif %}
-        
-        <!-- Dodaj sekcję dla powiązanych notyfikacji -->
-        {% if note.emailnotification %}
-        <div class="notification-info">
-            <p>Email Notification:</p>
-            <p>Email: {{ note.emailnotification.email }}</p>
-        </div>
-        {% endif %}
-        
-        {% if note.smsnotification %}
-        <div class="notification-info">
-            <p>SMS Notification:</p>
-            <p>Number: {{ note.smsnotification.number }}</p>
-        </div>
-        {% endif %}
-        
-        {% if note.discordnotification %}
-        <div class="notification-info">
-            <p>Discord Notification:</p>
-            <p>User ID: {{ note.discordnotification.user_id }}</p>
-        </div>
-        {% endif %}
-        
+    {% if note.emailnotification %}
+    <div class="notification-info">
+        <p>Email Notification:</p>
+        <p>Email: {{ note.emailnotification.email }}</p>
+    </div>
+    {% endif %}
+
+    {% if note.smsnotification %}
+    <div class="notification-info">
+        <p>SMS Notification:</p>
+        <p>Number: {{ note.smsnotification.number }}</p>
+    </div>
+    {% endif %}
+
+    {% if note.discordnotification %}
+    <div class="notification-info">
+        <p>Discord Notification:</p>
+        <p>User ID: {{ note.discordnotification.user_id }}</p>
+    </div>
+    {% endif %}
+
         <div class="grid">
-            <!-- Pozostałe przyciski -->
+
         </div>
     </div>
 </article>
 {% endfor %}
-
-<!-- Reszta szablonu pozostaje bez zmian -->
 
 {% endblock %}
