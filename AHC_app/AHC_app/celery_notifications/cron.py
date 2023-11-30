@@ -9,7 +9,9 @@ from django.urls import reverse
 from medical_notes.models.type_feeding_notes import EmailNotification
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(filename='AHC_app/log/cron.log',
+                    level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
