@@ -154,10 +154,26 @@ class NotificationListView(ListView):
     context_object_name = "notifications"
 
     def get_queryset(self):
-        feeding_note_record_pk = self.kwargs.get("pk")
-        feeding_note = get_object_or_404(FeedingNote, pk=feeding_note_record_pk)
+        feednote_pk = self.request.GET.get("feednote_pk")
+        mednote_uuid = self.request.GET.get("mednote_uuid")
+        animal_uuid = self.request.GET.get("animal_uuid")
 
-        email_notifications = EmailNotification.objects.filter(related_note=feeding_note)
-        flattened_email_notifications = list(email_notifications)
+        if feednote_pk:
+            email_notifications = EmailNotification.objects.filter(related_note=feednote_pk)
+            flattened_email_notifications = list(email_notifications)
 
-        return flattened_email_notifications
+            return flattened_email_notifications
+
+        elif mednote_uuid:
+            pass
+
+        elif animal_uuid:
+
+            pass
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['feednote_pk'] = self.request.GET.get("feednote_pk")
+        context['mednote_uuid'] = self.request.GET.get("mednote_uuid")
+        context['animal_uuid'] = self.request.GET.get("animal_uuid")
+        return context
