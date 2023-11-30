@@ -1,17 +1,20 @@
 import logging
-from functools import wraps
 from datetime import datetime, time, timedelta
+from functools import wraps
 
 import pytz
-from config import send_email_notifications
 from django.db.models import QuerySet
 from django.urls import reverse
 from medical_notes.models.type_feeding_notes import EmailNotification
 
+from AHC_app.celery_notifications.config import send_email_notifications
 
-logging.basicConfig(filename='AHC_app/log/cron.log',
-                    level=logging.DEBUG,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename="logs/cron.log",
+    force=True,
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -20,11 +23,12 @@ def log_exceptions_and_notifications(func):
     def wrapper(*args, **kwargs):
         try:
             notifications_to_send = func(*args, **kwargs)
-            logger.debug(f'Notifications to send: {notifications_to_send}')
+            logger.debug(f"Notifications to send: {notifications_to_send}")
             return notifications_to_send
 
         except Exception as e:
-            logger.exception(f'Failed to send notification {func.__name__}: {e}')
+            logger.exception(f"Failed to send notification {func.__name__}: {e}")
+
     return wrapper
 
 
@@ -48,7 +52,9 @@ def get_notifications_to_send() -> QuerySet[EmailNotification]:
     current_time_time: time = current_time.time()
     next_hour_time: time = next_hour.time()
 
-    notifications_to_send: QuerySet[EmailNotification] = EmailNotification.objects.filter(
+    notifications_to_send: QuerySet[
+        EmailNotification
+    ] = EmailNotification.objects.filter(
         related_note__start_date__lte=next_hour.date(),
         related_note__end_date__gte=current_time.date(),
         related_note__is_active=True,
@@ -61,10 +67,13 @@ def get_notifications_to_send() -> QuerySet[EmailNotification]:
 
 
 @log_exceptions_and_notifications
-def send_emails(notifications_to_send: QuerySet[EmailNotification]) -> None:
+def send_emails() -> None:
+    notifications_to_send = get_notifications_to_send()
     for notification in notifications_to_send:
         user_set_zone: str = notification.related_note.timezone
-        user_weekday_number: int = datetime.now(tz=pytz.timezone(user_set_zone)).weekday()
+        user_weekday_number: int = datetime.now(
+            tz=pytz.timezone(user_set_zone)
+        ).weekday()
 
         if user_weekday_number in notification.related_note.days_of_week:
             break
@@ -75,7 +84,9 @@ def send_emails(notifications_to_send: QuerySet[EmailNotification]) -> None:
         header: str = f"Hi, {receiver_name}"
 
         message: str = notification.related_note.message
-        note_url: str = reverse("note_edit", kwargs={"pk": notification.related_note.id})
+        note_url: str = reverse(
+            "note_edit", kwargs={"pk": notification.related_note.id}
+        )
         center: str = f"{message} \n\n " f"For further information:\n{note_url}"
 
         sender: str = notification.related_note.related_note.author
@@ -83,7 +94,9 @@ def send_emails(notifications_to_send: QuerySet[EmailNotification]) -> None:
 
         subject = f"Subscription for feeding plan of {animal}"
         content = f"{header}\n\n{center}\n\n{footer}"
-        delay: int = calculate_time_difference(notification.related_note.daily_timestamp)
+        delay: int = calculate_time_difference(
+            notification.related_note.daily_timestamp
+        )
 
         send_email_notifications.apply_async(
             kwargs={"recipient_list": email, "subject": subject, "message": content},
@@ -91,9 +104,11 @@ def send_emails(notifications_to_send: QuerySet[EmailNotification]) -> None:
         )
 
 
+@log_exceptions_and_notifications
 def send_sms():
     pass
 
 
+@log_exceptions_and_notifications
 def send_discord_notes():
     pass
