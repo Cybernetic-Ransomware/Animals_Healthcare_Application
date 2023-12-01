@@ -11,10 +11,11 @@ celery_obj = Celery(
     "my_celery", broker="redis://redis:6379/0", backend="redis://redis:6379/0"
 )
 
+celery_obj.conf.broker_connection_retry_on_startup = True
+
 
 @celery_obj.task()
 def send_email_notifications(**kwargs):
-
     recipient_list = kwargs.get('email')
     subject = kwargs.get('subject')
     message = kwargs.get('message')

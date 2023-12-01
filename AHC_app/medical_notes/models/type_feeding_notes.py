@@ -40,7 +40,10 @@ class FeedingNotification(models.Model):
     start_date = models.DateField(null=False, blank=False)
     end_date = models.DateField(null=True, blank=True)
     timezone = TimeZoneField(default='Europe/London')
+
+    # keep in a database timezone, to verify save and show as a local time
     daily_timestamp = models.TimeField(null=True, blank=True)
+
     # 0 -> Monday, 6 -> Sunday
     days_of_week = ArrayField(ArrayField(
         models.BooleanField(default=False, blank=True), size=1), size=7,)

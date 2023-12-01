@@ -51,6 +51,8 @@ services:
         condition: service_healthy
     ports:
       - "5000:5000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=AHC_app.settings
 
   redis:
     image: redis:7-alpine
