@@ -194,6 +194,8 @@ CRONJOBS = [
 
 ]
 
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_BACKEND = 'redis://redis:6379/0'
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
