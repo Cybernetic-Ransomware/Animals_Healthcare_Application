@@ -10,6 +10,9 @@ from django.utils import timezone
 from medical_notes.models.type_feeding_notes import EmailNotification
 from AHC_app.celery_notifications.config import send_email_notifications
 
+from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
+
+
 logging.basicConfig(
     filename="logs/cron.log",
     force=True,
@@ -109,6 +112,17 @@ def send_emails() -> None:
             kwargs={"recipient_list": email, "subject": subject, "message": content},
             countdown=delay,
         )
+
+
+@log_exceptions_and_notifications
+def send_email_example() -> None:
+    from icecream import ic
+
+    ic()
+    send_mail_fnc.delay()
+    ic()
+
+    return None
 
 
 @log_exceptions_and_notifications
