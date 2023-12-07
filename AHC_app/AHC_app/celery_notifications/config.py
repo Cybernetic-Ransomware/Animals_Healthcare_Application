@@ -17,10 +17,10 @@ celery_obj = Celery("django_with_celery")
 
 celery_obj.config_from_object('django.conf:settings', namespace='CELERY')
 celery_obj.conf.broker_connection_retry_on_startup = True
-celery_obj.autodiscover_tasks()
+celery_obj.autodiscover_tasks(['AHC_app'])
 
 
-@shared_task
+@celery_obj.task()
 def send_email_notifications(**kwargs):
     recipient_list = kwargs.get('email')
     subject = kwargs.get('subject')

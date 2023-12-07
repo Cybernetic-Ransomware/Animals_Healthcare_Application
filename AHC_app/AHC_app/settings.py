@@ -187,7 +187,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CRONJOBS = [
-    # ('*/2 * * * *', 'AHC_app.celery_notifications.cron.send_emails'),
+    ('*/4 * * * *', 'AHC_app.celery_notifications.cron.send_emails'),
     ('*/2 * * * *', 'AHC_app.celery_notifications.cron.send_email_example'),
     # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
     ('4 * * * *', 'AHC_app.celery_notifications.cron.send_sms'),

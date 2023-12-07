@@ -64,5 +64,18 @@ services:
     ports:
       - "6379:6379"
 
+  celery_flower:
+    image: mher/flower:latest
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=5555
+      - FLOWER_BASIC_AUTH=admin:admin
+    depends_on:
+      - queue
+    links:
+      - queue
+
 volumes:
   animals_db:

@@ -65,6 +65,7 @@ def get_notifications_to_send() -> QuerySet[EmailNotification]:
         is_active=True,
         days_of_week__contains=[current_week_number],
 
+        # timestamp was saved as in UTC+0 timezone
         daily_timestamp__gt=current_time_time,
         daily_timestamp__lt=next_hour_time,
     )
@@ -88,7 +89,7 @@ def send_emails() -> None:
         # if user_weekday_number in notification.related_note.days_of_week:
         #     break
 
-        email: list[str] = list(notification.email)
+        email: str = notification.email
         animal: str = notification.related_note.related_note.animal
         receiver_name: str = notification.receiver_name
         header: str = f"Hi, {receiver_name}"
