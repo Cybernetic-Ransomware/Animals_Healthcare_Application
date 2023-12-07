@@ -187,20 +187,27 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CRONJOBS = [
-    ('*/4 * * * *', 'AHC_app.celery_notifications.cron.send_emails'),
-    ('*/2 * * * *', 'AHC_app.celery_notifications.cron.send_email_example'),
+    ("*/4 * * * *", "AHC_app.celery_notifications.cron.send_emails"),
+    ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
     # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
-    ('4 * * * *', 'AHC_app.celery_notifications.cron.send_sms'),
-    ('6 * * * *', 'AHC_app.celery_notifications.cron.send_discord_notes')
-
+    ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
+    ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
 ]
 
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_BACKEND = "redis://redis:6379/0"
+
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = "amtak97@gmail.com"
+# EMAIL_HOST_PASSWORD = "pmkf yrpz hari mwfj"
+
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
+EMAIL_HOST = "sandbox.smtp.mailtrap.io"
+EMAIL_PORT = "2525"
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "amtak97@gmail.com"
-EMAIL_HOST_PASSWORD = "pmkf yrpz hari mwfj"
+EMAIL_HOST_USER = "0c425676241dc7"
+EMAIL_HOST_PASSWORD = "3ca81a9102980f"

@@ -1,17 +1,13 @@
 import logging
-from datetime import timedelta, time, date, datetime
+from datetime import date, datetime, time, timedelta
 from functools import wraps
 
-import pytz
 from django.db.models import Q, QuerySet
-from django.urls import reverse
 from django.utils import timezone
-
 from medical_notes.models.type_feeding_notes import EmailNotification
+
 from AHC_app.celery_notifications.config import send_email_notifications
-
 from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
-
 
 logging.basicConfig(
     filename="logs/cron.log",
@@ -61,10 +57,8 @@ def get_notifications_to_send() -> QuerySet[EmailNotification]:
     notifications_to_send = EmailNotification.objects.filter(
         Q(end_date__gt=current_date) | Q(end_date=None),
         start_date__lt=current_date,
-
         is_active=True,
         days_of_week__contains=[current_week_number],
-
         # timestamp was saved as in UTC+0 timezone
         daily_timestamp__gt=current_time_time,
         daily_timestamp__lt=next_hour_time,
@@ -98,7 +92,7 @@ def send_emails() -> None:
         # note_url: str = reverse(
         #     "note_edit", kwargs={"pk": notification.related_note.id}
         # )
-        note_url: str = ''
+        note_url: str = ""
         center: str = f"{message} \n\n " f"For further information:\n{note_url}"
 
         sender: str = notification.related_note.related_note.author
@@ -106,9 +100,12 @@ def send_emails() -> None:
 
         subject = f"Subscription for feeding plan of {animal}"
         content = f"{header}\n\n{center}\n\n{footer}"
-        delay: int = calculate_time_difference(
-            notification.daily_timestamp
-        )
+        # delay: int = calculate_time_difference(
+        #     notification.daily_timestamp
+        # )
+
+        delay: int = 0
+
         send_email_notifications.apply_async(
             kwargs={"recipient_list": email, "subject": subject, "message": content},
             countdown=delay,
