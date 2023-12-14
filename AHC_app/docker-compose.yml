@@ -65,7 +65,7 @@ services:
       - "6379:6379"
 
   celery_flower:
-    image: mher/flower:latest
+    image: mher/flower:2.0.1
     ports:
       - "5555:5555"
     environment:
