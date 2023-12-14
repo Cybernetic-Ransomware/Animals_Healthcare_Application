@@ -141,8 +141,13 @@ class SynchNotificationsCron(CronJobBase):
     schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
     code = 'AHC_app.SynchNotificationsCronJob'
 
-    run_at_times = ['42']
+    run_at_times = ['55']
 
     @staticmethod
     def cron_send_emails():
+        print('dupa1')
+
+        from icecream import ic
+        ic()
+
         send_emails()
