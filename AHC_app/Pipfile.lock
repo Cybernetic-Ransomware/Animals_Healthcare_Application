@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "c9d1b7cf3b3a164971474017f6572889233e125d658785b9532ac8ff65900e05"
+            "sha256": "0bff1d7e4522533c22f2f340ebab64a36e0ba3584c370e95da209deb59fa8e5f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -446,6 +446,14 @@
             "index": "pypi",
             "markers": "python_version >= '3.7'",
             "version": "==2.0"
+        },
+        "django-cron": {
+            "hashes": [
+                "sha256:016203554748512b7f19d7363b4fde8741c6ff63fe8a15051f3031f4a0506a41",
+                "sha256:dc3c0d3433a2e4e7012f77f6d8415ad90367ba068649db2674325bc36f935841"
+            ],
+            "index": "pypi",
+            "version": "==0.6.0"
         },
         "django-crontab": {
             "hashes": [
@@ -1110,10 +1118,10 @@
         },
         "distlib": {
             "hashes": [
-                "sha256:2e24928bc811348f0feb63014e97aaae3037f2cf48712d51ae61df7fd6075057",
-                "sha256:9dafe54b34a028eafd95039d5e5d4851a13734540f1331060d31c9916e7147a8"
+                "sha256:034db59a0b96f8ca18035f36290806a9a6e6bd9d1ff91e45a7f172eb17e51784",
+                "sha256:1530ea13e350031b6312d8580ddb6b27a104275a31106523b8f123787f494f64"
             ],
-            "version": "==0.3.7"
+            "version": "==0.3.8"
         },
         "filelock": {
             "hashes": [
@@ -1149,12 +1157,12 @@
         },
         "pre-commit": {
             "hashes": [
-                "sha256:5804465c675b659b0862f07907f96295d490822a450c4c40e747d0b1c6ebcb32",
-                "sha256:841dc9aef25daba9a0238cd27984041fa0467b4199fc4852e27950664919f660"
+                "sha256:c255039ef399049a5544b6ce13d135caba8f2c28c3b4033277a788f434308376",
+                "sha256:d30bad9abf165f7785c15a21a1f46da7d0677cb00ee7ff4c579fd38922efe15d"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.8'",
-            "version": "==3.5.0"
+            "markers": "python_version >= '3.9'",
+            "version": "==3.6.0"
         },
         "pyyaml": {
             "hashes": [

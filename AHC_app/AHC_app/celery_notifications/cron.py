@@ -9,6 +9,8 @@ from medical_notes.models.type_feeding_notes import EmailNotification
 from AHC_app.celery_notifications.config import send_email_notifications
 from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
 
+from django_cron import CronJobBase, Schedule
+
 logging.basicConfig(
     filename="logs/cron.log",
     force=True,
@@ -131,3 +133,16 @@ def send_sms():
 @log_exceptions_and_notifications
 def send_discord_notes():
     pass
+
+
+class SynchNotificationsCron(CronJobBase):
+    RUN_EVERY_MINS = 60
+
+    schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
+    code = 'AHC_app.SynchNotificationsCronJob'
+
+    run_at_times = ['42']
+
+    @staticmethod
+    def cron_send_emails():
+        send_emails()

@@ -23,7 +23,9 @@ services:
         python manage.py crontab remove
         python manage.py crontab add
         python manage.py sync_cronjobs
+        python manage.py runcrons
         python manage.py runserver 0.0.0.0:8000
+        crontab -l
 
   postgres_db:
     image: postgres:15-alpine
