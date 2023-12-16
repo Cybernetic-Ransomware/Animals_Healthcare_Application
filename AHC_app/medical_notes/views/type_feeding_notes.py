@@ -55,6 +55,7 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         from icecream import ic
+
         ic("dupa1")
         context = super().get_context_data(**kwargs)
         context["form_name"] = str(self.form_class.__name__)
@@ -71,15 +72,20 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # success_url = reverse_lazy("note_related_diets", kwargs={"pk": note_id})
         email_notification_id = self.kwargs.get("pk")
-        email_notification = get_object_or_404(EmailNotification, id=email_notification_id)
+        email_notification = get_object_or_404(
+            EmailNotification, id=email_notification_id
+        )
         feeding_note = email_notification.related_note
         medical_record = feeding_note.related_note
 
-        success_url = reverse_lazy("note_related_diets", kwargs={"pk": medical_record.id})
+        success_url = reverse_lazy(
+            "note_related_diets", kwargs={"pk": medical_record.id}
+        )
         return redirect(success_url)
 
     def get_success_url(self):
         from icecream import ic
+
         ic("dupa3")
         note_id = self.kwargs.get("pk")
         note = get_object_or_404(MedicalRecord, pk=note_id)
@@ -88,6 +94,7 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         from icecream import ic
+
         ic("dupa4")
         return True
         # user = self.request.user.profile
@@ -111,8 +118,10 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['medical_record_id'] = self.kwargs.get("pk")
-        context['animal_id'] = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk")).animal.id
+        context["medical_record_id"] = self.kwargs.get("pk")
+        context["animal_id"] = get_object_or_404(
+            MedicalRecord, pk=self.kwargs.get("pk")
+        ).animal.id
         return context
 
     def test_func(self):
@@ -159,7 +168,9 @@ class NotificationListView(ListView):
         animal_uuid = self.request.GET.get("animal_uuid")
 
         if feednote_pk:
-            email_notifications = EmailNotification.objects.filter(related_note=feednote_pk)
+            email_notifications = EmailNotification.objects.filter(
+                related_note=feednote_pk
+            )
             flattened_email_notifications = list(email_notifications)
 
             return flattened_email_notifications
@@ -168,12 +179,11 @@ class NotificationListView(ListView):
             pass
 
         elif animal_uuid:
-
             pass
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['feednote_pk'] = self.request.GET.get("feednote_pk")
-        context['mednote_uuid'] = self.request.GET.get("mednote_uuid")
-        context['animal_uuid'] = self.request.GET.get("animal_uuid")
+        context["feednote_pk"] = self.request.GET.get("feednote_pk")
+        context["mednote_uuid"] = self.request.GET.get("mednote_uuid")
+        context["animal_uuid"] = self.request.GET.get("animal_uuid")
         return context

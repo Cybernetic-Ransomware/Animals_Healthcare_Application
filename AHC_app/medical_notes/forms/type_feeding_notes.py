@@ -1,7 +1,5 @@
 from django import forms
-from django.forms import ModelForm
-
-from medical_notes.models.type_feeding_notes import FeedingNote, EmailNotification
+from medical_notes.models.type_feeding_notes import EmailNotification, FeedingNote
 
 
 class DietRecordForm(forms.ModelForm):
@@ -13,7 +11,7 @@ class DietRecordForm(forms.ModelForm):
             "category",
             "producer",
             "product_name",
-            "dose_annotations"
+            "dose_annotations",
         ]
         labels = {
             "real_start_date": "Actual start date of feeding",
@@ -21,17 +19,18 @@ class DietRecordForm(forms.ModelForm):
             "category": "Category",
             "producer": "Producer",
             "product_name": "Product name",
-            "dose_annotations": "Dosage details"
+            "dose_annotations": "Dosage details",
         }
 
-    category_choices = [
-        ('dry', 'Dry'),
-        ('wet', 'Wet'),
-        ('supplement', 'Supplement')
-    ]
+    category_choices = [("dry", "Dry"), ("wet", "Wet"), ("supplement", "Supplement")]
 
-    real_start_date = forms.DateField(required=True, widget=forms.DateInput(attrs={"type": "date", "required": True}))
-    real_end_date = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date", "required": False}))
+    real_start_date = forms.DateField(
+        required=True, widget=forms.DateInput(attrs={"type": "date", "required": True})
+    )
+    real_end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "required": False}),
+    )
 
     category = forms.ChoiceField(choices=category_choices, required=True)
     producer = forms.CharField(max_length=120, required=False)
@@ -64,13 +63,15 @@ class NotificationRecordForm(forms.ModelForm):
         }
 
     days_of_week_choices = [
-        (0, 'Monday'),
-        (1, 'Tuesday'),
-        (2, 'Wednesday'),
-        (3, 'Thursday'),
-        (4, 'Friday'),
-        (5, 'Saturday'),
-        (6, 'Sunday')
+        (0, "Monday"),
+        (1, "Tuesday"),
+        (2, "Wednesday"),
+        (3, "Thursday"),
+        (4, "Friday"),
+        (5, "Saturday"),
+        (6, "Sunday"),
     ]
 
-    days_of_week = forms.MultipleChoiceField(choices=days_of_week_choices, widget=forms.CheckboxSelectMultiple)
+    days_of_week = forms.MultipleChoiceField(
+        choices=days_of_week_choices, widget=forms.CheckboxSelectMultiple
+    )

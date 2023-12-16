@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from medical_notes.models.type_feeding_notes import FeedingNote
 from users.models import Profile as UserProfile
@@ -9,5 +9,7 @@ from users.models import Profile as UserProfile
 def clean_orphaned_diet_records(sender, instance, **kwargs):
     user_profile = UserProfile.objects.get(id=instance.related_note.author.id)
     with transaction.atomic():
-        orphaned_notes = FeedingNote.objects.filter(author=user_profile, related_note=None)
+        orphaned_notes = FeedingNote.objects.filter(
+            author=user_profile, related_note=None
+        )
         orphaned_notes.delete()

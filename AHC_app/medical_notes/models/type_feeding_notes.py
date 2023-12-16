@@ -1,7 +1,7 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from timezone_field import TimeZoneField
 from medical_notes.models.type_basic_note import MedicalRecord
+from timezone_field import TimeZoneField
 
 
 class FeedingNote(models.Model):
@@ -39,14 +39,16 @@ class FeedingNotification(models.Model):
 
     start_date = models.DateField(null=False, blank=False)
     end_date = models.DateField(null=True, blank=True)
-    timezone = TimeZoneField(default='Europe/London')
+    timezone = TimeZoneField(default="Europe/London")
 
     # keep in a database timezone, to verify save and show as a local time
     daily_timestamp = models.TimeField(null=True, blank=True)
 
     # 0 -> Monday, 6 -> Sunday
-    days_of_week = ArrayField(ArrayField(
-        models.BooleanField(default=False, blank=True), size=1), size=7,)
+    days_of_week = ArrayField(
+        ArrayField(models.BooleanField(default=False, blank=True), size=1),
+        size=7,
+    )
 
     class Meta:
         abstract = True

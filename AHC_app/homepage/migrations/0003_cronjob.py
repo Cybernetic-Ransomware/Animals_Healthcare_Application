@@ -4,21 +4,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('homepage', '0002_alter_profilebackground_content'),
+        ("homepage", "0002_alter_profilebackground_content"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='CronJob',
+            name="CronJob",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('command', models.CharField(max_length=255)),
-                ('schedule', models.CharField(max_length=255)),
-                ('last_execution', models.DateTimeField(blank=True, null=True)),
-                ('next_execution', models.DateTimeField(blank=True, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("command", models.CharField(max_length=255)),
+                ("schedule", models.CharField(max_length=255)),
+                ("last_execution", models.DateTimeField(blank=True, null=True)),
+                ("next_execution", models.DateTimeField(blank=True, null=True)),
             ],
         ),
     ]

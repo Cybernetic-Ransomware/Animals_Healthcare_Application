@@ -4,12 +4,11 @@ from functools import wraps
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
+from django_cron import CronJobBase, Schedule
 from medical_notes.models.type_feeding_notes import EmailNotification
 
 from AHC_app.celery_notifications.config import send_email_notifications
 from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
-
-from django_cron import CronJobBase, Schedule
 
 logging.basicConfig(
     filename="logs/cron.log",
@@ -139,15 +138,16 @@ class SynchNotificationsCron(CronJobBase):
     RUN_EVERY_MINS = 60
 
     schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
-    code = 'AHC_app.SynchNotificationsCronJob'
+    code = "AHC_app.SynchNotificationsCronJob"
 
-    run_at_times = ['55']
+    run_at_times = ["55"]
 
     @staticmethod
     def cron_send_emails():
-        print('dupa1')
+        print("dupa1")
 
         from icecream import ic
+
         ic()
 
         send_emails()

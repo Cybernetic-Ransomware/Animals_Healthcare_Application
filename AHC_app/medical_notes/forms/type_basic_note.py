@@ -17,7 +17,9 @@ class MedicalRecordForm(forms.ModelForm):
         ("other_user_note", "Other"),
     )
 
-    type_of_event = forms.ChoiceField(choices=TYPES_OF_EVENTS, widget=forms.Select(attrs={"class": "custom-select"}))
+    type_of_event = forms.ChoiceField(
+        choices=TYPES_OF_EVENTS, widget=forms.Select(attrs={"class": "custom-select"})
+    )
 
     class Meta:
         model = MedicalRecord
@@ -69,7 +71,7 @@ class MedicalRecordForm(forms.ModelForm):
 
 class MedicalRecordEditForm(MedicalRecordForm):
     def __init__(self, *args, **kwargs):
-        animal = kwargs.pop('animal', None)
+        animal = kwargs.pop("animal", None)
         super(MedicalRecordEditForm, self).__init__(*args, **kwargs)
         self.animal = animal
         tag_names = list(self.instance.note_tags.values_list("name", flat=True))
@@ -83,7 +85,9 @@ class MedicalRecordEditForm(MedicalRecordForm):
         additional_animals = cleaned_data.get("additional_animals")
 
         if self.animal in additional_animals:
-            raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
+            raise forms.ValidationError(
+                "The main Animal cannot be selected as an additional animal."
+            )
 
         return cleaned_data
 
@@ -94,7 +98,7 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         fields = ["animal", "additional_animals"]
 
     def __init__(self, *args, **kwargs):
-        kwargs.pop('animal')
+        kwargs.pop("animal")
         animal_choices = kwargs.pop("animal_choices", None)
         is_author = kwargs.pop("is_author", None)
         super(MedicalRecordEditRelatedAnimalsForm, self).__init__(*args, **kwargs)
@@ -113,6 +117,8 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         additional_animals = cleaned_data.get("additional_animals")
 
         if animal in additional_animals:
-            raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
+            raise forms.ValidationError(
+                "The main Animal cannot be selected as an additional animal."
+            )
 
         return cleaned_data

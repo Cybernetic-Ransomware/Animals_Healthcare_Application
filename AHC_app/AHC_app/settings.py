@@ -39,17 +39,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "crispy_forms",
     "crispy_bootstrap4",
     "bootstrap_modal_forms",
-
     "compressor",
     "taggit",
-
     "django_crontab",
-    'django_cron',
-
+    "django_cron",
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",
     "animals.apps.AnimalsConfig",

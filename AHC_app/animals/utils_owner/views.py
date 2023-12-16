@@ -1,13 +1,18 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.http import HttpResponseRedirect
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView
-from django.views.generic.edit import FormView, UpdateView
+from django.views.generic.edit import FormView
 from PIL import Image
 
-from .forms import ChangeOwnerForm, ImageUploadForm, ManageKeepersForm, ChangeBirthdayForm, ChangeFirstContactForm
 from ..models import Animal
+from .forms import (
+    ChangeBirthdayForm,
+    ChangeFirstContactForm,
+    ChangeOwnerForm,
+    ImageUploadForm,
+    ManageKeepersForm,
+)
 
 
 class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -94,7 +99,7 @@ class ChangeOwnerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse('animals_stable')
+        return reverse("animals_stable")
 
     def test_func(self):
         owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
@@ -139,7 +144,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
 class ChangeBirthdayView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     form_class = ChangeBirthdayForm
-    template_name = 'animals/change_birthday.html'
+    template_name = "animals/change_birthday.html"
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -168,7 +173,7 @@ class ChangeBirthdayView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
 class ChangeFirstContactView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     form_class = ChangeFirstContactForm
-    template_name = 'animals/change_first_contact.html'
+    template_name = "animals/change_first_contact.html"
 
     def get_context_data(self, **kwargs):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
@@ -181,7 +186,9 @@ class ChangeFirstContactView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def form_valid(self, form):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         animal.first_contact_vet = form.cleaned_data["first_contact_vet"]
-        animal.first_contact_medical_place = form.cleaned_data["first_contact_medical_place"]
+        animal.first_contact_medical_place = form.cleaned_data[
+            "first_contact_medical_place"
+        ]
         animal.save()
         return super().form_valid(form)
 

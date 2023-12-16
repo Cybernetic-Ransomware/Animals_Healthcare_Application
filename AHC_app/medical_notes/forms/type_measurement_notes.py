@@ -1,7 +1,5 @@
 from django import forms
 
-from medical_notes.models.type_feeding_notes import FeedingNote
-
 
 class BiometricRecordForm(forms.Form):
     RECORD_CHOICES = [

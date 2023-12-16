@@ -72,6 +72,8 @@ django-cron = "*"
 
 [dev-packages]
 pre-commit = "*"
+isort = "*"
+black = "*"
 
 [requires]
 python_version = "3.11"

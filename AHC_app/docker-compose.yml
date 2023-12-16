@@ -16,19 +16,13 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        apt-get update
-        apt-get install -y cron
-        touch /var/log/cron.log
-        printenv | grep -Ev 'BASHOPTS|BASH_VERSINFO|EUID|PPID|SHELLOPTS|UID|LANG|PWD|GPG_KEY|_=' >> /etc/environment
         python manage.py makemigrations
         python manage.py migrate
         python manage.py crontab remove
         python manage.py crontab add
         python manage.py sync_cronjobs
         python manage.py runcrons
-        service cron start
         python manage.py runserver 0.0.0.0:8000
-        crontab -l
 
   postgres_db:
     image: postgres:15-alpine
@@ -78,8 +72,6 @@ services:
       - FLOWER_PORT=5555
       - FLOWER_BASIC_AUTH=admin:admin
     depends_on:
-      - queue
-    links:
       - queue
 
 volumes:
