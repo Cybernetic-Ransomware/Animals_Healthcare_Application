@@ -1,12 +1,13 @@
 from animals.models import Animal as AnimalProfile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, reverse
 from django.urls import reverse_lazy
 from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
 from medical_notes.forms.type_feeding_notes import (
     DietRecordForm,
-    NotificationRecordForm,
+    NotificationRecordForm
 )
 from medical_notes.models.type_basic_note import MedicalRecord
 from medical_notes.models.type_feeding_notes import EmailNotification, FeedingNote
@@ -187,3 +188,19 @@ class NotificationListView(ListView):
         context["mednote_uuid"] = self.request.GET.get("mednote_uuid")
         context["animal_uuid"] = self.request.GET.get("animal_uuid")
         return context
+
+    def post(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        notify = get_object_or_404(EmailNotification, pk=pk)
+
+        notify.is_active = not notify.is_active
+        notify.save()
+
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+    def delete(self, *args, **kwargs):
+        pk = kwargs.get('pk')
+        notify = get_object_or_404(self.model, pk=pk)
+        notify.delete()
+
+        return HttpResponseRedirect(reverse_lazy('note_related_notifications'))

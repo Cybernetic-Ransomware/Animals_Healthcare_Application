@@ -12,14 +12,34 @@
         <small class="text-muted">
             Type: {{ note.message }}
         </small>
+        <br>
+        <small class="text-muted">
+            Is Active: {{ note.is_active }}
+        </small>
     </div>
     <br>
     <p class="article-content">{{ note.description }}</p>
     <br>
         <div class="container, align-right">
             <div class="grid"></div>
-            <a role="button" class="secondary outline" href="#">Set inactive</a>
-            <a role="button" class="secondary outline" href="#">Delete</a>
+              <form method="post" action="{% url 'notification_change_active' pk=note.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="secondary outline">
+                  {% if object.is_active %}
+                    Set inactive
+                  {% else %}
+                    Set active
+                  {% endif %}
+                </button>
+              </form>
+            <form method="post" action="{% url 'note_related_notifications_delete' pk=note.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="secondary outline">
+            Delete
+            </button>
+            </form>
+{#            <a role="button" class="secondary outline" href="#">Set inactive</a>#}
+{#            <a role="button" class="secondary outline" href="#">Delete</a>#}
         </div>
     </div>
 

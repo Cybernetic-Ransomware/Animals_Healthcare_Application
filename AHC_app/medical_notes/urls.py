@@ -44,6 +44,16 @@ urlpatterns = [
         name="notification_create",
     ),
     path(
+        "<pk>/notify_active/",
+        feeding_views.NotificationListView.as_view(),
+        name="notification_change_active",
+    ),
+    path(
+        "<pk>/notify_delete/",
+        feeding_views.NotificationListView.as_view(),
+        name="notification_delete",
+    ),
+    path(
         "notifications/",
         feeding_views.NotificationListView.as_view(),
         name="note_related_notifications",
