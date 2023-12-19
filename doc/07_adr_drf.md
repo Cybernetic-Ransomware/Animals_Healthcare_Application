@@ -6,7 +6,7 @@
 
 
 ### Status  
-Propsed
+Proposed
 
 
 ### Context  
