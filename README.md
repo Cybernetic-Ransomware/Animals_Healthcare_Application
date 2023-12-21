@@ -24,6 +24,8 @@ Provides
 
 #### SMS gate, discord and messenger chatbots for notifications
 
+#### Custom mixins for views permission checks
+
 ---
 
 
