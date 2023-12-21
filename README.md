@@ -5,15 +5,32 @@
 
 
 <strong> A healthcare data management application for pet owners and carers.
+Provides 
 
 ---
 ### Functionality:
 [ADR](doc/01_adr_functionality.md)
 
 ---
+
+### Plans for further development:
+
+
+#### Interactive charts for biometric records
+
+#### Book of medical facilities and medical personnel
+
+#### Databases for medicines and food products
+
+#### SMS gate, discord and messenger chatbots for notifications
+
+---
+
+
 ### Requirements:
 - Python 3.11.3
-- [Packages](AHC_app/requirements.txt)
+- Docker & Docker Compose
+- [Packages](AHC_app/Pipfile)
 - [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
 
 ---
@@ -34,4 +51,6 @@
   * https://www.devs-mentoring.pl/
 
 
-To all the people upper mentioned and not only there, thank You for your work and influence on my motivation! Keep still doing your best!
+To all the people upper mentioned and not only there, 
+thank You for your work and positive influence on my motivation! 
+Keep still doing your best!
