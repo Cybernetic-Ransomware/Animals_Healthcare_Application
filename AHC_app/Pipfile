@@ -69,6 +69,7 @@ wcwidth = "==0.2.8"
 icecream = "*"
 flower = "*"
 django-cron = "*"
+python-decouple = "*"
 
 [dev-packages]
 pre-commit = "*"

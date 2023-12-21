@@ -13,6 +13,8 @@ import os
 from pathlib import Path
 
 from couchdb import Server
+from decouple import config
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -93,24 +95,17 @@ WSGI_APPLICATION = "AHC_app.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # },
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "ahc_db",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "postgres_db",
-        "PORT": "5432",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT", default="5432"),
     }
 }
-# PostgreSQL
-# drop owned by adr_controller
 
-
-COUCH_CONNECTOR = Server("http://127.0.0.1:5984")
+COUCH_CONNECTOR = config("COUCH_CONNECTOR"),
 
 
 # Password validation
@@ -199,20 +194,13 @@ CRON_CLASSES = [
     # 'AHC_app.celery_notifications.cron.SynchNotificationsCron',
 ]
 
-CELERY_BROKER_URL = "redis://redis:6379/0"
-CELERY_BACKEND = "redis://redis:6379/0"
-
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "amtak97@gmail.com"
-# EMAIL_HOST_PASSWORD = "pmkf yrpz hari mwfj"
+CELERY_BROKER_URL = config("CELERY_BROKER_URL")
+CELERY_BACKEND = config("CELERY_BACKEND")
 
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "sandbox.smtp.mailtrap.io"
-EMAIL_PORT = "2525"
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "0c425676241dc7"
-EMAIL_HOST_PASSWORD = "3ca81a9102980f"
+EMAIL_BACKEND = config("EMAIL_BACKEND")
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT", cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
