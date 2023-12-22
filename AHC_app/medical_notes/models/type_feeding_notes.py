@@ -1,7 +1,11 @@
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from medical_notes.models.type_basic_note import MedicalRecord
 from timezone_field import TimeZoneField
+
+from medical_notes.models.type_basic_note import MedicalRecord
 
 
 class FeedingNote(models.Model):
@@ -24,6 +28,23 @@ class FeedingNote(models.Model):
     # create a view for the current diet and historical notes
     # create an app for the product catalog, build a registration of products, a purchases history and aggregation of costs
     # create separate catalogs of basic fodder and medicines/supplements
+
+
+class NotificationRecordManager(models.Manager):
+    @staticmethod
+    def convert_to_utc(local_time, user_timezone):
+
+        local_datetime = datetime.combine(date.today(), local_time)
+
+        local_datetime_with_tz = local_datetime.replace(tzinfo=user_timezone)
+        utc_datetime = local_datetime_with_tz.astimezone(ZoneInfo("UTC"))
+
+        return utc_datetime.time()
+
+    def create_notification(self, daily_timestamp, timezone, **kwargs):
+        utc_time = self.convert_to_utc(daily_timestamp, timezone)
+
+        return self.create(timezone=timezone, daily_timestamp=utc_time, **kwargs)
 
 
 class FeedingNotification(models.Model):
@@ -49,6 +70,8 @@ class FeedingNotification(models.Model):
         ArrayField(models.BooleanField(default=False, blank=True), size=1),
         size=7,
     )
+
+    objects = NotificationRecordManager()
 
     class Meta:
         abstract = True

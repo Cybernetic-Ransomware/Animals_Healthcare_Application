@@ -149,9 +149,16 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         for i in days_of_week:
             processed_days_of_week[i] = True
 
-        notify.related_note = related_note
         notify.days_of_week = processed_days_of_week
-        notify.save()
+        notify.related_note = related_note
+
+        notify_kwargs = {key: value for key, value in notify.__dict__.items() if not key.startswith('_')}
+        print(notify_kwargs)
+
+        EmailNotification.objects.create_notification(
+            **notify_kwargs
+
+        )
 
         return super().form_valid(form)
 
