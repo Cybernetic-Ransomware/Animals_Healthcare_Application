@@ -1,7 +1,7 @@
 from django import forms
 
 # from animals.models import Animal as AnimalProfile
-from medical_notes.models.type_basic_note import MedicalRecord
+from medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 
 # from django.core.validators import MaxLengthValidator, MinLengthValidator
 # from django.db.models import Q
@@ -122,3 +122,23 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
             )
 
         return cleaned_data
+
+
+class UploadAppendixForm(forms.ModelForm):
+    MAX_FILE_SIZE = 15 * 1024 * 1024  # 15MB
+    ALLOWED_FORMATS = {'application/pdf', 'image/jpeg', 'image/png'}
+
+    class Meta:
+        model = MedicalRecordAttachment
+        fields = ['file']
+
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+
+        if file and file.size > self.MAX_FILE_SIZE:
+            raise forms.ValidationError('Files of size above 15MB are not allowed')
+
+        if file and file.content_type not in self.ALLOWED_FORMATS:
+            raise forms.ValidationError('File in current format is not allowed. Try upload as: PDF, JPEG or PNG.')
+
+        return file

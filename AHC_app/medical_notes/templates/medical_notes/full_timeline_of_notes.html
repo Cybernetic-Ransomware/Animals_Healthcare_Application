@@ -20,6 +20,27 @@
         <br>
         <p class="article-content">{{ note.short_description }}</p>
 
+        <br>
+            <div>
+            <h4>Appendixes:</h4>
+              {% for note in notes %}
+                {% for attachment in attachments_by_note.note.id %}
+                  <p>
+                    <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
+                      Pobierz {{ attachment.file.name }}
+                    </a>
+                  </p>
+                {% endfor %}
+              {% endfor %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ upload_form.as_p }}
+                <button type="submit">Set appendix</button>
+            </form>
+        </div>
+
+
         {% if note.additional_animals.all|length != 0 %}
             <p class="article-content">Related also to:
                 {% for animal in note.additional_animals.all %}

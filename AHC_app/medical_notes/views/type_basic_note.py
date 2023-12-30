@@ -10,8 +10,9 @@ from medical_notes.forms.type_basic_note import (
     MedicalRecordEditForm,
     MedicalRecordEditRelatedAnimalsForm,
     MedicalRecordForm,
+    UploadAppendixForm
 )
-from medical_notes.models.type_basic_note import MedicalRecord
+from medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 
 
 # append viewing other related animals on note_views and notelist
@@ -110,6 +111,15 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         )
         page_number = self.request.GET.get("page")
         context["notes"] = paginator.get_page(page_number)
+
+        notes = paginator.get_page(page_number)
+        context["upload_form"] = UploadAppendixForm()
+
+        attachments_by_note = {}
+        for note in notes:
+            attachments_by_note[note.id] = MedicalRecordAttachment.objects.filter(
+                medical_record=note
+            )
 
         return context
 

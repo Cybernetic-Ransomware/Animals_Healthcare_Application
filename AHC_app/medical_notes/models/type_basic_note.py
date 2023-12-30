@@ -40,3 +40,13 @@ class MedicalRecord(models.Model):
     event_details = None
 
     note_tags = TaggableManager(through=UUIDTaggedItem, blank=True)
+
+
+class MedicalRecordAttachment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    medical_record = models.ForeignKey(
+        MedicalRecord, on_delete=models.CASCADE, related_name='attachments'
+    )
+    file = models.FileField(upload_to='static/media/attachments/')
+    # description = models.CharField(max_length=255, blank=True)
+    upload_date = models.DateTimeField(auto_now_add=True, editable=False)

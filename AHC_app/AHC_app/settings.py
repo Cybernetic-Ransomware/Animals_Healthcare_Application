@@ -107,7 +107,6 @@ DATABASES = {
 
 COUCH_CONNECTOR = config("COUCH_CONNECTOR"),
 
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
