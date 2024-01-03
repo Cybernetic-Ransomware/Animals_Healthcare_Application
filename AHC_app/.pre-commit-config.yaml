@@ -3,6 +3,7 @@ repos:
     rev: v4.4.0
     hooks:
     -   id: end-of-file-fixer
+        exclude: '\.sh$'
     -   id: trailing-whitespace
 -   repo: https://github.com/PyCQA/autoflake
     rev: v2.1.1
