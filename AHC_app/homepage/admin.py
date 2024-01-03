@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AnimalTitle, CronJob
+from homepage.models import AnimalTitle, CronJob
 
 admin.site.register(AnimalTitle)
 

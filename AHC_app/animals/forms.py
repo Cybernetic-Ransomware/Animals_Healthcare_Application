@@ -2,7 +2,7 @@ from django import forms
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.db.models import Q
 
-from .models import Animal
+from animals.models import Animal
 
 
 class AnimalRegisterForm(forms.ModelForm):

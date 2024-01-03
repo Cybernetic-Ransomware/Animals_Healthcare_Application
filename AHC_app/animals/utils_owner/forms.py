@@ -4,7 +4,7 @@ from django import forms
 from PIL import Image
 from users.models import Profile
 
-from ..models import Animal
+from animals.models import Animal
 
 
 class ImageUploadForm(forms.ModelForm):

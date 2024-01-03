@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
 
-from .utils import ImageGenerator
+from homepage.utils import ImageGenerator
 
 
 class Privilege(models.Model):

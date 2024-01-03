@@ -5,14 +5,9 @@ from django.views.generic import DeleteView
 from django.views.generic.edit import FormView
 from PIL import Image
 
-from ..models import Animal
-from .forms import (
-    ChangeBirthdayForm,
-    ChangeFirstContactForm,
-    ChangeOwnerForm,
-    ImageUploadForm,
-    ManageKeepersForm,
-)
+from animals.models import Animal
+from animals.utils_owner.forms import (ChangeBirthdayForm, ChangeFirstContactForm,
+                                       ChangeOwnerForm, ImageUploadForm, ManageKeepersForm)
 
 
 class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):

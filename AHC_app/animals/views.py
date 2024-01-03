@@ -7,9 +7,9 @@ from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
 from medical_notes.models.type_basic_note import MedicalRecord
 
-from .forms import AnimalRegisterForm
-from .models import Animal
-from .utils_owner.views import *
+from animals.forms import AnimalRegisterForm
+from animals.models import Animal
+from animals.utils_owner.views import *
 
 
 class CreateAnimalView(LoginRequiredMixin, FormView):
