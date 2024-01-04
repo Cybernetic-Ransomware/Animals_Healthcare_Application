@@ -132,13 +132,19 @@ class UploadAppendixForm(forms.ModelForm):
         model = MedicalRecordAttachment
         fields = ['file']
 
+    medical_record_id = forms.UUIDField(widget=forms.HiddenInput())
+
     def clean_file(self):
         file = self.cleaned_data.get('file')
+        medical_record_id = self.cleaned_data.get('medical_record_id')
 
         if file and file.size > self.MAX_FILE_SIZE:
             raise forms.ValidationError('Files of size above 15MB are not allowed')
 
         if file and file.content_type not in self.ALLOWED_FORMATS:
             raise forms.ValidationError('File in current format is not allowed. Try upload as: PDF, JPEG or PNG.')
+
+        if not medical_record_id:
+            raise forms.ValidationError('Medical Record ID is required')
 
         return file

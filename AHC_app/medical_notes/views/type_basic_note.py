@@ -2,6 +2,7 @@ from animals.models import Animal as AnimalProfile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.forms import formset_factory
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic.edit import DeleteView, FormView, UpdateView
@@ -13,6 +14,9 @@ from medical_notes.forms.type_basic_note import (
     UploadAppendixForm
 )
 from medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
+
+
+UploadAppendixFormSet = formset_factory(UploadAppendixForm, extra=0)
 
 
 # append viewing other related animals on note_views and notelist
@@ -113,7 +117,11 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         context["notes"] = paginator.get_page(page_number)
 
         notes = paginator.get_page(page_number)
+
         context["upload_form"] = UploadAppendixForm()
+        # context['upload_forms'] = [UploadAppendixForm(initial={'medical_record': note.id}) for note in context['notes']]
+        # formset = UploadAppendixFormSet(initial=[{'medical_record_id': note.id, 'file': None} for note in context['notes']])
+        # context['upload_forms'] = formset
 
         attachments_by_note = {}
         for note in notes:
@@ -122,6 +130,29 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             )
 
         return context
+
+    def post(self, request, *args, **kwargs):
+        from icecream import ic
+        form = UploadAppendixForm(request.POST, request.FILES)
+        ic(form.fields)
+        ic(form.fields.values())
+        ic(form.is_valid())
+        if form.is_valid():
+            medical_record_id = form.cleaned_data.get('medical_record_id')
+            medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
+            ic()
+            ic(medical_record_id)
+            ic(medical_record)
+
+            form.instance.medical_record = medical_record
+            form.save()
+        else:
+            print(form.errors)
+
+        return redirect(request.path)
+
+    def render_to_response(self, context, **response_kwargs):
+        return super().render_to_response(context, **response_kwargs)
 
     def test_func(self):
         user = self.request.user.profile
