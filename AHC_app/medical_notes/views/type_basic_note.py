@@ -2,7 +2,8 @@ from animals.models import Animal as AnimalProfile
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.forms import formset_factory
+
+# from django.forms import formset_factory
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic.edit import DeleteView, FormView, UpdateView
@@ -11,12 +12,11 @@ from medical_notes.forms.type_basic_note import (
     MedicalRecordEditForm,
     MedicalRecordEditRelatedAnimalsForm,
     MedicalRecordForm,
-    UploadAppendixForm
+    UploadAppendixForm,
 )
 from medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 
-
-UploadAppendixFormSet = formset_factory(UploadAppendixForm, extra=0)
+# UploadAppendixFormSet = formset_factory(UploadAppendixForm, extra=0)
 
 
 # append viewing other related animals on note_views and notelist
@@ -29,8 +29,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
 
         query = (
             AnimalProfile.objects.filter(
-                Q(owner=self.request.user.profile)
-                | Q(allowed_users=self.request.user.profile)
+                Q(owner=self.request.user.profile) | Q(allowed_users=self.request.user.profile)
             )
             .exclude(id=self.kwargs.get("pk"))
             .order_by("-creation_date")
@@ -60,17 +59,13 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         type_of_event = form.cleaned_data.get("type_of_event")
 
         if type_of_event == "biometric_record":
-            medical_create_url = reverse(
-                "biometric_create", kwargs={"pk": animal_id, "note_id": new_note.id}
-            )
+            medical_create_url = reverse("biometric_create", kwargs={"pk": animal_id, "note_id": new_note.id})
             return redirect(medical_create_url)
         elif type_of_event == "diet_note":
             medical_create_url = reverse("feeding_create", kwargs={"pk": new_note.id})
             return redirect(medical_create_url)
         else:
-            full_timeline_url = reverse(
-                "full_timeline_of_notes", kwargs={"pk": animal_id}
-            )
+            full_timeline_url = reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
             return redirect(full_timeline_url)
 
     def test_func(self):
@@ -110,35 +105,43 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         if tag_name:
             query = query.filter(note_tags__slug=tag_name)
 
-        paginator = Paginator(
-            list(query.order_by("-date_creation")), per_page=self.paginate_by
-        )
+        paginator = Paginator(list(query.order_by("-date_creation")), per_page=self.paginate_by)
         page_number = self.request.GET.get("page")
-        context["notes"] = paginator.get_page(page_number)
 
         notes = paginator.get_page(page_number)
+        from icecream import ic
 
-        context["upload_form"] = UploadAppendixForm()
+        robocza = [str(note.id) for note in context["notes"]]
+        ic(robocza)
+        # context["upload_form"] = UploadAppendixForm()
         # context['upload_forms'] = [UploadAppendixForm(initial={'medical_record': note.id}) for note in context['notes']]
         # formset = UploadAppendixFormSet(initial=[{'medical_record_id': note.id, 'file': None} for note in context['notes']])
-        # context['upload_forms'] = formset
+        # upload_forms = [UploadAppendixForm() for note in context['notes']]
+
+        upload_forms = []
+        for note in context["notes"]:
+            form = UploadAppendixForm()
+            form.fields["medical_record_id"].initial = str(note.id)
+            upload_forms.append(form)
+
+        notes_with_forms = zip(notes, upload_forms)
+        context["notes"] = notes_with_forms
 
         attachments_by_note = {}
         for note in notes:
-            attachments_by_note[note.id] = MedicalRecordAttachment.objects.filter(
-                medical_record=note
-            )
+            attachments_by_note[note.id] = MedicalRecordAttachment.objects.filter(medical_record=note)
 
         return context
 
     def post(self, request, *args, **kwargs):
         from icecream import ic
+
         form = UploadAppendixForm(request.POST, request.FILES)
         ic(form.fields)
         ic(form.fields.values())
         ic(form.is_valid())
         if form.is_valid():
-            medical_record_id = form.cleaned_data.get('medical_record_id')
+            medical_record_id = form.cleaned_data.get("medical_record_id")
             medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
             ic()
             ic(medical_record_id)
@@ -176,8 +179,7 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         kwargs = super().get_form_kwargs()
 
         query = AnimalProfile.objects.filter(
-            Q(owner=self.request.user.profile)
-            | Q(allowed_users=self.request.user.profile)
+            Q(owner=self.request.user.profile) | Q(allowed_users=self.request.user.profile)
         ).order_by("-creation_date")
 
         animal_choices = [(animal.id, animal.full_name) for animal in query]

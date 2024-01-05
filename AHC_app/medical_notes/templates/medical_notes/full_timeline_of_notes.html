@@ -1,7 +1,7 @@
 {% extends "homepage/base.html" %}
 {% block content %}
 
-{% for note in notes %}
+{% for note, form in notes %}
 <article class="media content-section">
     <div class="media-body">
         <a class="mr-2" href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>
@@ -19,7 +19,6 @@
         <br>
             <div>
             <h4>Appendixes:</h4>
-            {% for note in notes %}
                 {% for attachment in attachments_by_note.note.id %}
                     <p>
                         <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
@@ -27,15 +26,14 @@
                         </a>
                     </p>
                 {% endfor %}
-            {% endfor %}
-
 
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                {{ formset.management_form }}
-                {{ upload_form.as_p }}
+                {{ form.as_p }}
                 <button type="submit">Set appendix</button>
             </form>
+
+
         </div>
 
 

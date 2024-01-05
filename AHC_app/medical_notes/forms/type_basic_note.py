@@ -17,9 +17,7 @@ class MedicalRecordForm(forms.ModelForm):
         ("other_user_note", "Other"),
     )
 
-    type_of_event = forms.ChoiceField(
-        choices=TYPES_OF_EVENTS, widget=forms.Select(attrs={"class": "custom-select"})
-    )
+    type_of_event = forms.ChoiceField(choices=TYPES_OF_EVENTS, widget=forms.Select(attrs={"class": "custom-select"}))
 
     class Meta:
         model = MedicalRecord
@@ -36,16 +34,10 @@ class MedicalRecordForm(forms.ModelForm):
         ]
 
         widgets = {
-            "date_event_started": forms.DateInput(
-                attrs={"type": "date", "required": False}
-            ),
-            "date_event_ended": forms.DateInput(
-                attrs={"type": "date", "required": False}
-            ),
+            "date_event_started": forms.DateInput(attrs={"type": "date", "required": False}),
+            "date_event_ended": forms.DateInput(attrs={"type": "date", "required": False}),
             "short_description": forms.Textarea(attrs={"rows": 3, "cols": 2}),
-            "full_description": forms.Textarea(
-                attrs={"rows": 12, "cols": 2, "required": False}
-            ),
+            "full_description": forms.Textarea(attrs={"rows": 12, "cols": 2, "required": False}),
             "participants": forms.TextInput(attrs={"required": False}),
             "place": forms.TextInput(attrs={"required": False}),
             "note_tags": forms.TextInput(attrs={"required": False}),
@@ -85,9 +77,7 @@ class MedicalRecordEditForm(MedicalRecordForm):
         additional_animals = cleaned_data.get("additional_animals")
 
         if self.animal in additional_animals:
-            raise forms.ValidationError(
-                "The main Animal cannot be selected as an additional animal."
-            )
+            raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
 
         return cleaned_data
 
@@ -117,34 +107,33 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         additional_animals = cleaned_data.get("additional_animals")
 
         if animal in additional_animals:
-            raise forms.ValidationError(
-                "The main Animal cannot be selected as an additional animal."
-            )
+            raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
 
         return cleaned_data
 
 
 class UploadAppendixForm(forms.ModelForm):
     MAX_FILE_SIZE = 15 * 1024 * 1024  # 15MB
-    ALLOWED_FORMATS = {'application/pdf', 'image/jpeg', 'image/png'}
+    ALLOWED_FORMATS = {"application/pdf", "image/jpeg", "image/png"}
 
     class Meta:
         model = MedicalRecordAttachment
-        fields = ['file']
+        fields = ["file"]
 
-    medical_record_id = forms.UUIDField(widget=forms.HiddenInput())
+    medical_record_id = forms.CharField(widget=forms.HiddenInput())
 
     def clean_file(self):
-        file = self.cleaned_data.get('file')
-        medical_record_id = self.cleaned_data.get('medical_record_id')
+        file = self.cleaned_data.get("file")
+        medical_record_id = self.cleaned_data.get("medical_record_id")
+        print(f"{medical_record_id=}")
 
         if file and file.size > self.MAX_FILE_SIZE:
-            raise forms.ValidationError('Files of size above 15MB are not allowed')
+            raise forms.ValidationError("Files of size above 15MB are not allowed")
 
         if file and file.content_type not in self.ALLOWED_FORMATS:
-            raise forms.ValidationError('File in current format is not allowed. Try upload as: PDF, JPEG or PNG.')
+            raise forms.ValidationError("File in current format is not allowed. Try upload as: PDF, JPEG or PNG.")
 
         if not medical_record_id:
-            raise forms.ValidationError('Medical Record ID is required')
+            raise forms.ValidationError("Medical Record ID is required")
 
         return file
