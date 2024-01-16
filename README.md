@@ -23,19 +23,13 @@
 ### Plans for further development:
 
 
-#### Interactive charts for biometric records
-
-#### A book of medical facilities and medical personnel
-
-#### Databases for medicines and food products
-
-#### An SMS gateway, Discord, and Messenger chatbots for notifications
-
-#### Custom mixins for checking view permissions
-
-#### A fixed light-themed frontend, currently blocked in the base.html <html> tag
-
-#### CouchDb for containing notes appendixes
+-[ ] Interactive charts for biometric records
+-[ ] A book of medical facilities and medical personnel
+-[ ] Databases for medicines and food products
+-[ ] An SMS gateway, Discord, and Messenger chatbots for notifications
+-[ ] Custom mixins for checking view permissions
+-[ ] A fixed light-themed frontend, currently blocked in the base.html <html> tag
+-[ ] CouchDb for containing notes appendixes
 
 ---
 
@@ -64,6 +58,6 @@
   * https://www.devs-mentoring.pl/
 
 
-To all the people upper mentioned and not only there, 
-thank You for your work and positive influence on my motivation! 
+To all the people upper mentioned and not only there,
+thank You for your work and positive influence on my motivation!
 Keep still doing your best!
