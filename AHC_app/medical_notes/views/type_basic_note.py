@@ -110,11 +110,6 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
         notes = paginator.get_page(page_number)
 
-        # context["upload_form"] = UploadAppendixForm()
-        # context['upload_forms'] = [UploadAppendixForm(initial={'medical_record': note.id}) for note in context['notes']]
-        # formset = UploadAppendixFormSet(initial=[{'medical_record_id': note.id, 'file': None} for note in context['notes']])
-        # upload_forms = [UploadAppendixForm() for note in context['notes']]
-
         upload_forms = []
         for note in context["notes"]:
             form = UploadAppendixForm()
@@ -132,21 +127,10 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return context
 
     def post(self, request, *args, **kwargs):
-        from icecream import ic
-
-        print("dupa" * 20)
-
         form = UploadAppendixForm(request.POST, request.FILES)
-        ic(form.fields)
-        ic(form.fields.values())
-        ic(form["medical_record_id"].value())
-        ic(form.is_valid())
         if form.is_valid():
             medical_record_id = form["medical_record_id"].value()
             medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
-            ic()
-            ic(medical_record_id)
-            ic(medical_record)
 
             form.instance.medical_record = medical_record
             form.save()
@@ -191,7 +175,6 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         animal_id = note.animal.id
         animal = get_object_or_404(AnimalProfile, id=animal_id)
         kwargs["animal"] = animal
-        print(kwargs["animal"])
 
         return kwargs
 
