@@ -118,11 +118,12 @@ class UploadAppendixForm(forms.ModelForm):
 
     class Meta:
         model = MedicalRecordAttachment
-        fields = ["file"]
+        fields = ["file", "medical_record_id"]
 
     medical_record_id = forms.CharField(widget=forms.HiddenInput())
 
-    def clean_file(self):
+    def clean(self):
+        cleaned_data = super().clean()
         file = self.cleaned_data.get("file")
         medical_record_id = self.cleaned_data.get("medical_record_id")
         print(f"{medical_record_id=}")
@@ -136,4 +137,4 @@ class UploadAppendixForm(forms.ModelForm):
         if not medical_record_id:
             raise forms.ValidationError("Medical Record ID is required")
 
-        return file
+        return cleaned_data

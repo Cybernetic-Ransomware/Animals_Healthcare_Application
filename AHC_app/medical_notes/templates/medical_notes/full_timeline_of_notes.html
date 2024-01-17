@@ -19,15 +19,15 @@
         <br>
             <div>
             <h4>Appendixes:</h4>
-                {% for attachment in attachments_by_note.note.id %}
+                {% for attachment in attachments_by_note.note.id.all %}
+
                     <p>
                         <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
                             Download {{ attachment.file.name }}
                         </a>
                     </p>
                 {% endfor %}
-
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" action="{% url 'full_timeline_of_notes' pk=note.animal.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 {{ form.as_p }}
                 <button type="submit">Set appendix</button>

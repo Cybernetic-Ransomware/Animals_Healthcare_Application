@@ -1,9 +1,7 @@
 from django.urls import path
-
 from medical_notes.views import type_basic_note as notes_views
 from medical_notes.views import type_feeding_notes as feeding_views
 from medical_notes.views import type_measurement_notes as measurement_views
-
 
 urlpatterns = [
     path("<uuid:pk>/create/", notes_views.CreateNoteFormView.as_view(), name="note_create"),
@@ -18,5 +16,9 @@ urlpatterns = [
     path("<pk>/notify_active/", feeding_views.NotificationListView.as_view(), name="notification_change_active"),
     path("<pk>/notify_delete/", feeding_views.NotificationListView.as_view(), name="notification_delete"),
     path("notifications/", feeding_views.NotificationListView.as_view(), name="note_related_notifications"),
-    path("<uuid:pk>/<uuid:note_id>/medical_create/", measurement_views.BiometricRecordCreateView.as_view(), name="biometric_create"),
+    path(
+        "<uuid:pk>/<uuid:note_id>/medical_create/",
+        measurement_views.BiometricRecordCreateView.as_view(),
+        name="biometric_create",
+    ),
 ]

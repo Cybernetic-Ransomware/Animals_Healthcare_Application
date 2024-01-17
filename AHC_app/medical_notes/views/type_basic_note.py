@@ -109,10 +109,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         page_number = self.request.GET.get("page")
 
         notes = paginator.get_page(page_number)
-        from icecream import ic
 
-        robocza = [str(note.id) for note in context["notes"]]
-        ic(robocza)
         # context["upload_form"] = UploadAppendixForm()
         # context['upload_forms'] = [UploadAppendixForm(initial={'medical_record': note.id}) for note in context['notes']]
         # formset = UploadAppendixFormSet(initial=[{'medical_record_id': note.id, 'file': None} for note in context['notes']])
@@ -123,6 +120,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             form = UploadAppendixForm()
             form.fields["medical_record_id"].initial = str(note.id)
             upload_forms.append(form)
+            value = form["medical_record_id"].value()
 
         notes_with_forms = zip(notes, upload_forms)
         context["notes"] = notes_with_forms
@@ -136,12 +134,15 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
     def post(self, request, *args, **kwargs):
         from icecream import ic
 
+        print("dupa" * 20)
+
         form = UploadAppendixForm(request.POST, request.FILES)
         ic(form.fields)
         ic(form.fields.values())
+        ic(form["medical_record_id"].value())
         ic(form.is_valid())
         if form.is_valid():
-            medical_record_id = form.cleaned_data.get("medical_record_id")
+            medical_record_id = form["medical_record_id"].value()
             medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
             ic()
             ic(medical_record_id)
