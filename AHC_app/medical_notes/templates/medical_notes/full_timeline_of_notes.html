@@ -83,29 +83,29 @@
 
     </div>
 
-    {% if notes.paginator.page_range|length > 1 %}
+    {% if paginator.page_range|length > 1 %}
     <div>
     <small class="text-muted">
         Pages:
     </small>
 
-    {% if notes.has_previous %}
+    {% if page_obj.has_previous %}
     <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
-    <a class="btn btn-outline-info mb-4" href="?page={{ notes.previous_page_number }}">Previous</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
     {% endif %}
 
 
-    {% for num in notes.paginator.page_range %}
-    {% if notes.number == num %}
+    {% for num in paginator.page_range %}
+    {% if page_obj.number == num %}
     <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
-    {% elif num > notes.number|add:'-3' and num < notes.number|add:'3' %}
+    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
     <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
     {% endif %}
     {% endfor %}
 
-    {% if notes.has_next %}
-    <a class="btn btn-outline-info mb-4" href="?page={{ notes.next_page_number }}">Next</a>
-    <a class="btn btn-outline-info mb-4" href="?page={{ notes.paginator.num_pages }}">Last</a>
+    {% if page_obj.has_next %}
+    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ paginator.num_pages }}">Last</a>
     {% endif %}
     </div>
     {% endif %}

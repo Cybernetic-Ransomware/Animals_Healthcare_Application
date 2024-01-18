@@ -110,6 +110,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         page_number = self.request.GET.get("page")
 
         notes = paginator.get_page(page_number)
+        print(list(context["notes"]))
 
         upload_forms = []
         for note in context["notes"]:
@@ -124,6 +125,10 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         attachments_by_note = {}
         for note in notes:
             attachments_by_note[note.id] = MedicalRecordAttachment.objects.filter(medical_record=note)
+
+        print(list(context))
+        print(list(paginator)[0].has_next())
+        # print(context["notes"].paginator)
 
         return context
 

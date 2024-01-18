@@ -16,12 +16,8 @@ class UUIDTaggedItem(GenericUUIDTaggedItemBase, TaggedItemBase):
 class MedicalRecord(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
-    additional_animals = models.ManyToManyField(
-        Animal, related_name="additional_animals", blank=True
-    )
-    author = models.ForeignKey(
-        UserProfile, on_delete=models.CASCADE, null=True, blank=True
-    )
+    additional_animals = models.ManyToManyField(Animal, related_name="additional_animals", blank=True)
+    author = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True)
 
     date_creation = models.DateTimeField(auto_now_add=True, editable=False)
     date_updated = models.DateTimeField(auto_now=True, editable=True)
@@ -44,9 +40,8 @@ class MedicalRecord(models.Model):
 
 class MedicalRecordAttachment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    medical_record = models.ForeignKey(
-        MedicalRecord, on_delete=models.CASCADE, related_name='attachments'
-    )
-    file = models.FileField(upload_to='static/media/attachments/')
+    medical_record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to="static/media/attachments/")
+    # url = models.CharField(max_length=255, blank=True)
     # description = models.CharField(max_length=255, blank=True)
     upload_date = models.DateTimeField(auto_now_add=True, editable=False)
