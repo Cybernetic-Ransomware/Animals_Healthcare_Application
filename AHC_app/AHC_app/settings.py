@@ -12,9 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
-from couchdb import Server
 from decouple import config
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -105,7 +103,7 @@ DATABASES = {
     }
 }
 
-COUCH_CONNECTOR = config("COUCH_CONNECTOR"),
+COUCH_CONNECTOR = (config("COUCH_CONNECTOR"),)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -126,7 +124,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_REDIRECT_URL = "Homepage"
-
 LOGIN_URL = "login"
 
 

@@ -1,4 +1,5 @@
 from animals.models import Animal as AnimalProfile
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -136,6 +137,8 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             form.save()
         else:
             print(form.errors)
+            for field, errors in form.errors.items():
+                messages.error(request, f"Failed to upload: {', '.join(errors)}")
 
         return redirect(request.path)
 
