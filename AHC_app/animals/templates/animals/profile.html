@@ -63,45 +63,20 @@
                 <div class="info">
                     <div>
                         <a role="button" class="secondary outline" href="#">Plan a new visit</a>
-                        <a role="button" class="secondary outline" href="#">Add a new note</a>
-                        <a role="button" class="secondary outline" href="#">View the full timeline</a>
+                        <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}">Add a new note</a>
+                        <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}">View the full timeline</a>
                     </div>
                 </div>
 
                 <ol>
+                    {% for record in recent_records reversed %}
                     <li>
                         <div>
-                            <time>2001-11-21</time>
-                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                                incididunt ut labore et dolore magna aliqua. </a>
+                            <time>{{ record.date_creation|date:"Y-m-d" }}</time>
+                            <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
                         </div>
                     </li>
-                    <li>
-                        <div>
-                            <time>2002-12-22</time>
-                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                                incididunt ut labore et dolore magna aliqua. </a>
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <time>2003-01-23</time>
-                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit </a>
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <time>2004-02-24</time>
-                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit </a>
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <time>2005-03-25</time>
-                            <a href="#">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                                incididunt ut labore et dolore magna aliqua. </a>
-                        </div>
-                    </li>
+                    {% endfor %}
                     <li></li>
                 </ol>
             </section>
@@ -113,8 +88,8 @@
             <br>
             <h4>Common options:</h4>
             <div class="grid">
-                <a role="button" class="secondary outline" href="#">Add biometric record</a>
-                <a role="button" class="secondary outline" href="#">Manage notofications</a>
+                <a role="button" class="secondary outline" id="biometric-record-button" href="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record" >Add biometric record</a>
+                <a role="button" class="secondary outline" href="#">Manage notifications</a>
             </div>
         </div>
         {% if is_owner %}
@@ -124,8 +99,8 @@
                 <h6>Records</h6>
                 <div class="grid">
                     <a role="button" class="secondary outline" href="#">Edit biometric records</a>
-                    <a role="button" class="secondary outline" href="#">Manage a current diet</a>
-                    <a role="button" class="secondary outline" href="#">Manage current medicines</a>
+                    <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=diet_note">Manage diets</a>
+                    <a role="button" class="secondary outline" href="#">Manage medicines</a>
                 </div>
                 <br>
                 <h6>Profile</h6>

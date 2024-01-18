@@ -13,6 +13,8 @@ import os
 from pathlib import Path
 
 from couchdb import Server
+from decouple import config
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,9 +45,13 @@ INSTALLED_APPS = [
     "crispy_bootstrap4",
     "bootstrap_modal_forms",
     "compressor",
+    "taggit",
+    "django_crontab",
+    "django_cron",
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",
     "animals.apps.AnimalsConfig",
+    "medical_notes.apps.MedicalNotesConfig",
 ]
 
 MIDDLEWARE = [
@@ -89,25 +95,17 @@ WSGI_APPLICATION = "AHC_app.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # },
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "adr_main",
-        "USER": "adr_controller",
-        "PASSWORD": "123dupabanana",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": config("DB_NAME"),
+        "USER": config("DB_USER"),
+        "PASSWORD": config("DB_PASSWORD"),
+        "HOST": config("DB_HOST"),
+        "PORT": config("DB_PORT", default="5432"),
     }
 }
-# PostgreSQL
-# drop owned by adr_controller
 
-
-COUCH_CONNECTOR = Server("http://127.0.0.1:5984")
-
+COUCH_CONNECTOR = config("COUCH_CONNECTOR"),
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -181,3 +179,27 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "static/media")
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+CRONJOBS = [
+    ("*/4 * * * *", "AHC_app.celery_notifications.cron.send_emails"),
+    ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
+    # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
+    ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
+    ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
+]
+
+CRON_CLASSES = [
+    # 'AHC_app.celery_notifications.cron.SynchNotificationsCron',
+]
+
+CELERY_BROKER_URL = config("CELERY_BROKER_URL")
+CELERY_BACKEND = config("CELERY_BACKEND")
+
+
+EMAIL_BACKEND = config("EMAIL_BACKEND")
+EMAIL_HOST = config("EMAIL_HOST")
+EMAIL_PORT = config("EMAIL_PORT", cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")

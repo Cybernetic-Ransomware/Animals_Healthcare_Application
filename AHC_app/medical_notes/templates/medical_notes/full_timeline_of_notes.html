@@ -1,0 +1,108 @@
+{% extends "homepage/base.html" %}
+{% block content %}
+
+{% for note, form in notes %}
+<article class="media content-section">
+    <div class="media-body">
+        <a class="mr-2" href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>
+        <div class="article-metadata">
+            <small class="text-muted">{{ note.date_creation }}</small>
+            <br>
+            <small class="text-muted">
+            Type:
+            <a class="mr-2" href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}type_of_event={{ note.type_of_event }}">{{ note.type_of_event }}</a>
+            </small>
+        </div>
+        <br>
+        <p class="article-content">{{ note.short_description }}</p>
+
+        <br>
+            <div>
+            <h4>Appendixes:</h4>
+                {% for attachment in attachments_by_note.note.id.all %}
+
+                    <p>
+                        <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
+                            Download {{ attachment.file.name }}
+                        </a>
+                    </p>
+                {% endfor %}
+            <form method="post" action="{% url 'full_timeline_of_notes' pk=note.animal.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Set appendix</button>
+            </form>
+
+
+        </div>
+
+
+        {% if note.additional_animals.all|length != 0 %}
+            <p class="article-content">Related also to:
+                {% for animal in note.additional_animals.all %}
+                    <a class="mr-2" href="{% url 'animal_profile' pk=animal.id %}">{{ animal.full_name }}</a>{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            </p>
+        {% endif %}
+
+        {% if note.note_tags.all %}
+        <p>
+            Tags:
+            {% for tag in note.note_tags.all %}
+            <a class="mr-2" href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}tag_name={{ tag.slug }}">#{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}            {% endfor %}
+        </p>
+        {% endif %}
+        <div class="grid">
+            <a class="text-muted" href="{% url 'note_edit' pk=note.id %}">View full note</a>
+            <a class="text-muted" href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
+            {% if note.type_of_event == 'diet_note' %}
+            <a class="text-muted" href="{% url 'note_related_diets' pk=note.id%}">View diet</a>
+            <a class="text-muted" href="{% url 'notification_create' pk=note.id%}">Add notification</a>
+{#            <a class="text-muted" href="{% url 'note_related_notifications' pk=note.id%}">Check notifications</a>#}
+            {% endif %}
+            <a class="text-muted" href="{% url 'note_delete' pk=note.id %}">Delete</a>
+        </div>
+    </div>
+</article>
+{% endfor %}
+
+<div class="grid">
+
+    <div class="border-top pt-3">
+        <small class="text-muted">
+            <a class="ml-2" href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet
+                profile</a>
+        </small>
+
+    </div>
+
+    {% if notes.paginator.page_range|length > 1 %}
+    <div>
+    <small class="text-muted">
+        Pages:
+    </small>
+
+    {% if notes.has_previous %}
+    <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ notes.previous_page_number }}">Previous</a>
+    {% endif %}
+
+
+    {% for num in notes.paginator.page_range %}
+    {% if notes.number == num %}
+    <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
+    {% elif num > notes.number|add:'-3' and num < notes.number|add:'3' %}
+    <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
+    {% endif %}
+    {% endfor %}
+
+    {% if notes.has_next %}
+    <a class="btn btn-outline-info mb-4" href="?page={{ notes.next_page_number }}">Next</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ notes.paginator.num_pages }}">Last</a>
+    {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

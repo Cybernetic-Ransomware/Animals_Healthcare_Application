@@ -6,7 +6,7 @@
 
 
 ### Status  
-Proposed
+In-building
 
 
 ### Context  
@@ -17,17 +17,19 @@ Considered DBMS:
 - [ ] MySQL,
 - [ ] SQLite,
 - [ ] MongoDB,
-- [ ] Redis,
+- [x] Redis    --to integrate,
 - [ ] Firebird,
 - [x] CouchDB.
 
 
 ### Decision  
-Two databases have been selected for routing testing.
+Tree databases have been selected for routing testing.
 
 PostgreSQL - quick database creation and configuration with a good SQL interface. It has many use cases with Django.
 
 CouchDB - native support for files as attachments. Non-relational database, intended for file storage only.
+
+Redis - default broker for Celery queue.
 
 
 ### Consequences  

@@ -2,7 +2,7 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -47,10 +47,15 @@
 <footer class="container">
     <div class="grid">
         <nav>
-          <ul>
-            <li><a href="#">Credits placeholder</a></li>
-          </ul>
-          <ul>
+        <ul>
+            {% if user.is_authenticated %}
+              <li><small>Hi {{ user.username }}!</small><br></li>
+            {% endif %}
+        </ul>
+        <ul>
+           <li><a href="#">Credits placeholder</a></li>
+        </ul>
+         <ul>
             {% if user.is_authenticated %}
             <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
             <li><a role="button" class="secondary outline" href="{% url 'logout' %}">Logout</a></li>
@@ -58,7 +63,7 @@
             <li><a role="button" class="secondary outline" href="{% url 'login' %}">Login</a></li>
             <li><a role="button" class="secondary outline" href="{% url 'register' %}">Register</a></li>
             {% endif %}
-          </ul>
+        </ul>
         </nav>
     </div>
 </footer>

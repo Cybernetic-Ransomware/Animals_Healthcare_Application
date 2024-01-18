@@ -1,38 +1,39 @@
-from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, FormView, UpdateView
 
-from .forms import UserRegisterForm, ProfileUpdateForm, UserUpdateForm
-
-
-def register(request):
-    if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Account\s been created for {username}!')
-            return redirect('login')
-    else:
-        form = UserRegisterForm()
-
-    return render(request, 'users/register.html', {'form': form})
+from .forms import ProfileUpdateForm, UserRegisterForm, UserUpdateForm
+from .models import Profile
 
 
-@login_required
-def profile(request):
-    if request.method == 'POST':
-        user_form = UserRegisterForm(request.POST, instance=request.user)
-        profile_update = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+class UserRegisterView(CreateView):
+    form_class = UserRegisterForm
+    template_name = "users/register.html"
+    success_url = reverse_lazy("login")
 
-        if user_form.is_valid() and profile_update.is_valid():
-            user_form.save()
-            profile_update.save()
-            messages.success(request, 'Your profile has been updated')
-            return redirect('profile')
-    else:
-        user_form = UserUpdateForm(instance=request.user)
-        profile_update = ProfileUpdateForm(instance=request.user.profile)
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f"Account has been created for {form.cleaned_data['username']}!")
+        Profile.objects.create(user=self.object)
+        return response
 
-    return render(request, 'users/profile.html', {'user_form': user_form, 'profile_update': profile_update})
+
+class UserProfileView(LoginRequiredMixin, UpdateView):
+    model = Profile
+    form_class = UserUpdateForm
+    template_name = "users/profile.html"
+    success_url = reverse_lazy("profile")
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["profile_update"] = ProfileUpdateForm(instance=self.request.user.profile)
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Your profile has been updated")
+        return response

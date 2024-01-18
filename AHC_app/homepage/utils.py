@@ -1,7 +1,7 @@
 from io import BytesIO
-from PIL import Image
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from PIL import Image
 
 
 class ImageGenerator:
@@ -11,7 +11,12 @@ class ImageGenerator:
         image_io = BytesIO()
         image.save(image_io, format="JPEG")
         return InMemoryUploadedFile(
-            image_io, None, "black.jpg", "static/media/background", image_io.tell(), None
+            image_io,
+            None,
+            "black.jpg",
+            "static/media/background",
+            image_io.tell(),
+            None,
         )
 
     @staticmethod

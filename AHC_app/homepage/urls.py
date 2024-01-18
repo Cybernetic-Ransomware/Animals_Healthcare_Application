@@ -1,9 +1,7 @@
-from django.contrib import admin
 from django.urls import path
 
-from .views import *
+from homepage.views import HomepageView
 
 urlpatterns = [
-    path('', HomepageView.as_view(), name='Homepage'),
-
+    path("", HomepageView.as_view(), name="Homepage"),
 ]

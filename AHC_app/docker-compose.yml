@@ -1,0 +1,101 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      queue:
+        condition: service_started
+    environment:
+      - PYTHONUNBUFFERED=1
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        python manage.py makemigrations
+        python manage.py migrate
+        python manage.py crontab remove
+        python manage.py crontab add
+        python manage.py sync_cronjobs
+        python manage.py runcrons
+        python manage.py runserver 0.0.0.0:8000
+
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: main-db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - animals_db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 30s
+      retries: 6
+    restart: always
+
+  couch_db:
+    build:
+      context: .
+      dockerfile: Dockerfile-couchdb
+      args:
+        COUCHDB_USER: ${COUCHDB_USER}
+        COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+    container_name: appendixes-db
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+    ports:
+      - "5984:5984"
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984"]
+      interval: 5s
+      timeout: 30s
+      retries: 6
+    restart: always
+
+  queue:
+    build: .
+    command: celery -A AHC_app.celery_notifications.config:celery_obj worker -l info
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=AHC_app.settings
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "6379:6379"
+
+  celery_flower:
+    image: mher/flower:2.0.1
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - FLOWER_PORT=${FLOWER_PORT}
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH}
+    depends_on:
+      - queue
+
+volumes:
+  animals_db:
+  couchdb_data:

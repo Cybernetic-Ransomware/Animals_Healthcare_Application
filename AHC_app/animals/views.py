@@ -5,14 +5,14 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
+from medical_notes.models.type_basic_note import MedicalRecord
 
-from .forms import AnimalRegisterForm
-from .models import Animal
-from .owner_utils.views import (AnimalDeleteView, ImageUploadView, ChangeOwnerView, ManageKeepersView,
-                                ChangeBirthdayView, ChangeFirstContactView)
+from animals.forms import AnimalRegisterForm
+from animals.models import Animal
+from animals.utils_owner.views import *
 
 
-class CreateFormView(LoginRequiredMixin, FormView):
+class CreateAnimalView(LoginRequiredMixin, FormView):
     template_name = "animals/create.html"
     form_class = AnimalRegisterForm
     success_url = "/animals/"
@@ -34,10 +34,16 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['now'] = timezone.now().date()
+        context["now"] = timezone.now().date()
 
         # only for visibility of buttons, do not use as authentication
         context["is_owner"] = self.object.owner == self.request.user.profile
+
+        recent_records = MedicalRecord.objects.filter(animal=self.object).order_by(
+            "-date_creation"
+        )[:5]
+
+        context["recent_records"] = recent_records
 
         return context
 

@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
 
-from .utils import ImageGenerator
+from homepage.utils import ImageGenerator
 
 
 class Privilege(models.Model):
@@ -15,7 +15,7 @@ class ProfileBackground(models.Model):
     # content = models.ImageField(default='AHC_app/static/media/background/background-1169534_1920.png',
     #                             upload_to='AHC_app/static/media/background')
     content = models.ImageField(
-        default=ImageGenerator.default_profile_image(),
+        default=ImageGenerator.default_profile_image,
         upload_to="static/media/background",
     )
 
@@ -33,3 +33,14 @@ class AnimalTitle(models.Model):
 
     def get_absolute_url(self):
         return reverse("article-detail", kwargs={"pk": self.pk})
+
+
+class CronJob(models.Model):
+    name = models.CharField(max_length=255)
+    command = models.CharField(max_length=255)
+    schedule = models.CharField(max_length=255)
+    last_execution = models.DateTimeField(null=True, blank=True)
+    next_execution = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name

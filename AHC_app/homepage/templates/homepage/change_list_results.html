@@ -1,0 +1,12 @@
+{% extends "admin/change_list_results.html" %}
+
+{% block result_list %}
+    {{ block.super }}
+    <ul>
+        {% for cronjob in cronjobs %}
+            <li>Name: {{ cronjob.name }}, Schedule: {{ cronjob.schedule }}, Last Execution: {{ cronjob.last_execution }}, Next Execution: {{ cronjob.next_execution }}</li>
+        {% empty %}
+            <li>No cronjobs available</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
