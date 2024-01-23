@@ -1,4 +1,8 @@
+import json
 import logging
+import logging.config
+import logging.handlers
+import pathlib
 from datetime import date, datetime, time, timedelta
 from functools import wraps
 
@@ -10,19 +14,21 @@ from medical_notes.models.type_feeding_notes import EmailNotification
 from AHC_app.celery_notifications.config import send_email_notifications
 from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
 
-logging.basicConfig(
-    filename="logs/cron.log",
-    force=True,
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("crons_logger")
+
+
+def setup_logging():
+    config_file = pathlib.Path("AHC_app/celery_notifications/logger_config.json")
+    with open(config_file, "r") as file:
+        config = json.load(file)
+    logging.config.dictConfig(config)
 
 
 def log_exceptions_and_notifications(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
+            setup_logging()
             notifications_to_send = func(*args, **kwargs)
             logger.debug(f"Notifications to send: {notifications_to_send}")
             return notifications_to_send
@@ -144,8 +150,6 @@ class SynchNotificationsCron(CronJobBase):
 
     @staticmethod
     def cron_send_emails():
-        print("dupa1")
-
         from icecream import ic
 
         ic()
