@@ -58,7 +58,7 @@ services:
     volumes:
       - couchdb_data:/opt/couchdb/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5984"]
+      test: ["CMD", "curl", "-f", "http://localhost:5984 > /dev/null 2>&1"]
       interval: 5s
       timeout: 30s
       retries: 6
