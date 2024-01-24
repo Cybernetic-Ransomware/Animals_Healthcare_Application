@@ -1,4 +1,9 @@
+import os
+
+import pycouchdb
+
 from animals.models import Animal as AnimalProfile
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
@@ -117,7 +122,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             form = UploadAppendixForm()
             form.fields["medical_record_id"].initial = str(note.id)
             upload_forms.append(form)
-            value = form["medical_record_id"].value()
+            # value = form["medical_record_id"].value()
 
         notes_with_forms = zip(notes, upload_forms)
         context["notes"] = notes_with_forms
@@ -125,10 +130,6 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         attachments_by_note = {}
         for note in notes:
             attachments_by_note[note.id] = MedicalRecordAttachment.objects.filter(medical_record=note)
-
-        print(list(context))
-        print(list(paginator)[0].has_next())
-        # print(context["notes"].paginator)
 
         return context
 
@@ -139,7 +140,25 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
 
             form.instance.medical_record = medical_record
+
             form.save()
+
+            server = pycouchdb.Server(
+                f"http://{settings.COUCHDB_USER}:{settings.COUCHDB_PASSWORD}@appendixes-db:5984/", authmethod="basic"
+            )
+            db = server.database("appendixes")
+
+            uploaded_file = request.FILES["file"]
+            file_reference_uuid = str(form.instance.id)
+
+            db.save({"_id": file_reference_uuid, "name": uploaded_file.name})
+            doc_dict = db.get(file_reference_uuid)
+            db.put_attachment(doc_dict, uploaded_file)
+
+            file_path = os.path.join(settings.MEDIA_ROOT, "attachments", uploaded_file.name)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
         else:
             print(form.errors)
             for field, errors in form.errors.items():
