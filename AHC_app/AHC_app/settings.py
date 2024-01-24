@@ -110,22 +110,7 @@ DATABASES = {
 
 COUCHDB_USER = config("COUCHDB_USER")
 COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
-# COUCHDB_URL = f'http://{COUCHDB_USER}:{COUCHDB_PASSWORD}@localhost:5984'
-# COUCHDB_DATABASE_NAME = 'your_database_name'  # Dostosuj nazwę bazy danych
-#
-# client = Cloudant(COUCHDB_USER, COUCHDB_PASSWORD, url=COUCHDB_URL)
-# client.connect()
-#
-# COUCHDB_ATTACHMENTS_DATABASES = {
-#     'default': {
-#         'ENGINE': 'django_couchdb.backends.Cloudant',
-#         'NAME': COUCHDB_DATABASE_NAME,
-#         'USER': COUCHDB_USER,
-#         'PASSWORD': COUCHDB_PASSWORD,
-#         'URL': COUCHDB_URL,
-#     },
-# }
-
+COUCHDB_PORT = config("COUCHDB_PORT")
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

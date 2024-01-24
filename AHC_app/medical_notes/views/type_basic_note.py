@@ -144,7 +144,8 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             form.save()
 
             server = pycouchdb.Server(
-                f"http://{settings.COUCHDB_USER}:{settings.COUCHDB_PASSWORD}@appendixes-db:5984/", authmethod="basic"
+                f"http://{settings.COUCHDB_USER}:{settings.COUCHDB_PASSWORD}@appendixes-db:{settings.COUCHDB_PORT}/",
+                authmethod="basic",
             )
             db = server.database("appendixes")
 
