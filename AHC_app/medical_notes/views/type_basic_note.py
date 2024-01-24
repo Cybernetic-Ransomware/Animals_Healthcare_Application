@@ -8,8 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-
-# from django.forms import formset_factory
+from django.http import HttpResponseServerError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic.edit import DeleteView, FormView, UpdateView
@@ -154,11 +153,18 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
             db.save({"_id": file_reference_uuid, "name": uploaded_file.name})
             doc_dict = db.get(file_reference_uuid)
-            db.put_attachment(doc_dict, uploaded_file)
+            # db.put_attachment(doc_dict, uploaded_file)
 
             file_path = os.path.join(settings.MEDIA_ROOT, "attachments", uploaded_file.name)
             if os.path.exists(file_path):
+                with open(file_path, "rb") as file_content:
+                    db.put_attachment(doc_dict, file_content)
                 os.remove(file_path)
+            else:
+                error_message = (
+                    "Internal error with saving the file. Try again later or contact the host administrator."
+                )
+                return HttpResponseServerError(error_message)
 
         else:
             print(form.errors)
