@@ -70,6 +70,7 @@ icecream = "*"
 flower = "*"
 django-cron = "*"
 python-decouple = "*"
+pycouchdb = "*"
 
 [dev-packages]
 pre-commit = "*"
