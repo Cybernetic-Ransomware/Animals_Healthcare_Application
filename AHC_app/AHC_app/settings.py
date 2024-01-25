@@ -186,11 +186,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CRONJOBS = [
-    ("*/4 * * * *", "AHC_app.celery_notifications.cron.send_emails"),
-    ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
-    # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
-    ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
-    ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
+    # ("*/4 * * * *", "AHC_app.celery_notifications.cron.send_emails"),
+    # ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
+    # # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
+    # ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
+    # ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
 ]
 
 CRON_CLASSES = [
@@ -207,3 +207,5 @@ EMAIL_PORT = config("EMAIL_PORT", cast=int)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+
+DISCORD_TOKEN = config("DISCORD_TOKEN")

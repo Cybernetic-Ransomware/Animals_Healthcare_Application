@@ -71,6 +71,7 @@ flower = "*"
 django-cron = "*"
 python-decouple = "*"
 pycouchdb = "*"
+discord = "*"
 
 [dev-packages]
 pre-commit = "*"
