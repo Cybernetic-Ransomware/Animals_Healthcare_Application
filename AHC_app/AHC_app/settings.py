@@ -13,9 +13,9 @@ import os
 
 from pathlib import Path
 
-from decouple import config
+import pycouchdb
 
-# from ibmcloudant.cloudant_v1 import CloudantV1
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -112,6 +112,11 @@ COUCHDB_USER = config("COUCHDB_USER")
 COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
 COUCHDB_PORT = config("COUCHDB_PORT")
 
+COUCH_SERVER = pycouchdb.Server(
+    f"http://{COUCHDB_USER}:{COUCHDB_PASSWORD}@appendixes-db:{COUCHDB_PORT}/", authmethod="basic"
+)
+COUCH_DB = COUCH_SERVER.database("appendixes")
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -190,7 +195,7 @@ CRONJOBS = [
     # ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
     # # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
     # ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
-    # ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
+    ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
 ]
 
 CRON_CLASSES = [

@@ -1,14 +1,9 @@
-import os
-
-import pycouchdb
-
 from animals.models import Animal as AnimalProfile
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponseServerError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic.edit import DeleteView, FormView, UpdateView
@@ -114,7 +109,6 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         page_number = self.request.GET.get("page")
 
         notes = paginator.get_page(page_number)
-        print(list(context["notes"]))
 
         upload_forms = []
         for note in context["notes"]:
@@ -139,32 +133,20 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
 
             form.instance.medical_record = medical_record
-
             form.save()
 
-            server = pycouchdb.Server(
-                f"http://{settings.COUCHDB_USER}:{settings.COUCHDB_PASSWORD}@appendixes-db:{settings.COUCHDB_PORT}/",
-                authmethod="basic",
-            )
-            db = server.database("appendixes")
+            couch_connector = settings.COUCH_DB
 
             uploaded_file = request.FILES["file"]
             file_reference_uuid = str(form.instance.id)
+            uploaded_file_name = uploaded_file.name
+            uploaded_file.seek(0)
+            blop_file = uploaded_file.read()
 
-            db.save({"_id": file_reference_uuid, "name": uploaded_file.name})
-            doc_dict = db.get(file_reference_uuid)
-            # db.put_attachment(doc_dict, uploaded_file)
+            couch_connector.save({"_id": file_reference_uuid, "name": uploaded_file_name})
 
-            file_path = os.path.join(settings.MEDIA_ROOT, "attachments", uploaded_file.name)
-            if os.path.exists(file_path):
-                with open(file_path, "rb") as file_content:
-                    db.put_attachment(doc_dict, file_content)
-                os.remove(file_path)
-            else:
-                error_message = (
-                    "Internal error with saving the file. Try again later or contact the host administrator."
-                )
-                return HttpResponseServerError(error_message)
+            doc_dict = couch_connector.get(file_reference_uuid)
+            couch_connector.put_attachment(doc_dict, blop_file, filename=uploaded_file_name)
 
         else:
             print(form.errors)
