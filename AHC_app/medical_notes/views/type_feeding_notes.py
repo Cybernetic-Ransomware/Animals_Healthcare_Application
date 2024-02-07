@@ -7,7 +7,7 @@ from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
 from medical_notes.forms.type_feeding_notes import (
     DietRecordForm,
-    NotificationRecordForm
+    NotificationRecordForm,
 )
 from medical_notes.models.type_basic_note import MedicalRecord
 from medical_notes.models.type_feeding_notes import EmailNotification, FeedingNote
@@ -73,15 +73,11 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # success_url = reverse_lazy("note_related_diets", kwargs={"pk": note_id})
         email_notification_id = self.kwargs.get("pk")
-        email_notification = get_object_or_404(
-            EmailNotification, id=email_notification_id
-        )
+        email_notification = get_object_or_404(EmailNotification, id=email_notification_id)
         feeding_note = email_notification.related_note
         medical_record = feeding_note.related_note
 
-        success_url = reverse_lazy(
-            "note_related_diets", kwargs={"pk": medical_record.id}
-        )
+        success_url = reverse_lazy("note_related_diets", kwargs={"pk": medical_record.id})
         return redirect(success_url)
 
     def get_success_url(self):
@@ -120,9 +116,7 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["medical_record_id"] = self.kwargs.get("pk")
-        context["animal_id"] = get_object_or_404(
-            MedicalRecord, pk=self.kwargs.get("pk")
-        ).animal.id
+        context["animal_id"] = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk")).animal.id
         return context
 
     def test_func(self):
@@ -152,13 +146,10 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         notify.days_of_week = processed_days_of_week
         notify.related_note = related_note
 
-        notify_kwargs = {key: value for key, value in notify.__dict__.items() if not key.startswith('_')}
+        notify_kwargs = {key: value for key, value in notify.__dict__.items() if not key.startswith("_")}
         print(notify_kwargs)
 
-        EmailNotification.objects.create_notification(
-            **notify_kwargs
-
-        )
+        EmailNotification.objects.create_notification(**notify_kwargs)
 
         return super().form_valid(form)
 
@@ -175,16 +166,23 @@ class NotificationListView(ListView):
         mednote_uuid = self.request.GET.get("mednote_uuid")
         animal_uuid = self.request.GET.get("animal_uuid")
 
+        # TODO set url and test view with feednote_pk
         if feednote_pk:
-            email_notifications = EmailNotification.objects.filter(
-                related_note=feednote_pk
-            )
+            email_notifications = EmailNotification.objects.filter(related_note=feednote_pk)
             flattened_email_notifications = list(email_notifications)
 
             return flattened_email_notifications
 
         elif mednote_uuid:
-            pass
+            feednotes_pk = FeedingNote.objects.filter(related_note=mednote_uuid)
+            email_notifications = EmailNotification.objects.filter(related_note__in=feednotes_pk).order_by(
+                "-last_modification"
+            )
+
+            email_notifications = email_notifications.order_by("-last_modification")
+            print([i.__str__() for i in email_notifications])
+
+            return email_notifications
 
         elif animal_uuid:
             pass
@@ -197,17 +195,17 @@ class NotificationListView(ListView):
         return context
 
     def post(self, request, *args, **kwargs):
-        pk = kwargs.get('pk')
+        pk = kwargs.get("pk")
         notify = get_object_or_404(EmailNotification, pk=pk)
 
         notify.is_active = not notify.is_active
         notify.save()
 
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+        return HttpResponseRedirect(request.META.get("HTTP_REFERER"))
 
     def delete(self, *args, **kwargs):
-        pk = kwargs.get('pk')
+        pk = kwargs.get("pk")
         notify = get_object_or_404(self.model, pk=pk)
         notify.delete()
 
-        return HttpResponseRedirect(reverse_lazy('note_related_notifications'))
+        return HttpResponseRedirect(reverse_lazy("note_related_notifications"))

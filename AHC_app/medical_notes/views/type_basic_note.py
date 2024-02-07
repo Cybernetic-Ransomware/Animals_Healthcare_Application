@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -105,6 +106,8 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         if tag_name:
             query = query.filter(note_tags__slug=tag_name)
 
+        query = query.prefetch_related("attachments")
+
         paginator = Paginator(list(query.order_by("-date_creation")), per_page=self.paginate_by)
         page_number = self.request.GET.get("page")
 
@@ -115,14 +118,10 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             form = UploadAppendixForm()
             form.fields["medical_record_id"].initial = str(note.id)
             upload_forms.append(form)
-            # value = form["medical_record_id"].value()
 
-        notes_with_forms = zip(notes, upload_forms)
+        notes_with_forms = zip(context["notes"], upload_forms)
+
         context["notes"] = notes_with_forms
-
-        attachments_by_note = {}
-        for note in notes:
-            attachments_by_note[note.id] = MedicalRecordAttachment.objects.filter(medical_record=note)
 
         return context
 
@@ -132,21 +131,33 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             medical_record_id = form["medical_record_id"].value()
             medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
 
-            form.instance.medical_record = medical_record
-            form.save()
+            attachments_count = MedicalRecordAttachment.objects.filter(medical_record=medical_record_id).count()
+            attanents_limit_per_note = settings.COUCH_DB_LIMIT_PER_NOTE
+            if attachments_count >= attanents_limit_per_note:
+                messages.error(
+                    request,
+                    f"Failed to upload. Maximum limit {attanents_limit_per_note} attachments per note is already reached.",
+                )
+                return redirect(request.path)
 
-            couch_connector = settings.COUCH_DB
+            with transaction.atomic():
+                form.instance.medical_record = medical_record
+                form.save()
 
-            uploaded_file = request.FILES["file"]
-            file_reference_uuid = str(form.instance.id)
-            uploaded_file_name = uploaded_file.name
-            uploaded_file.seek(0)
-            blop_file = uploaded_file.read()
+                couch_connector = settings.COUCH_DB
 
-            couch_connector.save({"_id": file_reference_uuid, "name": uploaded_file_name})
+                uploaded_file = request.FILES["file"]
+                file_reference_uuid = str(form.instance.id)
+                uploaded_file_name = uploaded_file.name
+                uploaded_file.seek(0)
+                blop_file = uploaded_file.read()
 
-            doc_dict = couch_connector.get(file_reference_uuid)
-            couch_connector.put_attachment(doc_dict, blop_file, filename=uploaded_file_name)
+                couch_connector.save({"_id": file_reference_uuid, "name": uploaded_file_name})
+
+                doc_dict = couch_connector.get(file_reference_uuid)
+                couch_connector.put_attachment(doc_dict, blop_file, filename=uploaded_file_name)
+
+                messages.success(request, "Attachment uploaded successfully.")
 
         else:
             print(form.errors)

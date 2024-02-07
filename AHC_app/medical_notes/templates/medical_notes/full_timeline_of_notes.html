@@ -1,4 +1,5 @@
 {% extends "homepage/base.html" %}
+{% load custom_to_class_name %}
 {% block content %}
 
 {% for note, form in notes %}
@@ -19,11 +20,11 @@
         <br>
             <div>
             <h4>Appendixes:</h4>
-                {% for attachment in attachments_by_note.note.id.all %}
+                {% for attachment in note.attachments.all %}
 
                     <p>
                         <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
-                            Download {{ attachment.file.name }}
+                            Download: {{ attachment.file.name|to_file_name }}
                         </a>
                     </p>
                 {% endfor %}
@@ -64,8 +65,8 @@
             <a class="text-muted" href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
             {% if note.type_of_event == 'diet_note' %}
             <a class="text-muted" href="{% url 'note_related_diets' pk=note.id%}">View diet</a>
-            <a class="text-muted" href="{% url 'notification_create' pk=note.id%}">Add notification</a>
-{#            <a class="text-muted" href="{% url 'note_related_notifications' pk=note.id%}">Check notifications</a>#}
+{#            <a class="text-muted" href="{% url 'notification_create' pk=note.id%}">Add notification</a>#}
+            <a class="text-muted" href="{% url 'note_related_notifications' %}?mednote_uuid={{ note.id }}">Check notifications</a>
             {% endif %}
             <a class="text-muted" href="{% url 'note_delete' pk=note.id %}">Delete</a>
         </div>

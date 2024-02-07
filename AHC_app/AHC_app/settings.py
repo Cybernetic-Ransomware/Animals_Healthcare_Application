@@ -117,6 +117,8 @@ COUCH_SERVER = pycouchdb.Server(
 )
 COUCH_DB = COUCH_SERVER.database("appendixes")
 
+COUCH_DB_LIMIT_PER_NOTE = 5
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 

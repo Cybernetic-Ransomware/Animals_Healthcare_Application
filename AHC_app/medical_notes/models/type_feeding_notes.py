@@ -3,15 +3,12 @@ from zoneinfo import ZoneInfo
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from timezone_field import TimeZoneField
-
 from medical_notes.models.type_basic_note import MedicalRecord
+from timezone_field import TimeZoneField
 
 
 class FeedingNote(models.Model):
-    related_note = models.ForeignKey(
-        MedicalRecord, on_delete=models.CASCADE, null=False, blank=False
-    )
+    related_note = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, null=False, blank=False)
 
     # planned  dates are from MedicalRecord
     real_start_date = models.DateField(null=True, blank=False)
@@ -48,11 +45,9 @@ class NotificationRecordManager(models.Manager):
 
 
 class FeedingNotification(models.Model):
-    related_note = models.ForeignKey(
-        FeedingNote, on_delete=models.CASCADE, blank=True, null=True
-    )
+    related_note = models.ForeignKey(FeedingNote, on_delete=models.CASCADE, blank=True, null=True)
     description = models.CharField(max_length=250)
-
+    last_modification = models.DateTimeField(auto_now_add=True, editable=True)
     is_active = models.BooleanField(default=False, null=False)
 
     receiver_name = models.CharField(max_length=30)
