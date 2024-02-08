@@ -246,7 +246,12 @@ class EditMedicalRecordAttachmentDescription(UpdateView):
         return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
 
     def test_func(self):
-        return True
+        user = self.request.user.profile
+
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note_author = attachment.medical_record.author
+        return user == note_author
 
 
 class EditRelatedAnimalsView(EditNoteView):
