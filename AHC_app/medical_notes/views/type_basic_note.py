@@ -5,8 +5,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.views.generic import View
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
 from medical_notes.forms.type_basic_note import (
@@ -142,7 +144,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
             with transaction.atomic():
                 form.instance.medical_record = medical_record
-                form.save()
+                form.save(commit=False)
 
                 couch_connector = settings.COUCH_DB
 
@@ -156,6 +158,13 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
                 doc_dict = couch_connector.get(file_reference_uuid)
                 couch_connector.put_attachment(doc_dict, blop_file, filename=uploaded_file_name)
+
+                uploaded_file_name = uploaded_file.name
+
+                form.instance.file_name = uploaded_file_name
+                form.instance.couch_id = file_reference_uuid
+                form.instance.file = None
+                form.save()
 
                 messages.success(request, "Attachment uploaded successfully.")
 
@@ -296,16 +305,17 @@ class DeleteMedicalRecordAttachment(LoginRequiredMixin, UserPassesTestMixin, Del
         animal_id = note.animal.id
         return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
 
-    def delete(self, request, *args, **kwargs):
+    def form_valid(self, request, *args, **kwargs):
         self.object = self.get_object()
+        success_url = self.get_success_url()
         couch_connector = settings.COUCH_DB
 
-        couch_attachment_id = str(self.object.id)
+        couch_attachment_id = str(self.object.couch_id)
         couch_connector.delete(couch_attachment_id)
 
         self.object.delete()
 
-        success_url = self.get_success_url()
+        # success_url = self.get_success_url()
         return redirect(success_url)
 
     def test_func(self):
@@ -335,3 +345,33 @@ class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         note = get_object_or_404(MedicalRecord, pk=note_id)
         animal_id = note.animal.id
         return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
+
+
+class DownloadAttachmentView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        user = self.request.user.profile
+
+        attachment_couch_id = self.kwargs.get("id")
+        attachment = get_object_or_404(MedicalRecordAttachment, couch_id=attachment_couch_id)
+        note_author = attachment.medical_record.author
+        return user == note_author
+
+    def get(self, request, *args, **kwargs):
+        couch_connector = settings.COUCH_DB
+        reference_id = self.kwargs.get("id")
+        filename = self.kwargs.get("name")
+
+        attachment = couch_connector.get(reference_id)
+        if not attachment:
+            print("Attachment not found")
+            raise Http404("Attachment not found")
+
+        file_data = couch_connector.get_attachment(attachment, filename=attachment.get("name"))
+        if not file_data:
+            print("Attachment file not found")
+            raise Http404("Attachment file not found")
+
+        response = HttpResponse(file_data, content_type="application/octet-stream")
+        response["Content-Disposition"] = f'attachment; filename="{attachment.get("name")}"'
+
+        return response

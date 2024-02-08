@@ -1,5 +1,4 @@
 {% extends "homepage/base.html" %}
-{% load custom_to_class_name %}
 {% load static %}
 {% block content %}
 
@@ -27,8 +26,8 @@
                         <p>Uploaded: {{ attachment.upload_date }}</p>
                     </div>
                     <div>
-                        <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
-                            Download: {{ attachment.file.name|to_file_name }}
+                        <a href="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}" download="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}">
+                            Download: {{ attachment.file_name }}
                         </a>
                     </div>
                     <div>
