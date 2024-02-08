@@ -1,0 +1,22 @@
+name: AHC CI|CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DB_USER: ${{ secrets.DB_USER }}
+    strategy:
+      max-parallel: 4
+
+    steps:
+    - name: Build docker images
+      run: docker-compose build
+
+    - name: Run tests
+      run: docker-compose run test
