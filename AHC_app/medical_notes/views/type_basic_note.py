@@ -233,6 +233,22 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return user == note_author
 
 
+class EditMedicalRecordAttachmentDescription(UpdateView):
+    model = MedicalRecordAttachment
+    fields = ["description"]
+    template_name = "medical_notes/edit.html"
+
+    def get_success_url(self):
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note = attachment.medical_record
+        animal_id = note.animal.id
+        return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
+
+    def test_func(self):
+        return True
+
+
 class EditRelatedAnimalsView(EditNoteView):
     model = MedicalRecord
     form_class = MedicalRecordEditRelatedAnimalsForm
