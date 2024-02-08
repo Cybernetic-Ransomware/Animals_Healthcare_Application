@@ -22,5 +22,5 @@ urlpatterns = [
         name="biometric_create",
     ),
     path("<pk>/attachment_edit/", notes_views.EditMedicalRecordAttachmentDescription.as_view(), name="attachment_edit"),
-    path("<pk>/attachment_delete/", feeding_views.NotificationListView.as_view(), name="attachment_delete"),
+    path("<pk>/attachment_delete/", notes_views.DeleteMedicalRecordAttachment.as_view(), name="attachment_delete"),
 ]

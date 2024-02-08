@@ -284,6 +284,39 @@ class EditRelatedAnimalsView(EditNoteView):
         return user in all_users
 
 
+class DeleteMedicalRecordAttachment(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = MedicalRecordAttachment
+    template_name = "medical_notes/delete_confirm.html"
+    context_object_name = "note"
+
+    def get_success_url(self):
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note = attachment.medical_record
+        animal_id = note.animal.id
+        return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        couch_connector = settings.COUCH_DB
+
+        couch_attachment_id = str(self.object.id)
+        couch_connector.delete(couch_attachment_id)
+
+        self.object.delete()
+
+        success_url = self.get_success_url()
+        return redirect(success_url)
+
+    def test_func(self):
+        user = self.request.user.profile
+
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note_author = attachment.medical_record.author
+        return user == note_author
+
+
 class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = MedicalRecord
     template_name = "medical_notes/delete_confirm.html"
