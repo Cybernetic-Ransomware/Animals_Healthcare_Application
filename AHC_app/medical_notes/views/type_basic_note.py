@@ -233,7 +233,7 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return user == note_author
 
 
-class EditMedicalRecordAttachmentDescription(UpdateView):
+class EditMedicalRecordAttachmentDescription(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = MedicalRecordAttachment
     fields = ["description"]
     template_name = "medical_notes/edit.html"
