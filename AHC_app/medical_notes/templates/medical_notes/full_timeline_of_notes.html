@@ -1,5 +1,6 @@
 {% extends "homepage/base.html" %}
 {% load custom_to_class_name %}
+{% load static %}
 {% block content %}
 
 {% for note, form in notes %}
@@ -21,12 +22,39 @@
             <div>
             <h4>Appendixes:</h4>
                 {% for attachment in note.attachments.all %}
-
-                    <p>
+                    <div class="grid" style="grid-template-columns: 1fr 2fr 2fr 1fr 1fr">
+                    <div>
+                        <p>Uploaded: {{ attachment.upload_date }}</p>
+                    </div>
+                    <div>
                         <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
                             Download: {{ attachment.file.name|to_file_name }}
                         </a>
-                    </p>
+                    </div>
+                    <div>
+                        <link rel="stylesheet" type="text/css" href="{% static 'css/hide_large_description.css' %}">
+                        {% if not attachment.description %}
+                        <p>No description</p>
+                        {% else %}
+                         <p class="truncate" data-full-text="{{ attachment.description }}">{{ attachment.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <a href="{% url 'full_timeline_of_notes' pk=attachment.id %}">
+                            <button type="button" class="btn btn-danger btn-link inline">
+                                Edit
+                            </button>
+                        </a>
+                    </div>
+                    <div>
+                        <a href="{% url 'full_timeline_of_notes' pk=attachment.id %}">
+                            <button type="button" class="btn btn-danger btn-link inline">
+                                Delete
+                            </button>
+                        </a>
+                    </div>
+                    </div>
+
                 {% endfor %}
             <form method="post" action="{% url 'full_timeline_of_notes' pk=note.animal.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
