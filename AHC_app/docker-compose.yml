@@ -18,6 +18,7 @@ services:
       - |
         python manage.py makemigrations
         python manage.py migrate
+        python manage.py collectstatic --noinput
         python manage.py crontab remove
         python manage.py crontab add
         python manage.py sync_cronjobs
