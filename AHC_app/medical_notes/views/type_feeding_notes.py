@@ -104,7 +104,11 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return context
 
     def test_func(self):
-        return True
+        user = self.request.user.profile
+
+        note_id = self.kwargs.get("pk")
+        note_author = get_object_or_404(MedicalRecord, id=note_id).author
+        return user == note_author
 
 
 class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
