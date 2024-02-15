@@ -115,6 +115,8 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
         notes = paginator.get_page(page_number)
 
+        context["notes"] = notes
+
         upload_forms = []
         for note in context["notes"]:
             form = UploadAppendixForm()
