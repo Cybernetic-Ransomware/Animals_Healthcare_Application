@@ -145,7 +145,8 @@ def send_discord_notes():
     # if not notifications_to_send:
     #     return None
 
-    user_id: int = 000
+    user_id: int = 422570242275934219
+    # user_id: int = 530756049913905172
     user_message = "Test message"
     delay: int = 0
 

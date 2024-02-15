@@ -1,16 +1,21 @@
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from animals.mixins.animal_owner_permissions import UserPassesOwnershipTestMixin
+from animals.models import Animal
+from animals.utils_owner.forms import (
+    ChangeBirthdayForm,
+    ChangeFirstContactForm,
+    ChangeOwnerForm,
+    ImageUploadForm,
+    ManageKeepersForm,
+)
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView
 from django.views.generic.edit import FormView
 from PIL import Image
 
-from animals.models import Animal
-from animals.utils_owner.forms import (ChangeBirthdayForm, ChangeFirstContactForm,
-                                       ChangeOwnerForm, ImageUploadForm, ManageKeepersForm)
 
-
-class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class AnimalDeleteView(LoginRequiredMixin, UserPassesOwnershipTestMixin, DeleteView):
     model = Animal
     template_name = "animals/animal_confirm_delete.html"
     success_url = reverse_lazy("Homepage")
@@ -20,14 +25,8 @@ class AnimalDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         context["animal_id"] = self.kwargs["pk"]
         return context
 
-    def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
-        user = self.request.user.profile
 
-        return user == owner
-
-
-class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+class ImageUploadView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
     template_name = "animals/image.html"
     form_class = ImageUploadForm
 
@@ -56,14 +55,8 @@ class ImageUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         success_url = reverse("animal_profile", kwargs={"pk": animal_instance.pk})
         return redirect(success_url)
 
-    def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
-        user = self.request.user.profile
 
-        return user == owner
-
-
-class ChangeOwnerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+class ChangeOwnerView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
     template_name = "animals/change_owner.html"
     form_class = ChangeOwnerForm
 
@@ -71,9 +64,7 @@ class ChangeOwnerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         context = super().get_context_data(**kwargs)
         animal = Animal.objects.get(pk=self.kwargs["pk"])
         context["full_name"] = animal.full_name
-        context["animal_url"] = reverse(
-            "animal_profile", kwargs={"pk": self.get_form().instance.id}
-        )
+        context["animal_url"] = reverse("animal_profile", kwargs={"pk": self.get_form().instance.id})
         return context
 
     def get_form_kwargs(self):
@@ -96,13 +87,8 @@ class ChangeOwnerView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def get_success_url(self):
         return reverse("animals_stable")
 
-    def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
-        user = self.request.user.profile
-        return user == owner
 
-
-class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+class ManageKeepersView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
     template_name = "animals/manage_keepers.html"
     form_class = ManageKeepersForm
 
@@ -111,9 +97,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         animal = Animal.objects.get(pk=self.kwargs["pk"])
         context["full_name"] = animal.full_name
         context["allowed_users"] = animal.allowed_users.all()
-        context["animal_url"] = reverse(
-            "animal_profile", kwargs={"pk": self.get_form().instance.id}
-        )
+        context["animal_url"] = reverse("animal_profile", kwargs={"pk": self.get_form().instance.id})
         return context
 
     def get_form_kwargs(self):
@@ -131,13 +115,8 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def get_success_url(self):
         return self.request.path
 
-    def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
-        user = self.request.user.profile
-        return user == owner
 
-
-class ChangeBirthdayView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+class ChangeBirthdayView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
     form_class = ChangeBirthdayForm
     template_name = "animals/change_birthday.html"
 
@@ -160,13 +139,8 @@ class ChangeBirthdayView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         success_url = reverse("animal_profile", kwargs={"pk": self.kwargs["pk"]})
         return redirect(success_url)
 
-    def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
-        user = self.request.user.profile
-        return user == owner
 
-
-class ChangeFirstContactView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+class ChangeFirstContactView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
     form_class = ChangeFirstContactForm
     template_name = "animals/change_first_contact.html"
 
@@ -181,16 +155,9 @@ class ChangeFirstContactView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     def form_valid(self, form):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         animal.first_contact_vet = form.cleaned_data["first_contact_vet"]
-        animal.first_contact_medical_place = form.cleaned_data[
-            "first_contact_medical_place"
-        ]
+        animal.first_contact_medical_place = form.cleaned_data["first_contact_medical_place"]
         animal.save()
         return super().form_valid(form)
 
     def get_success_url(self):
         return self.request.path
-
-    def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
-        user = self.request.user.profile
-        return user == owner
