@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import View
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
@@ -109,6 +110,15 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             query = query.filter(note_tags__slug=tag_name)
 
         query = query.prefetch_related("attachments")
+
+        # view all auto-timestamps in user timezone
+        user_timezone = timezone.get_current_timezone()
+        for record in query:
+            record.date_creation = timezone.localtime(record.date_creation, user_timezone)
+            record.date_updated = timezone.localtime(record.date_updated, user_timezone)
+
+            for attachment in record.attachments.all():
+                attachment.upload_date = timezone.localtime(attachment.upload_date, user_timezone)
 
         paginator = Paginator(list(query.order_by("-date_creation")), per_page=self.paginate_by)
         page_number = self.request.GET.get("page")
