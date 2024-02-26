@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
+import sys
 
 from pathlib import Path
 
@@ -108,16 +109,18 @@ DATABASES = {
 
 # COUCH_CONNECTOR = (config("COUCH_CONNECTOR"),)
 
-COUCHDB_USER = config("COUCHDB_USER")
-COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
-COUCHDB_PORT = config("COUCHDB_PORT")
+if "test" not in sys.argv:
 
-COUCH_SERVER = pycouchdb.Server(
-    f"http://{COUCHDB_USER}:{COUCHDB_PASSWORD}@appendixes-db:{COUCHDB_PORT}/", authmethod="basic"
-)
-COUCH_DB = COUCH_SERVER.database("appendixes")
+    COUCHDB_USER = config("COUCHDB_USER")
+    COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
+    COUCHDB_PORT = config("COUCHDB_PORT")
 
-COUCH_DB_LIMIT_PER_NOTE = 5
+    COUCH_SERVER = pycouchdb.Server(
+        f"http://{COUCHDB_USER}:{COUCHDB_PASSWORD}@appendixes-db:{COUCHDB_PORT}/", authmethod="basic"
+    )
+    COUCH_DB = COUCH_SERVER.database("appendixes")
+
+    COUCH_DB_LIMIT_PER_NOTE = 5
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
