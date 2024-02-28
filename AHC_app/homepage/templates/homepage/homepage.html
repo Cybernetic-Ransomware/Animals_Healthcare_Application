@@ -4,44 +4,42 @@
 
 {% block content %}
 
-  <h3>Placeholder title</h3>
-  <p>Placeholder paragraph</p>
+    <div class="container-fluid" style="text-align: center">
+      <h2>Welcome to your pet organizer</h2>
+    <br>
+    </div>
+
     {% if user.is_authenticated %}
 
-    {% if example_animal_id %}
-    <a role="button" class="secondary outline" href="{% url 'animal_profile' pk=example_animal_id %}">The example animal profile</a>
-    {% endif %}
+        <div class="container-fluid">
+            <h4>Operations:</h4>
 
-    <div class="container">
-        {% if recent_animals %}
-            <br>
-            <h4>Pinned up:</h4>
             <div class="grid">
-            {% for animal in recent_animals %}
-                <a role="button"
-                   class="contrast btn-with-bg"
-                   style="background-image: url('{{ animal.profile_image.url }}');"
-                   href="{% url 'animal_profile' pk=animal.id %}"
-                >{{ animal.full_name }}</a>
-            {% endfor %}
+                <a role="button" class="secondary outline" href="{% url 'animals_stable' %}">Manage all animals</a>
+                <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
+            </div>
+        <br>
+        </div>
+
+        {% if recent_animals %}
+            <div class="container-fluid">
+            <br>
+                <h4>Pinned up:</h4>
+
+                <div class="grid">
+                    {% for animal in recent_animals %}
+                        <a role="button"
+                           class="contrast btn-with-bg"
+                           style="background-image: url('{{ animal.profile_image.url }}');"
+                           href="{% url 'animal_profile' pk=animal.id %}"
+                        >{{ animal.full_name }}</a>
+                    {% endfor %}
+                </div>
+            <br>
             </div>
         {% endif %}
 
-    </div>
-    <h4>Operations:</h4>
-    <div class="grid">
-        <a role="button" class="secondary outline" href="{% url 'animals_stable' %}">Manage all animals</a>
-        <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
-        <a role="button" class="primary outline" href="{% url 'animal_create' %}">Grid placeholder</a>
-    </div>
-    <br>
-    <br>
-    <div class="center-block">
-        <form method="post" action="">
-            {% csrf_token %}
-            <input type="submit" name="send_email" value="Send a sample email">
-        </form>
-    </div>
     {% endif %}
+
 
 {% endblock %}
