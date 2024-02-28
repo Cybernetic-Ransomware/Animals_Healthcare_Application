@@ -47,7 +47,7 @@ class NotificationRecordManager(models.Manager):
 class FeedingNotification(models.Model):
     related_note = models.ForeignKey(FeedingNote, on_delete=models.CASCADE, blank=True, null=True)
     description = models.CharField(max_length=250)
-    last_modification = models.DateTimeField(auto_now_add=True, editable=True)
+    last_modification = models.DateTimeField(auto_now=True, editable=True)
     is_active = models.BooleanField(default=False, null=False)
 
     receiver_name = models.CharField(max_length=30)
