@@ -1,6 +1,5 @@
-from django.urls import path
-
 from animals import views as animal_views
+from django.urls import path
 
 urlpatterns = [
     path("create/", animal_views.CreateAnimalView.as_view(), name="animal_create"),
@@ -12,4 +11,5 @@ urlpatterns = [
     path("<uuid:pk>/upload-image/", animal_views.ImageUploadView.as_view(), name="upload_image"),
     path("<uuid:pk>/manage_keepers/", animal_views.ManageKeepersView.as_view(), name="manage_keepers"),
     path("animals/", animal_views.StableView.as_view(), name="animals_stable"),
+    path("pinned-animals/", animal_views.ToPinAnimalsView.as_view(), name="pinned_animals"),
 ]

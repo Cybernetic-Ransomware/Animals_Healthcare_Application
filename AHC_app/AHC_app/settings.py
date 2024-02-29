@@ -150,9 +150,7 @@ LOGIN_URL = "login"
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "Europe/Warsaw"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -219,3 +217,5 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 
 DISCORD_TOKEN = config("DISCORD_TOKEN")
+
+TEST_RUNNER = "django.test.runner.DiscoverRunner"

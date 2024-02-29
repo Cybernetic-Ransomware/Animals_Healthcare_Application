@@ -21,7 +21,7 @@
         <br>
         </div>
 
-        {% if recent_animals %}
+        {% if pinned_animals %}
             <div class="container-fluid">
             <br>
                 <h4>Pinned up:</h4>
@@ -37,6 +37,26 @@
                 </div>
             <br>
             </div>
+
+        {% endif %}
+
+        {% if recent_animals %}
+            <div class="container-fluid">
+            <br>
+                <h4>Recent added:</h4>
+
+                <div class="grid">
+                    {% for animal in recent_animals %}
+                        <a role="button"
+                           class="contrast btn-with-bg"
+                           style="background-image: url('{{ animal.profile_image.url }}');"
+                           href="{% url 'animal_profile' pk=animal.id %}"
+                        >{{ animal.full_name }}</a>
+                    {% endfor %}
+                </div>
+            <br>
+            </div>
+
         {% endif %}
 
     {% endif %}

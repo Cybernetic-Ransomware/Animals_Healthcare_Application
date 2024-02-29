@@ -71,6 +71,7 @@ django-cron = "*"
 python-decouple = "*"
 pycouchdb = "*"
 discord = "*"
+django-ajax = "*"
 
 [dev-packages]
 pre-commit = "*"
