@@ -1,4 +1,5 @@
 {% extends "homepage/base.html" %}
+{% load static %}
 {% block content %}
 
 {% for note, form in notes %}
@@ -19,13 +20,40 @@
         <br>
             <div>
             <h4>Appendixes:</h4>
-                {% for attachment in attachments_by_note.note.id.all %}
-
-                    <p>
-                        <a href="{{ attachment.file.url }}" download="{{ attachment.file.name }}">
-                            Download {{ attachment.file.name }}
+                {% for attachment in note.attachments.all %}
+                    <div class="grid" style="grid-template-columns: 1fr 2fr 2fr 1fr 1fr">
+                    <div>
+                        <p>Uploaded: {{ attachment.upload_date }}</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}" download="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}">
+                            Download: {{ attachment.file_name }}
                         </a>
-                    </p>
+                    </div>
+                    <div>
+                        <link rel="stylesheet" type="text/css" href="{% static 'css/hide_large_description.css' %}">
+                        {% if not attachment.description %}
+                        <p>No description</p>
+                        {% else %}
+                         <p class="truncate" data-full-text="{{ attachment.description }}">{{ attachment.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <a href="{% url 'attachment_edit' pk=attachment.id %}">
+                            <button type="button" class="btn btn-danger btn-link inline">
+                                Edit
+                            </button>
+                        </a>
+                    </div>
+                    <div>
+                        <a href="{% url 'attachment_delete' pk=attachment.id %}">
+                            <button type="button" class="btn btn-danger btn-link inline">
+                                Delete
+                            </button>
+                        </a>
+                    </div>
+                    </div>
+
                 {% endfor %}
             <form method="post" action="{% url 'full_timeline_of_notes' pk=note.animal.id %}" enctype="multipart/form-data">
                 {% csrf_token %}
@@ -64,8 +92,8 @@
             <a class="text-muted" href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
             {% if note.type_of_event == 'diet_note' %}
             <a class="text-muted" href="{% url 'note_related_diets' pk=note.id%}">View diet</a>
-            <a class="text-muted" href="{% url 'notification_create' pk=note.id%}">Add notification</a>
-{#            <a class="text-muted" href="{% url 'note_related_notifications' pk=note.id%}">Check notifications</a>#}
+{#            <a class="text-muted" href="{% url 'notification_create' pk=note.id%}">Add notification</a>#}
+            <a class="text-muted" href="{% url 'note_related_notifications' %}?mednote_uuid={{ note.id }}">Check notifications</a>
             {% endif %}
             <a class="text-muted" href="{% url 'note_delete' pk=note.id %}">Delete</a>
         </div>

@@ -1,0 +1,19 @@
+    .truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .truncate:hover::after {
+        content: attr(data-full-text);
+        display: block;
+        top: 100%;
+        left: 0;
+        white-space: normal;
+        font-size: 80%;
+        background-color: #2C3A41;
+        padding: 5px;
+        border: 1px solid black;
+        z-index: 9999;
+    }
