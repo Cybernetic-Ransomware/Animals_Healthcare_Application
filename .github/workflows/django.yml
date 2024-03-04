@@ -43,7 +43,7 @@ jobs:
 
       - name: Prepare environment
         run: |
-          sudo apt install python3.11
+          sudo apt-get install python3-dev
           python -m pip install --upgrade pip
           pip install --no-cache-dir pipenv
           cd ./AHC_app
