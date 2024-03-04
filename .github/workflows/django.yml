@@ -39,10 +39,10 @@ jobs:
 
     steps:
     - name: Prepare environment
-      run: python -m pip install --upgrade pip &&  \
-           export PATH="$HOME/.local/bin:$PATH" &&  \
-           pip install --no-cache-dir pipenv &&  \
-           pipenv install --dev --system --deploy --user
+      run: |
+        python -m pip install --upgrade pip
+        pip install --no-cache-dir pipenv
+        pipenv install --dev --system --deploy --user
 
     - name: Run tests
       run: python AHC_app/manage.py test
