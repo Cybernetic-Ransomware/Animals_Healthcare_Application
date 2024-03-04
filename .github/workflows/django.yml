@@ -46,7 +46,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir pipenv
           cd ./AHC_app
-          pipenv install --dev --system --deploy --user
+          pipenv install --dev --deploy
 
       - name: Run tests
         run: python AHC_app/manage.py test
