@@ -52,7 +52,10 @@ jobs:
         shell: bash
 
       - name: Prepare environment
-        run: pipenv install --dev
+        run: |
+          ls
+          pwd
+          pipenv install --dev
 
       - name: Run tests
         run: |
