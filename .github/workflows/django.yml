@@ -52,7 +52,6 @@ jobs:
 
       - name: Prepare environment
         run: |
-          cd /github/workspace/AHC_app
           pipenv sync --dev
 
       - name: Run tests
