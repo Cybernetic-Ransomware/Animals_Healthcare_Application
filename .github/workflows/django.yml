@@ -51,9 +51,9 @@ jobs:
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
         shell: bash
 
-      - name: Prepare environment
+      - name: Prepare environment and run tests
         run: |
           cd ./AHC_app
           pipenv install --dev
-          pipenv graph
-          pipenv run python manage.py test
+          cd ..
+          pipenv run python AHC_app/manage.py test
