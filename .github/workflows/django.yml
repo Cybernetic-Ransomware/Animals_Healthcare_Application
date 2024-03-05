@@ -50,4 +50,4 @@ jobs:
           pipenv install --dev --deploy
 
       - name: Run tests
-        run: pipenv python run AHC_app/manage.py test
+        run: pipenv run python AHC_app/manage.py test
