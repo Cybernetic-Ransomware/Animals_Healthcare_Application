@@ -52,4 +52,4 @@ jobs:
       - name: Run tests
         run: |
           pipenv shell
-          python AHC_app/manage.py test
+          pipenv run python AHC_app/manage.py test
