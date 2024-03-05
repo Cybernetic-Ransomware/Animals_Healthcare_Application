@@ -48,8 +48,8 @@ jobs:
 
       - name: Prepare environment
         run: |
-          python -m pip install --upgrade pip
-          pip install --no-cache-dir pipenv
+          pipenv run python -m pip install --upgrade pip
+          pipenv run pip install --no-cache-dir pipenv
           cd ./AHC_app
           pipenv install --dev --deploy
 
