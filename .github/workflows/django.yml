@@ -55,7 +55,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --no-cache-dir pipenv
           cd ./AHC_app
-          pipenv sync --dev --deploy
+          pipenv sync --dev
 
       - name: Run tests
         run: |
