@@ -41,15 +41,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Set dir
+        run: cd ./AHC_app
+
       - name: Install Python, pipenv and Pipfile packages
         uses: palewire/install-python-pipenv-pipfile@v2
         with:
           python-version: 3.11.8
-
-      - name: Prepare environment
-        run: |
-          cd ./AHC_app
-          pipenv install --dev --deploy
 
       - name: Run tests
         run: |
