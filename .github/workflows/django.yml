@@ -52,12 +52,9 @@ jobs:
 
       - name: Prepare environment
         run: |
-          python -m pip install --upgrade pip
-          pip install --no-cache-dir pipenv
-          cd ./AHC_app
+          cd /github/workspace/AHC_app
           pipenv sync --dev
 
       - name: Run tests
         run: |
-          pipenv install --dev
           pipenv run python AHC_app/manage.py test
