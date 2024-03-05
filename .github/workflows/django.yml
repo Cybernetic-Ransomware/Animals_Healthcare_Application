@@ -55,5 +55,4 @@ jobs:
         run: |
           cd ./AHC_app
           pipenv install --dev
-          cd ..
-          pipenv run python ./AHC_app/manage.py test
+          pipenv run python manage.py test
