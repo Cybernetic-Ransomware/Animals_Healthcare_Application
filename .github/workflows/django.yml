@@ -53,6 +53,7 @@ jobs:
 
       - name: Prepare environment
         run: |
+          cd ./AHC_app
           ls
           pwd
           pipenv install --dev
