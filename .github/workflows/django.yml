@@ -54,6 +54,7 @@ jobs:
       - name: Prepare environment and run tests
         run: |
           cd ./AHC_app
+          pipenv install --dev
           pipenv install --dev --system
           pipenv graph
           cd ..
