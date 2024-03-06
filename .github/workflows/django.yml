@@ -54,7 +54,7 @@ jobs:
       - name: Prepare environment and run tests
         run: |
           cd ./AHC_app
-          pipenv install --dev --system --deploy
+          pipenv install --dev --system
           pipenv graph
           cd ..
           pipenv run python AHC_app/manage.py test
