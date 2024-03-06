@@ -55,5 +55,6 @@ jobs:
         run: |
           cd ./AHC_app
           pipenv install --dev
+          pipenv graph
           cd ..
           pipenv run python AHC_app/manage.py test
