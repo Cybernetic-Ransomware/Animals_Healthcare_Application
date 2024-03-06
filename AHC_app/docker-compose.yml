@@ -13,6 +13,7 @@ services:
         condition: service_started
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/AHC_app
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
