@@ -57,3 +57,5 @@ jobs:
           pipenv install --dev
           pipenv graph
           pipenv run python manage.py test
+        env:
+          PYTHONPATH: /AHC_app
