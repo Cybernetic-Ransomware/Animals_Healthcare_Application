@@ -1,0 +1,54 @@
+name: AHC CI|CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+      FLOWER_PORT: ${{ secrets.FLOWER_PORT }}
+      FLOWER_BASIC_AUTH: ${{ secrets.FLOWER_BASIC_AUTH }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      COUCHDB_USER: ${{ secrets.COUCHDB_USER }}
+      COUCHDB_PASSWORD: ${{ secrets.COUCHDB_PASSWORD }}
+      COUCHDB_PORT: ${{ secrets.COUCHDB_PORT }}
+      COUCH_CONNECTOR: ${{ secrets.COUCH_CONNECTOR }}
+      CELERY_BACKEND: ${{ secrets.CELERY_BACKEND }}
+      EMAIL_BACKEND: ${{ secrets.EMAIL_BACKEND }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+      EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+      EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+    strategy:
+      max-parallel: 4
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Prepare environment and run tests
+        run: |
+          cd ./AHC_app
+          pip install pipenv
+          pipenv install --dev
+          pipenv graph
+          pipenv run python manage.py test

@@ -21,4 +21,11 @@ urlpatterns = [
         measurement_views.BiometricRecordCreateView.as_view(),
         name="biometric_create",
     ),
+    path("<pk>/attachment_edit/", notes_views.EditMedicalRecordAttachmentDescription.as_view(), name="attachment_edit"),
+    path("<pk>/attachment_delete/", notes_views.DeleteMedicalRecordAttachment.as_view(), name="attachment_delete"),
+    path(
+        "<str:id>/<str:name>/attachment_download/",
+        notes_views.DownloadAttachmentView.as_view(),
+        name="attachment_download",
+    ),
 ]

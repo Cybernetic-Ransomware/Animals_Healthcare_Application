@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 amqp = "==5.1.1"
-asgiref = "==3.7.2"
 billiard = "==4.1.0"
 cachetools = "==5.3.2"
 celery = "==5.3.4"
@@ -39,8 +38,6 @@ idna = "==3.4"
 kiwisolver = "==1.4.4"
 kombu = "==5.3.2"
 libsass = "==0.22.0"
-matplotlib = "==3.7.1"
-numpy = "==1.24.3"
 oauthlib = "==3.2.2"
 packaging = "==23.1"
 pillow = "==9.5.0"
@@ -71,6 +68,8 @@ flower = "*"
 django-cron = "*"
 python-decouple = "*"
 pycouchdb = "*"
+discord = "*"
+django-ajax = "*"
 
 [dev-packages]
 pre-commit = "*"
@@ -78,4 +77,4 @@ isort = "*"
 black = "*"
 
 [requires]
-python_version = "3.11"
+python_version = "3.12"

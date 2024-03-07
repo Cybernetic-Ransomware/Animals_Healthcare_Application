@@ -9,10 +9,12 @@ from functools import wraps
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
-from django_cron import CronJobBase, Schedule
 from medical_notes.models.type_feeding_notes import EmailNotification
 
-from AHC_app.celery_notifications.config import send_email_notifications
+from AHC_app.celery_notifications.config import (
+    send_discord_notifications,
+    send_email_notifications,
+)
 from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
 
 logger = logging.getLogger("crons_logger")
@@ -138,21 +140,37 @@ def send_sms():
 
 @log_exceptions_and_notifications
 def send_discord_notes():
-    pass
+    # notifications_to_send = get_notifications_to_send()
+    #
+    # if not notifications_to_send:
+    #     return None
+
+    user_id: int = 422570242275934219
+    # user_id: int = 530756049913905172
+    user_message = "Test message"
+    delay: int = 0
+
+    send_discord_notifications.apply_async(kwargs={"user_id": user_id, "user_message": user_message}, countdown=delay)
 
 
-class SynchNotificationsCron(CronJobBase):
-    RUN_EVERY_MINS = 60
-
-    schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
-    code = "AHC_app.SynchNotificationsCronJob"
-
-    run_at_times = ["55"]
-
-    @staticmethod
-    def cron_send_emails():
-        from icecream import ic
-
-        ic()
-
-        send_emails()
+# class SynchNotificationsCron(CronJobBase):
+#     RUN_EVERY_MINS = 60
+#
+#     schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
+#     code = "AHC_app.SynchNotificationsCronJob"
+#
+#     # run_at_times = ["55"]
+#
+#     @staticmethod
+#     def cron_send_emails():
+#         from icecream import ic
+#         ic()
+#
+#         send_emails()
+#
+#     @staticmethod
+#     def cron_send_discord():
+#         from icecream import ic
+#         ic()
+#
+#         send_discord_notes()
