@@ -46,13 +46,10 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: Install pipenv
-        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-        shell: bash
-
       - name: Prepare environment and run tests
         run: |
           cd ./AHC_app
+          pip install pipenv
           pipenv install --dev
           pipenv graph
           pipenv run python manage.py test
