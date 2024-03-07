@@ -10,7 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ./AHC_app/
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
       POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -53,5 +52,3 @@ jobs:
           pipenv install --dev
           pipenv graph
           pipenv run python manage.py test
-        env:
-          PYTHONPATH: /AHC_app
