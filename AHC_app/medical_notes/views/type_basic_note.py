@@ -1,17 +1,15 @@
-import os
-
-import pycouchdb
-
 from animals.models import Animal as AnimalProfile
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
-
-# from django.forms import formset_factory
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
+from django.views.generic import View
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
 from medical_notes.forms.type_basic_note import (
@@ -111,25 +109,33 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
         if tag_name:
             query = query.filter(note_tags__slug=tag_name)
 
+        query = query.prefetch_related("attachments")
+
+        # view all auto-timestamps in user timezone
+        user_timezone = timezone.get_current_timezone()
+        for record in query:
+            record.date_creation = timezone.localtime(record.date_creation, user_timezone)
+            record.date_updated = timezone.localtime(record.date_updated, user_timezone)
+
+            for attachment in record.attachments.all():
+                attachment.upload_date = timezone.localtime(attachment.upload_date, user_timezone)
+
         paginator = Paginator(list(query.order_by("-date_creation")), per_page=self.paginate_by)
         page_number = self.request.GET.get("page")
 
         notes = paginator.get_page(page_number)
-        print(list(context["notes"]))
+
+        context["notes"] = notes
 
         upload_forms = []
         for note in context["notes"]:
             form = UploadAppendixForm()
             form.fields["medical_record_id"].initial = str(note.id)
             upload_forms.append(form)
-            # value = form["medical_record_id"].value()
 
-        notes_with_forms = zip(notes, upload_forms)
+        notes_with_forms = zip(context["notes"], upload_forms)
+
         context["notes"] = notes_with_forms
-
-        attachments_by_note = {}
-        for note in notes:
-            attachments_by_note[note.id] = MedicalRecordAttachment.objects.filter(medical_record=note)
 
         return context
 
@@ -139,25 +145,40 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             medical_record_id = form["medical_record_id"].value()
             medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
 
-            form.instance.medical_record = medical_record
+            attachments_count = MedicalRecordAttachment.objects.filter(medical_record=medical_record_id).count()
+            attanents_limit_per_note = settings.COUCH_DB_LIMIT_PER_NOTE
+            if attachments_count >= attanents_limit_per_note:
+                messages.error(
+                    request,
+                    f"Failed to upload. Maximum limit {attanents_limit_per_note} attachments per note is already reached.",
+                )
+                return redirect(request.path)
 
-            form.save()
+            with transaction.atomic():
+                form.instance.medical_record = medical_record
+                form.save(commit=False)
 
-            server = pycouchdb.Server(
-                f"http://{settings.COUCHDB_USER}:{settings.COUCHDB_PASSWORD}@appendixes-db:5984/", authmethod="basic"
-            )
-            db = server.database("appendixes")
+                couch_connector = settings.COUCH_DB
 
-            uploaded_file = request.FILES["file"]
-            file_reference_uuid = str(form.instance.id)
+                uploaded_file = request.FILES["file"]
+                file_reference_uuid = str(form.instance.id)
+                uploaded_file_name = uploaded_file.name
+                uploaded_file.seek(0)
+                blop_file = uploaded_file.read()
 
-            db.save({"_id": file_reference_uuid, "name": uploaded_file.name})
-            doc_dict = db.get(file_reference_uuid)
-            db.put_attachment(doc_dict, uploaded_file)
+                couch_connector.save({"_id": file_reference_uuid, "name": uploaded_file_name})
 
-            file_path = os.path.join(settings.MEDIA_ROOT, "attachments", uploaded_file.name)
-            if os.path.exists(file_path):
-                os.remove(file_path)
+                doc_dict = couch_connector.get(file_reference_uuid)
+                couch_connector.put_attachment(doc_dict, blop_file, filename=uploaded_file_name)
+
+                uploaded_file_name = uploaded_file.name
+
+                form.instance.file_name = uploaded_file_name
+                form.instance.couch_id = file_reference_uuid
+                form.instance.file = None
+                form.save()
+
+                messages.success(request, "Attachment uploaded successfully.")
 
         else:
             print(form.errors)
@@ -233,6 +254,27 @@ class EditNoteView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return user == note_author
 
 
+class EditMedicalRecordAttachmentDescription(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = MedicalRecordAttachment
+    fields = ["description"]
+    template_name = "medical_notes/edit.html"
+
+    def get_success_url(self):
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note = attachment.medical_record
+        animal_id = note.animal.id
+        return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
+
+    def test_func(self):
+        user = self.request.user.profile
+
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note_author = attachment.medical_record.author
+        return user == note_author
+
+
 class EditRelatedAnimalsView(EditNoteView):
     model = MedicalRecord
     form_class = MedicalRecordEditRelatedAnimalsForm
@@ -263,6 +305,40 @@ class EditRelatedAnimalsView(EditNoteView):
         return user in all_users
 
 
+class DeleteMedicalRecordAttachment(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = MedicalRecordAttachment
+    template_name = "medical_notes/delete_confirm.html"
+    context_object_name = "note"
+
+    def get_success_url(self):
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note = attachment.medical_record
+        animal_id = note.animal.id
+        return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
+
+    def form_valid(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        couch_connector = settings.COUCH_DB
+
+        couch_attachment_id = str(self.object.couch_id)
+        couch_connector.delete(couch_attachment_id)
+
+        self.object.delete()
+
+        # success_url = self.get_success_url()
+        return redirect(success_url)
+
+    def test_func(self):
+        user = self.request.user.profile
+
+        attachment_id = self.kwargs.get("pk")
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=attachment_id)
+        note_author = attachment.medical_record.author
+        return user == note_author
+
+
 class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = MedicalRecord
     template_name = "medical_notes/delete_confirm.html"
@@ -281,3 +357,33 @@ class DeleteNoteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         note = get_object_or_404(MedicalRecord, pk=note_id)
         animal_id = note.animal.id
         return reverse("full_timeline_of_notes", kwargs={"pk": animal_id})
+
+
+class DownloadAttachmentView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def test_func(self):
+        user = self.request.user.profile
+
+        attachment_couch_id = self.kwargs.get("id")
+        attachment = get_object_or_404(MedicalRecordAttachment, couch_id=attachment_couch_id)
+        note_author = attachment.medical_record.author
+        return user == note_author
+
+    def get(self, request, *args, **kwargs):
+        couch_connector = settings.COUCH_DB
+        reference_id = self.kwargs.get("id")
+        filename = self.kwargs.get("name")
+
+        attachment = couch_connector.get(reference_id)
+        if not attachment:
+            print("Attachment not found")
+            raise Http404("Attachment not found")
+
+        file_data = couch_connector.get_attachment(attachment, filename=attachment.get("name"))
+        if not file_data:
+            print("Attachment file not found")
+            raise Http404("Attachment file not found")
+
+        response = HttpResponse(file_data, content_type="application/octet-stream")
+        response["Content-Disposition"] = f'attachment; filename="{attachment.get("name")}"'
+
+        return response

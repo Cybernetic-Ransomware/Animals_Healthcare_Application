@@ -62,7 +62,7 @@
 
                 <div class="info">
                     <div>
-                        <a role="button" class="secondary outline" href="#">Plan a new visit</a>
+                        <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}?type_of_event=medical_visit">Plan a new visit</a>
                         <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}">Add a new note</a>
                         <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}">View the full timeline</a>
                     </div>
@@ -90,6 +90,21 @@
             <div class="grid">
                 <a role="button" class="secondary outline" id="biometric-record-button" href="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record" >Add biometric record</a>
                 <a role="button" class="secondary outline" href="#">Manage notifications</a>
+                <a
+                    role="button"
+                    class="secondary outline"
+                    id="togglePinnedButton"
+                    href="{% url 'pinned_animals' %}"
+                    data-animal-id="{{ animal.id }}"
+                    data-action="{% if is_pinned %}remove{% else %}add{% endif %}"
+                >
+                {% if not is_pinned %}
+                        Add to Pinned
+                    {% else %}
+                        Remove from Pinned
+                    {% endif %}
+                </a>
+                <script src="{% static 'js/pin_animal.js' %}"></script>
             </div>
         </div>
         {% if is_owner %}
