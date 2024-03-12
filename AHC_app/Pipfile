@@ -70,6 +70,7 @@ python-decouple = "*"
 pycouchdb = "*"
 discord = "*"
 django-ajax = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 pre-commit = "*"
