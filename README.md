@@ -34,10 +34,34 @@
 
 
 ### Requirements:
-- Python 3.11.3
+- Python 3.12.2
 - Docker & Docker Compose
+- PostgreSQL 15 (instance for volumes)
+- Apache CouchDB 3.3.3 (instance for volumes)
 - [Packages](AHC_app/Pipfile)
 - [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
+
+---
+### Deploy steps:
+1. Download repository
+2. Set .env file based on template
+3. Install Docker Desktop
+4. Run containters by "docker-compose up -d --build"
+
+---
+### Dev-instance steps:
+1. Download repository
+2. Set .env file based on template
+3. Install Python, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_
+4. Install pipenv by "pipenv install"
+5. Deploy vevn and synch requirements by "pipenv install --dev"
+6. Install precommit hooks by "pre-commit install"
+7. Run containters by "docker-compose up -d --build"
+
+---
+### Test running:
+- by now tests are only reachable by terminal in main container's terminal (container_name: web)
+- simply run command "python manage.py test" or use with needed flags
 
 ---
 ### Sources:
