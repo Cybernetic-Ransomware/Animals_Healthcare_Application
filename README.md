@@ -1,6 +1,3 @@
-# IN BUILD
-
----
 # Animals Healthcare Application
 
 ## <strong> A healthcare data management application for pet owners and carers. </strong>
@@ -19,20 +16,33 @@
 [ADR](doc/01_adr_functionality.md)
 
 ---
+### Screenshots
+>Click on the image to view full-size
 
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><p>Animal profile</p><img src="AHC_app/static/media/readme_examples/Animal profile.png" height="250px"></td>
+      <td align="center"><p>Full timeline of notes</p><img src="AHC_app/static/media/readme_examples/Full timeline of notes.png" height="250px"></td>
+    </tr>
+    <tr>
+      <td align="center"><p>Diet note details</p><img src="AHC_app/static/media/readme_examples/Diet note details.png" height="250px"></td>
+      <td align="center"><p>User registration</p><img src="AHC_app/static/media/readme_examples/User registration.png" height="250px"></td>
+    </tr>
+  </table>
+</div>
+
+
+---
 ### Plans for further development:
-
 
 - Interactive charts for biometric records
 - A book of medical facilities and medical personnel
 - Databases for medicines and food products
 - An SMS gateway, and Messenger chatbots for notifications
-- Custom mixins for checking view permissions
 - A fixed light-themed frontend, currently blocked in the base.html <html> tag
 
 ---
-
-
 ### Requirements:
 - Python 3.12.2
 - Docker & Docker Compose
