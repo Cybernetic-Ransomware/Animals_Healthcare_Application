@@ -22,7 +22,7 @@
                 <a role="button" class="secondary outline" href="#">Delete</a>
 {#                <a role="button" class="secondary outline" href="{% url 'note_related_notifications' pk=note.id %}">Check Related Notifications</a>#}
                 <a role="button" class="secondary outline" href="{% url 'note_related_notifications' %}?feednote_pk={{ note.id }}">Check Related Notifications</a>
-                <a role="button" class="secondary outline" href="{% url 'notification_create' pk=note.id %}">Set a new</a>
+                <a role="button" class="secondary outline" href="{% url 'notification_create' pk=note.id %}">Set a new notification</a>
               </div>
               <br>
           </div>

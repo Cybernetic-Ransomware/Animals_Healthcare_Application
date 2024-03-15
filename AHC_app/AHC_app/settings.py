@@ -10,12 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 import os
+import sys
 
 from pathlib import Path
 
-from decouple import config
+import pycouchdb
 
-# from ibmcloudant.cloudant_v1 import CloudantV1
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -95,36 +96,39 @@ WSGI_APPLICATION = "AHC_app.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME"),
-        "USER": config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "HOST": config("DB_HOST"),
-        "PORT": config("DB_PORT", default="5432"),
+if "test" in sys.argv:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": "mydatabase",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("DB_NAME"),
+            "USER": config("DB_USER"),
+            "PASSWORD": config("DB_PASSWORD"),
+            "HOST": config("DB_HOST"),
+            "PORT": config("DB_PORT", default="5432"),
+        }
+    }
 
 # COUCH_CONNECTOR = (config("COUCH_CONNECTOR"),)
 
-COUCHDB_USER = config("COUCHDB_USER")
-COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
-# COUCHDB_URL = f'http://{COUCHDB_USER}:{COUCHDB_PASSWORD}@localhost:5984'
-# COUCHDB_DATABASE_NAME = 'your_database_name'  # Dostosuj nazwę bazy danych
-#
-# client = Cloudant(COUCHDB_USER, COUCHDB_PASSWORD, url=COUCHDB_URL)
-# client.connect()
-#
-# COUCHDB_ATTACHMENTS_DATABASES = {
-#     'default': {
-#         'ENGINE': 'django_couchdb.backends.Cloudant',
-#         'NAME': COUCHDB_DATABASE_NAME,
-#         'USER': COUCHDB_USER,
-#         'PASSWORD': COUCHDB_PASSWORD,
-#         'URL': COUCHDB_URL,
-#     },
-# }
+if "test" not in sys.argv:
+
+    COUCHDB_USER = config("COUCHDB_USER")
+    COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
+    COUCHDB_PORT = config("COUCHDB_PORT")
+
+    COUCH_SERVER = pycouchdb.Server(
+        f"http://{COUCHDB_USER}:{COUCHDB_PASSWORD}@appendixes-db:{COUCHDB_PORT}/", authmethod="basic"
+    )
+    COUCH_DB = COUCH_SERVER.database("appendixes")
+
+    COUCH_DB_LIMIT_PER_NOTE = 5
 
 
 # Password validation
@@ -155,9 +159,7 @@ LOGIN_URL = "login"
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "Europe/Warsaw"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -201,10 +203,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CRONJOBS = [
-    ("*/4 * * * *", "AHC_app.celery_notifications.cron.send_emails"),
-    ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
-    # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
-    ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
+    # ("*/4 * * * *", "AHC_app.celery_notifications.cron.send_emails"),
+    # ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
+    # # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
+    # ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
     ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
 ]
 
@@ -222,3 +224,7 @@ EMAIL_PORT = config("EMAIL_PORT", cast=int)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+
+DISCORD_TOKEN = config("DISCORD_TOKEN")
+
+TEST_RUNNER = "django.test.runner.DiscoverRunner"

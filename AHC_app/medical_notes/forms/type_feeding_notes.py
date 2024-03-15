@@ -1,5 +1,7 @@
 from django import forms
+from django.conf import settings
 from medical_notes.models.type_feeding_notes import EmailNotification, FeedingNote
+from timezone_field import TimeZoneFormField
 
 
 class DietRecordForm(forms.ModelForm):
@@ -24,9 +26,7 @@ class DietRecordForm(forms.ModelForm):
 
     category_choices = [("dry", "Dry"), ("wet", "Wet"), ("supplement", "Supplement")]
 
-    real_start_date = forms.DateField(
-        required=True, widget=forms.DateInput(attrs={"type": "date", "required": True})
-    )
+    real_start_date = forms.DateField(required=True, widget=forms.DateInput(attrs={"type": "date", "required": True}))
     real_end_date = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={"type": "date", "required": False}),
@@ -72,6 +72,11 @@ class NotificationRecordForm(forms.ModelForm):
         (6, "Sunday"),
     ]
 
-    days_of_week = forms.MultipleChoiceField(
-        choices=days_of_week_choices, widget=forms.CheckboxSelectMultiple
-    )
+    timezone = TimeZoneFormField(choices_display="WITH_GMT_OFFSET")
+
+    days_of_week = forms.MultipleChoiceField(choices=days_of_week_choices, widget=forms.CheckboxSelectMultiple)
+
+    def __init__(self, *args, **kwargs):
+        super(NotificationRecordForm, self).__init__(*args, **kwargs)
+
+        self.fields["timezone"].initial = str(settings.TIME_ZONE)

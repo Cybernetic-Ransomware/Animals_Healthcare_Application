@@ -1,75 +1,115 @@
 {% extends "homepage/base.html" %}
+{% load custom_file_name %}
 {% block content %}
 
+
+<div class="headings" style="text-align: center">
+    <h2 >A notes related to PLACEHOLDER_FOR_MEDNOTE/FEEDNOTE/ANIMAL</h2>
+    <br>
+</div>
 
 {% for note in notifications %}
 <article class="media content-section">
     <div class="media-body">
-{#        <a class="mr-2" href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>#}
-    <div class="article-metadata">
-        <small class="text-muted">{{ note.start_date }}</small>
+        <div class="article-metadata">
+
+            {% if note|to_class_name == "EmailNotification" %}
+            <div class="notification-info">
+                <h4>Email Notification:</h4>
+                <small class="text-muted">Email: {{ note.email }}</small>
+            </div>
+            {% endif %}
+
+            {% if note|to_class_name == "SMSNotification" %}
+            <div class="notification-info">
+                <h4>SMS Notification:</h4>
+                <small class="text-muted">Number: +{{ note.country_code }} {{ note.number }}</small>
+            </div>
+            {% endif %}
+
+            {% if note|to_class_name == "DiscordNotification" %}
+            <div class="notification-info">
+                <h4>Discord Notification:</h4>
+                <small class="text-muted">User ID: {{ note.user_id }}</small>
+                <small class="text-muted">Server: PLACEHOLDER</small>
+            </div>
+            {% endif %}
+
+            {% if note.description %}
+            <small class="text-muted">
+                Description: {{ note.description }}
+            </small>
+            <br>
+            <small class="text-muted">
+                Is Active: {{ note.is_active }}
+            </small>
+            <br>
+            <br>
+            {% endif %}
+            <small class="text-muted">
+                Time of sending: {{ note.daily_timestamp }} for timezone: {{ note.timezone }}
+            </small>
+            <br>
+            <small class="text-muted">
+                Period: {{ note.start_date }} - {% if note.end_date %}{{ note.end_date }}{% else %} n/d {% endif %}
+            </small>
+            <br>
+            <br>
+            <small class="text-muted">
+                Days of week:
+                <br>
+                <table>
+                    <tr>
+                        <td>MONDAY</td>
+                        <td>TUESDAY</td>
+                        <td>WEDNESDAY</td>
+                        <td>THURSDAY</td>
+                        <td>FRIDAY</td>
+                        <td>SATURDAY</td>
+                        <td>SUNDAY</td>
+                    </tr>
+                    <tr>
+                        {% for day in note.days_of_week %}
+                            <td>{% if day %}✅{% endif %}</td>
+                        {% endfor %}
+                    </tr>
+                </table>
+            </small>
+
+            <br>
+            <article>
+            <header>The message to send:</header>
+            <p>Receiver: {{ note.receiver_name }}</p>
+            <small class="text-muted">{{ note.message }}</small>
+            </article>
+
+            <small class="text-muted" style="float: right">Latest changed: {{ note.last_modification }}</small>
+            <br>
+
+        </div>
         <br>
-        <small class="text-muted">
-            Type: {{ note.message }}
-        </small>
-        <br>
-        <small class="text-muted">
-            Is Active: {{ note.is_active }}
-        </small>
-    </div>
-    <br>
-    <p class="article-content">{{ note.description }}</p>
-    <br>
-        <div class="container, align-right">
-            <div class="grid"></div>
-              <form method="post" action="{% url 'notification_change_active' pk=note.pk %}">
+            <div class="container, align-right">
+                <div class="grid"></div>
+                  <form method="post" action="{% url 'notification_change_active' pk=note.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="secondary outline">
+                      {% if object.is_active %}
+                        Set inactive
+                      {% else %}
+                        Set active
+                      {% endif %}
+                    </button>
+                  </form>
+    {#            <form method="post" action="{% url 'note_related_notifications_delete' pk=note.pk %}">#}
                 {% csrf_token %}
                 <button type="submit" class="secondary outline">
-                  {% if object.is_active %}
-                    Set inactive
-                  {% else %}
-                    Set active
-                  {% endif %}
+                Delete
                 </button>
-              </form>
-            <form method="post" action="{% url 'note_related_notifications_delete' pk=note.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="secondary outline">
-            Delete
-            </button>
-            </form>
-{#            <a role="button" class="secondary outline" href="#">Set inactive</a>#}
-{#            <a role="button" class="secondary outline" href="#">Delete</a>#}
-        </div>
-    </div>
-
-
-    {% if note.emailnotification %}
-    <div class="notification-info">
-        <p>Email Notification:</p>
-        <p>Email: {{ note.emailnotification.email }}</p>
-    </div>
-    {% endif %}
-
-    {% if note.smsnotification %}
-    <div class="notification-info">
-        <p>SMS Notification:</p>
-        <p>Number: {{ note.smsnotification.number }}</p>
-    </div>
-    {% endif %}
-
-    {% if note.discordnotification %}
-    <div class="notification-info">
-        <p>Discord Notification:</p>
-        <p>User ID: {{ note.discordnotification.user_id }}</p>
-    </div>
-    {% endif %}
-
-        <div class="grid">
-
-        </div>
-    </div>
-</article>
+                </form>
+    {#            <a role="button" class="secondary outline" href="#">Set inactive</a>#}
+    {#            <a role="button" class="secondary outline" href="#">Delete</a>#}
+            </div>
+    </article>
 {% endfor %}
 
 {% endblock %}

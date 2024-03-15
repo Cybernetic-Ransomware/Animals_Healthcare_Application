@@ -13,11 +13,13 @@ services:
         condition: service_started
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/AHC_app
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
         python manage.py makemigrations
         python manage.py migrate
+        python manage.py collectstatic --noinput
         python manage.py crontab remove
         python manage.py crontab add
         python manage.py sync_cronjobs

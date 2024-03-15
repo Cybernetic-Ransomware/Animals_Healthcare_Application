@@ -1,4 +1,4 @@
-FROM python:3.11.3
+FROM python:3.12
 LABEL authors="AM"
 WORKDIR /app
 COPY Pipfile Pipfile.lock ./
