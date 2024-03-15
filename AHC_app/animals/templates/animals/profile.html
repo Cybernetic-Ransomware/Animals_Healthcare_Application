@@ -37,7 +37,7 @@
             <script src="{% static 'js/expanding_sections.js' %}"></script>
             <br>
             <div class="section">
-                <h4 class="button secondary outline section-header">Expand: full description</h4>
+                <h4 class="button secondary outline section-header">Expand: additional description</h4>
                 <div class="text-secondary section-content">
                     <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
                         incididunt ut labore et dolore magna aliqua.</p>
@@ -46,8 +46,8 @@
             <div class="section">
                 <h4 class="button secondary outline section-header">Expand: first contact details</h4>
                 <div class="text-secondary section-content">
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                        incididunt ut labore et dolore magna aliqua.</p>
+                    <pre><p>{{ animal.first_contact_vet }}</p></pre>
+                    <pre><p>{{ animal.first_contact_medical_place }}</p></pre>
                 </div>
             </div>
         </div>
