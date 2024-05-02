@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ahc_app_backend
+  labels:
+    app: ahc_app_backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ahc_app_backend
+  template:
+    metadata:
+      name: ahc_app_backend
+      labels:
+        app: ahc_app_backend
+    spec:
+      containers:
+        - name: ahc_app_backend
+          image: ahc_app-web:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      restartPolicy: Always

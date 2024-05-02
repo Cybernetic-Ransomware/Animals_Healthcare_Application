@@ -155,3 +155,6 @@ cython_debug/
 /AHC_app/static_collected/
 /AHC_app/static/media/profile_pics/animals/
 /AHC_app/static/media/attachments/
+
+# Kubernetes configuration
+.AHC_app/tars/
