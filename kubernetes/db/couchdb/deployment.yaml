@@ -20,7 +20,7 @@ spec:
           image: couch_db:latest
           imagePullPolicy: Never
           ports:
-            - containerPort: 5984
+            - containerPort: 5982
               protocol: TCP
           resources:
             limits:

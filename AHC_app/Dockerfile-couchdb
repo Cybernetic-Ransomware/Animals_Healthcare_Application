@@ -2,8 +2,9 @@ FROM couchdb:3.3.3
 
 ARG COUCHDB_USER
 ARG COUCHDB_PASSWORD
+ARG COUCHDB_PORT
 
-EXPOSE 5984
+EXPOSE 5982
 COPY setup_couchdb.sh setup_couchdb.sh
 RUN chmod +x setup_couchdb.sh
 RUN sh setup_couchdb.sh

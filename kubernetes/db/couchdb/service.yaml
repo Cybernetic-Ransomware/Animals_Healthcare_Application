@@ -7,6 +7,6 @@ spec:
     app: couch_db
   ports:
     - protocol: TCP
-      port: 5984
-      targetPort: 5984
+      port: 5982
+      targetPort: 5982
   type: ClusterIP

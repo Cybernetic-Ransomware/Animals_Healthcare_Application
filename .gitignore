@@ -159,3 +159,6 @@ cython_debug/
 # Kubernetes configuration
 /AHC_app/tars/
 secret.yaml
+
+# volumens
+/db/
