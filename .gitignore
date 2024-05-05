@@ -157,4 +157,5 @@ cython_debug/
 /AHC_app/static/media/attachments/
 
 # Kubernetes configuration
-.AHC_app/tars/
+/AHC_app/tars/
+secret.yaml

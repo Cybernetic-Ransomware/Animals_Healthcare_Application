@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: title
+  name: ahc_app_backend_service
 spec:
   selector:
-    app: title
+    app: ahc_app_backend
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 8080
-  type: NodePort
+      port: 5433
+      targetPort: 5432
+  type: ClusterIP
