@@ -1,10 +1,13 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: my-pvc
+  name: couch_db-volume-claim
+  labels:
+    app: couch_db
 spec:
+  storageClassName: local-couch_db
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi

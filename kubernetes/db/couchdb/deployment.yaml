@@ -22,8 +22,18 @@ spec:
           ports:
             - containerPort: 5982
               protocol: TCP
+          envFrom:
+            - secretRef:
+                name: secrets
+          volumeMounts:
+            - mountPath: /opt/couchdb/data
+              name: couchdbdata
           resources:
             limits:
               memory: "256Mi"
               cpu: "500m"
+      volumes:
+        - name: couchdbdata
+          persistentVolumeClaim:
+            claimName: couchdb-pvc
       restartPolicy: Always

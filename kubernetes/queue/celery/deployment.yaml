@@ -22,6 +22,9 @@ spec:
           ports:
             - containerPort: 5000
               protocol: TCP
+          envFrom:
+            - secretRef:
+                name: ..secrets
           resources:
             limits:
               memory: "256Mi"

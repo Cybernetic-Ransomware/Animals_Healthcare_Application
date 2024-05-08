@@ -6,7 +6,7 @@ metadata:
     type: local
     app: postgres
 spec:
-  storageClassName: manual
+  storageClassName: local-postgres
   capacity:
     storage: 2Gi
   volumeMode: Filesystem
@@ -14,4 +14,4 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: /data/postgresql
+    path: db/postgres
