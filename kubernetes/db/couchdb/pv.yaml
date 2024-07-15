@@ -9,9 +9,9 @@ spec:
   storageClassName: local-couch-db
   capacity:
     storage: 2Gi
-  volumeMode: Filesystem
+#  volumeMode: Filesystem
   accessModes:
     - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
+#  persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: "/db"
