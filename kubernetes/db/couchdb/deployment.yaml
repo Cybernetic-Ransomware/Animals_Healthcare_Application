@@ -1,30 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: couch_db
+  name: couch-db
   labels:
-    app: couch_db
+    app: couch-db
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: couch_db
+      app: couch-db
   template:
     metadata:
-      name: couch_db
+      name: couch-db
       labels:
-        app: couch_db
+        app: couch-db
     spec:
       containers:
-        - name: couch_db
-          image: couch_db:latest
+        - name: couch-db
+          image: ahc_app-couch_db:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 5982
               protocol: TCP
           envFrom:
             - secretRef:
-                name: secrets
+                name: couchdb-secrets
           volumeMounts:
             - mountPath: /opt/couchdb/data
               name: couchdbdata
@@ -35,5 +35,5 @@ spec:
       volumes:
         - name: couchdbdata
           persistentVolumeClaim:
-            claimName: couchdb-pvc
+            claimName: couch-db-volume-claim
       restartPolicy: Always

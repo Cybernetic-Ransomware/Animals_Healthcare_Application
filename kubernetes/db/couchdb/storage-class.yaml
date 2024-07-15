@@ -1,6 +1,6 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: local-couch_db
+  name: local-couch-db
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ahc_app_backend
+  name: ahc-app-backend
   labels:
     app: ahc_app_backend
 spec:
@@ -11,12 +11,12 @@ spec:
       app: ahc_app_backend
   template:
     metadata:
-      name: ahc_app_backend
+      name: ahc-app-backend
       labels:
         app: ahc_app_backend
     spec:
       containers:
-        - name: ahc_app_backend
+        - name: ahc-app-backend
           image: ahc_app-web:latest
           imagePullPolicy: Never
           ports:
@@ -24,7 +24,7 @@ spec:
               protocol: TCP
           envFrom:
             - secretRef:
-                name: secrets
+                name: web-secrets
           resources:
             limits:
               memory: "256Mi"

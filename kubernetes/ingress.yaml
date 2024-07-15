@@ -12,6 +12,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ahc_app_backend_service
+                name: ahc-app-backend-service
                 port:
                   number: 8000

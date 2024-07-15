@@ -17,14 +17,14 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:latest
-          imagePullPolicy: Never
+          image: redis:7-alpine
+          imagePullPolicy: Always
           ports:
             - containerPort: 6379
               protocol: TCP
           envFrom:
             - secretRef:
-                name: ..secrets
+                name: queue-secrets
           resources:
             limits:
               memory: "256Mi"

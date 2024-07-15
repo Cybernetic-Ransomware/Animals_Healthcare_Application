@@ -1,0 +1,6 @@
+resources:
+  - ingress.yaml
+  - backend/web/
+  - db/couchdb/
+  - db/postgres/
+  - queue/

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres_db
+  name: postgres-db
   labels:
     app: postgres_db
 spec:
@@ -11,23 +11,23 @@ spec:
       app: postgres_db
   template:
     metadata:
-      name: postgres_db
+      name: postgres-db
       labels:
         app: postgres_db
     spec:
       containers:
-        - name: postgres_db
-          image: postgres_db:latest
-          imagePullPolicy: Never
+        - name: postgres-db
+          image: postgres:16
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 5432
+            - containerPort: 5433
               protocol: TCP
           envFrom:
             - secretRef:
-                name: secrets
-          volumeMounts:
-            - mountPath: /var/lib/postgresql/data
-              name: postgresdata
+                name: postgres-secrets
+#          volumeMounts:
+#            - mountPath: /var/lib/postgresql/data
+#              name: postgresdata
           resources:
             limits:
               memory: "256Mi"

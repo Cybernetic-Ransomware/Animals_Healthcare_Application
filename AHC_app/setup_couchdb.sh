@@ -15,6 +15,12 @@ bind_address = 0.0.0.0
 port = 5982
 bind_address = 0.0.0.0
 
+[log]
+level = info
+
+[metrics]
+rate = 1.0
+
 EOF
 
 nohup bash -c "/docker-entrypoint.sh /opt/couchdb/bin/couchdb &"

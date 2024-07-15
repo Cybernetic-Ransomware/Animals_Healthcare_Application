@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: ahc_app_backend_service
+  name: postgres-service
 spec:
   selector:
     app: ahc_app_backend
