@@ -22,7 +22,7 @@ spec:
           command: [ "celery", "-A", "AHC_app.celery_notifications.config:celery_obj", "worker", "-l", "info" ]
           envFrom:
             - secretRef:
-                name: queue-secrets
+                name: web-secrets
           ports:
             - containerPort: 5000
               protocol: TCP
