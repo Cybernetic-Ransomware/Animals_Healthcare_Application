@@ -15,14 +15,6 @@ spec:
       labels:
         app: queue
     spec:
-#      containers:
-#        - name: debug-container
-#          image: busybox
-#          command: [ "sh", "-c", "sleep 3600" ]
-#          envFrom:
-#            - secretRef:
-#                name: web-secrets
-#      restartPolicy: Always
       containers:
         - name: queue
           image: ahc_app-queue:latest
@@ -30,7 +22,7 @@ spec:
           command: [ "celery", "-A", "AHC_app.celery_notifications.config:celery_obj", "worker", "-l", "info" ]
           envFrom:
             - secretRef:
-                name: web-secrets
+                name: queue-secrets
           ports:
             - containerPort: 5000
               protocol: TCP
