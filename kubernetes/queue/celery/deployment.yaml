@@ -15,6 +15,13 @@ spec:
       labels:
         app: queue
     spec:
+      initContainers:
+        - name: init-myservice
+          image: busybox
+          command: [ 'sh', '-c', 'env' ]
+          envFrom:
+            - secretRef:
+                name: web-secrets
       containers:
         - name: queue
           image: ahc_app-queue:latest
