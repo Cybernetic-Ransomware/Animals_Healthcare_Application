@@ -19,6 +19,11 @@ spec:
         - name: ahc-app-backend
           image: ahc_app-web:latest
           imagePullPolicy: Never
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONPATH
+              value: "/app"
           envFrom:
             - secretRef:
                 name: web-secrets
