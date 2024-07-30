@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couch-db
+  labels:
+    app: couch-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: couch-db-container
+  template:
+    metadata:
+      name: couch-db-container
+      labels:
+        app: couch-db-container
+        tier: backend
+    spec:
+      containers:
+        - name: couch-db-container
+          image: ahc_app-couch_db:latest
+          imagePullPolicy: Never
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secrets
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secrets
+                  key: COUCHDB_PASSWORD
+            - name: COUCHDB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-secrets
+                  key: COUCHDB_PORT
+          volumeMounts:
+            - name: couchdbdata
+              mountPath: /opt/couchdb/data
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 5982
+              protocol: TCP
+      volumes:
+        - name: couchdbdata
+          persistentVolumeClaim:
+            claimName: couch-db-volume-claim
+      restartPolicy: Always

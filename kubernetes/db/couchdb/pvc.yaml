@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: couch-db-volume-claim
+  labels:
+    app: couch-db
+spec:
+  storageClassName: local-couch-db
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi
+  volumeName: couch-db-volume

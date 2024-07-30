@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ahc-app-backend
+  labels:
+    app: ahc_app_backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ahc_app_backend
+  template:
+    metadata:
+      name: ahc-app-backend
+      labels:
+        app: ahc_app_backend
+    spec:
+      containers:
+        - name: ahc-app-backend
+          image: ahc_app-web:latest
+          imagePullPolicy: Never
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONPATH
+              value: "/app"
+          envFrom:
+            - secretRef:
+                name: web-secrets
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      restartPolicy: Always

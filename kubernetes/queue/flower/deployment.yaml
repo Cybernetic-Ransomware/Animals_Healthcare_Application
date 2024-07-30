@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-flower
+  labels:
+    app: celery_flower
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery_flower
+  template:
+    metadata:
+      name: celery-flower
+      labels:
+        app: celery_flower
+    spec:
+      containers:
+        - name: celery-flower
+          image: mher/flower:2.0.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5555
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: queue-secrets
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      restartPolicy: Always

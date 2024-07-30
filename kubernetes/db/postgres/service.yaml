@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: ahc_app_backend
+  ports:
+    - protocol: TCP
+      port: 5433
+      targetPort: 5432
+  type: ClusterIP

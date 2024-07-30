@@ -1,0 +1,155 @@
+name: AHC CI|CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    env:
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+      FLOWER_PORT: ${{ secrets.FLOWER_PORT }}
+      FLOWER_BASIC_AUTH: ${{ secrets.FLOWER_BASIC_AUTH }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      COUCHDB_USER: ${{ secrets.COUCHDB_USER }}
+      COUCHDB_PASSWORD: ${{ secrets.COUCHDB_PASSWORD }}
+      COUCHDB_PORT: ${{ secrets.COUCHDB_PORT }}
+      COUCH_CONNECTOR: ${{ secrets.COUCH_CONNECTOR }}
+      CELERY_BACKEND: ${{ secrets.CELERY_BACKEND }}
+      EMAIL_BACKEND: ${{ secrets.EMAIL_BACKEND }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+      EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+      EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: "/home/runner/work/Animals_Healthcare_Application/Animals_Healthcare_Application/AHC_app"
+#    strategy:
+#      max-parallel: 4
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install PostgreSQL dependencies
+        run: sudo apt-get install -y libpq-dev
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Prepare environment
+        run: |
+          cd ./AHC_app
+          pipenv install --dev
+          pipenv graph
+
+      - name: Show Python version
+        run: python --version
+        working-directory: ./AHC_app
+
+      - name: Show pip version
+        run: pip --version
+        working-directory: ./AHC_app
+
+      - name: Show pipenv version
+        run: pipenv --version
+        working-directory: ./AHC_app
+
+      - name: List installed packages
+        run: pipenv run pip list
+        working-directory: ./AHC_app
+
+      - name: Prepare environment and run tests
+        run: |
+          PYTHONPATH=$(pwd) pipenv run python manage.py test
+        working-directory: ./AHC_app
+
+  build-and-push:
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag and push the appendixes-db image to ECR
+        id: build-image-appendixes-db
+        env:
+          ECR_URI: ${{ secrets.ECR_URI_APPENDIXES_DB }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Build, tag and push the celery-flower image to ECR
+        id: build-image-celery-flower
+        env:
+          ECR_URI: ${{ secrets.ECR_URI_CELERY_FLOWER }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_URI:$IMAGE_TAG .
+          docker push $ECR_URI:$IMAGE_TAG
+
+      - name: Build, tag and push the main-db image to ECR
+        id: build-image-main-db
+        env:
+          ECR_URI: ${{ secrets.ECR_URI_MAIN_DB }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_URI:$IMAGE_TAG .
+          docker push $ECR_URI:$IMAGE_TAG
+
+      - name: Build, tag and push the queue image to ECR
+        id: build-image-queue
+        env:
+          ECR_URI: ${{ secrets.ECR_URI_QUEUE }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_URI:$IMAGE_TAG .
+          docker push $ECR_URI:$IMAGE_TAG
+
+      - name: Build, tag and push the redis image to ECR
+        id: build-image-redis
+        env:
+          ECR_URI: ${{ secrets.ECR_URI_REDIS }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_URI:$IMAGE_TAG .
+          docker push $ECR_URI:$IMAGE_TAG
+
+      - name: Build, tag and push the web image to ECR
+        id: build-image-web
+        env:
+          ECR_URI: ${{ secrets.ECR_URI_WEB }}
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_URI:$IMAGE_TAG .
+          docker push $ECR_URI:$IMAGE_TAG

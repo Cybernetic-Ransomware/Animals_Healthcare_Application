@@ -2,6 +2,7 @@ version: "3.9"
 services:
   web:
     build: .
+    image: ahc_app-web:latest
     ports:
       - "8000:8000"
     volumes:
@@ -11,6 +12,8 @@ services:
         condition: service_healthy
       queue:
         condition: service_started
+      couch_db:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/AHC_app
@@ -55,12 +58,13 @@ services:
     environment:
       - COUCHDB_USER=${COUCHDB_USER}
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+      - COUCHDB_PORT=${COUCHDB_PORT}
     ports:
-      - "5984:5984"
+      - "5982:5982"
     volumes:
       - couchdb_data:/opt/couchdb/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5984 > /dev/null 2>&1"]
+      test: ["CMD", "curl", "-f", "http://localhost:5982/_up"]
       interval: 5s
       timeout: 30s
       retries: 6
@@ -71,6 +75,10 @@ services:
     command: celery -A AHC_app.celery_notifications.config:celery_obj worker -l info
     depends_on:
       redis:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+      couch_db:
         condition: service_healthy
     ports:
       - "5000:5000"
@@ -100,4 +108,14 @@ services:
 
 volumes:
   animals_db:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${DB_VOLUMEN_POSTGRES}
+      o: bind
   couchdb_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${DB_VOLUMEN_COUCH}
+      o: bind

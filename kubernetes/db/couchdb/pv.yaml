@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: couch-db-volume
+  labels:
+    type: local
+    app: couch-db
+spec:
+  storageClassName: local-couch-db
+  capacity:
+    storage: 2Gi
+#  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+#  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/db"

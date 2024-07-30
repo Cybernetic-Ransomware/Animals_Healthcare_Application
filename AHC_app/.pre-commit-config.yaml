@@ -15,7 +15,7 @@ repos:
         types: [python]
         require_serial: true
         args: ['--in-place', '--remove-all-unused-imports']
-        exclude: '^requirements\.txt$|^setup_couchdb\.sh$'
+        exclude: '^requirements\.txt$|^setup_couchdb\.sh$|^.yaml$'
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:

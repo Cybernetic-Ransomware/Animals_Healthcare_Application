@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queue
+  labels:
+    app: queue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: queue
+  template:
+    metadata:
+      name: queue
+      labels:
+        app: queue
+    spec:
+      initContainers:
+        - name: init-myservice
+          image: busybox
+          command: [ 'sh', '-c', 'env' ]
+          envFrom:
+            - secretRef:
+                name: web-secrets
+      containers:
+        - name: queue
+          image: ahc_app-queue:latest
+          imagePullPolicy: Never
+          command: [ "celery", "-A", "AHC_app.celery_notifications.config:celery_obj", "worker", "-l", "info"]
+#          command: [ "sleep", "infinity" ] # debug
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONPATH
+              value: "/app"
+          envFrom:
+            - secretRef:
+                name: web-secrets
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      restartPolicy: Always
