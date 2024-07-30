@@ -53,29 +53,44 @@
 
 ---
 ### Deploy steps:
-1. Download repository
-2. Set .env file based on template
-3. Install Docker Desktop
-4. Run containters by "docker-compose up -d --build"
+1. Download repository.
+2. Set .env file based on template.
+3. Install Docker Desktop.
+4. Run containters:
+    ```
+    docker-compose up -d --build
+    ```
 
 ---
 ### Dev-instance steps:
-1. Download repository
-2. Set .env file based on template
-3. Install Python, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_
-4. Install pipenv by "pipenv install"
-5. Deploy vevn and synch requirements by "pipenv install --dev"
-6. Install precommit hooks by "pre-commit install"
-7. Run containters by "docker-compose up -d --build"
+1. Download repository.
+2. Set .env file based on the template.
+3. Install Python, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_.
+4. Install pipenv:
+    ```
+    pipenv install
+    ```
+5. Deploy vevn and synch requirements:
+    ```
+    pipenv install --dev
+    ```
+6. Install precommit hooks:
+    ```
+    pre-commit install
+    ```
+7. Run containters:
+    ```
+    docker-compose up -d --build
+    ```
 
 ---
 ### Kubernetes Deploy steps (alternative deploy):
-1. Download repository
+1. Download repository.
 2. Set secret.yaml files based on templates.
    - Configure the secret.yaml files based on the templates provided in the kubernetes directory (5 files).
-3. Install Docker Desktop
+3. Install Docker Desktop.
 4. Build Docker images:
-   - Build the Docker images for web, CouchDB, PostgreSQL, and Celery services.
+   - Build the Docker images for web, CouchDB, PostgreSQL, and Celery services,
    - Example commands:
       ```
       docker-compose build
@@ -86,7 +101,7 @@
       ```
 
 5. Push Docker images to a registry:
-   - Push the Docker images to a container registry.
+   - Push the Docker images to a container registry,
    - Example using Minikube:
       ```
       minikube image load ahc_app-web.tar
@@ -96,7 +111,7 @@
       ```
 
 6. Deploy to Kubernetes using kustom files:
-   - Deploy the application to Kubernetes using the kustomization files.
+   - Deploy the application to Kubernetes using the kustomization files,
    - Example command:
       ```
       kubectl apply -k kubernetes/
