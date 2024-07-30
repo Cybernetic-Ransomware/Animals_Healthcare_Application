@@ -59,18 +59,23 @@ jobs:
 
       - name: Show Python version
         run: python --version
+        working-directory: ./AHC_app
 
       - name: Show pip version
         run: pip --version
+        working-directory: ./AHC_app
 
       - name: Show pipenv version
         run: pipenv --version
+        working-directory: ./AHC_app
 
       - name: List installed packages
         run: pipenv run pip list
+        working-directory: ./AHC_app
 
       - name: Prepare environment and run tests
         run: pipenv run python manage.py test
+        working-directory: ./AHC_app
 
   build-and-push:
     name: Build and Push to ECR
