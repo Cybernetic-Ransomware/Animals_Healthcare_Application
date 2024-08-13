@@ -1,7 +1,8 @@
-from animals.models import Animal
 from django.db.models import Q
 from django.views.generic import TemplateView
-from users.models import Profile as UserProfile
+
+from AHC_app.animals.models import Animal
+from AHC_app.users.models import Profile as UserProfile
 
 
 class HomepageView(TemplateView):

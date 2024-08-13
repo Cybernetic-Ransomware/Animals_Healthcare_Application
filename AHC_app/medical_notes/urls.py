@@ -1,7 +1,8 @@
 from django.urls import path
-from medical_notes.views import type_basic_note as notes_views
-from medical_notes.views import type_feeding_notes as feeding_views
-from medical_notes.views import type_measurement_notes as measurement_views
+
+from AHC_app.medical_notes.views import type_basic_note as notes_views
+from AHC_app.medical_notes.views import type_feeding_notes as feeding_views
+from AHC_app.medical_notes.views import type_measurement_notes as measurement_views
 
 urlpatterns = [
     path("<uuid:pk>/create/", notes_views.CreateNoteFormView.as_view(), name="note_create"),

@@ -1,4 +1,3 @@
-from animals.models import Animal as AnimalProfile
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -12,13 +11,18 @@ from django.utils import timezone
 from django.views.generic import View
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
-from medical_notes.forms.type_basic_note import (
+
+from AHC_app.animals.models import Animal as AnimalProfile
+from AHC_app.medical_notes.forms.type_basic_note import (
     MedicalRecordEditForm,
     MedicalRecordEditRelatedAnimalsForm,
     MedicalRecordForm,
     UploadAppendixForm,
 )
-from medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
+from AHC_app.medical_notes.models.type_basic_note import (
+    MedicalRecord,
+    MedicalRecordAttachment,
+)
 
 # UploadAppendixFormSet = formset_factory(UploadAppendixForm, extra=0)
 

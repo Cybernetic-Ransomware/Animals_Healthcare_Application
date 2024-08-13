@@ -4,8 +4,8 @@ from celery import Celery, shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 
-from AHC_app.celery_notifications.utils.discord_utils import send_via_discord
-from AHC_app.celery_notifications.utils.sending_utils import (
+from AHC_app.AHC_app.celery_notifications.utils.discord_utils import send_via_discord
+from AHC_app.AHC_app.celery_notifications.utils.sending_utils import (
     send_via_email,  # , send_via_sms, send_via_discord
 )
 

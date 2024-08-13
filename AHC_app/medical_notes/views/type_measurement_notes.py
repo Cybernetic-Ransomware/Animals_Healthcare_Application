@@ -1,9 +1,10 @@
-from animals.models import Animal as AnimalProfile
 from django.shortcuts import get_object_or_404, redirect, reverse
 from django.views.generic.edit import FormView
-from medical_notes.forms.type_measurement_notes import BiometricRecordForm
-from medical_notes.models.type_basic_note import MedicalRecord
-from medical_notes.models.type_measurement_notes import (
+
+from AHC_app.animals.models import Animal as AnimalProfile
+from AHC_app.medical_notes.forms.type_measurement_notes import BiometricRecordForm
+from AHC_app.medical_notes.models.type_basic_note import MedicalRecord
+from AHC_app.medical_notes.models.type_measurement_notes import (
     BiometricCustomRecords,
     BiometricHeightRecords,
     BiometricRecord,
@@ -33,9 +34,7 @@ class BiometricRecordCreateView(FormView):
         if record_type == "weight":
             weight = form.cleaned_data["weight"]
             unit = form.cleaned_data["weight_unit_to_present"]
-            weight_record = BiometricWeightRecords.objects.create(
-                weight=weight, weight_unit_to_present=unit
-            )
+            weight_record = BiometricWeightRecords.objects.create(weight=weight, weight_unit_to_present=unit)
             biometric_record = BiometricRecord.objects.create(
                 animal=animal,
                 related_note=related_note,
@@ -44,9 +43,7 @@ class BiometricRecordCreateView(FormView):
         elif record_type == "height":
             height = form.cleaned_data["height"]
             unit = form.cleaned_data["height_unit_to_present"]
-            height_record = BiometricHeightRecords.objects.create(
-                height=height, height_unit_to_present=unit
-            )
+            height_record = BiometricHeightRecords.objects.create(height=height, height_unit_to_present=unit)
             biometric_record = BiometricRecord.objects.create(
                 animal=animal,
                 related_note=related_note,

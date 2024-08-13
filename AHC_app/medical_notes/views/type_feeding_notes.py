@@ -1,4 +1,3 @@
-from animals.models import Animal as AnimalProfile
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponseRedirect
@@ -6,12 +5,17 @@ from django.shortcuts import get_object_or_404, redirect, reverse
 from django.urls import reverse_lazy
 from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
-from medical_notes.forms.type_feeding_notes import (
+
+from AHC_app.animals.models import Animal as AnimalProfile
+from AHC_app.medical_notes.forms.type_feeding_notes import (
     DietRecordForm,
     NotificationRecordForm,
 )
-from medical_notes.models.type_basic_note import MedicalRecord
-from medical_notes.models.type_feeding_notes import EmailNotification, FeedingNote
+from AHC_app.medical_notes.models.type_basic_note import MedicalRecord
+from AHC_app.medical_notes.models.type_feeding_notes import (
+    EmailNotification,
+    FeedingNote,
+)
 
 
 class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):

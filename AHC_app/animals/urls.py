@@ -1,6 +1,7 @@
-from animals import views as animal_views
-from animals.utils_owner import views as animal_owner_views
 from django.urls import path
+
+from AHC_app.animals import views as animal_views
+from AHC_app.animals.utils_owner import views as animal_owner_views
 
 urlpatterns = [
     path("create/", animal_views.CreateAnimalView.as_view(), name="animal_create"),

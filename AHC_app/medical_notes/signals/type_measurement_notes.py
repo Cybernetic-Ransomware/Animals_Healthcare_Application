@@ -2,9 +2,10 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from medical_notes.models.type_basic_note import MedicalRecord
-from medical_notes.models.type_measurement_notes import BiometricRecord
-from users.models import Profile as UserProfile
+
+from AHC_app.medical_notes.models.type_basic_note import MedicalRecord
+from AHC_app.medical_notes.models.type_measurement_notes import BiometricRecord
+from AHC_app.users.models import Profile as UserProfile
 
 
 @receiver(pre_save, sender=BiometricRecord)
@@ -23,17 +24,13 @@ def validate_one_to_one_fields(sender, instance, **kwargs):
         )
         > 1
     ):
-        raise ValidationError(
-            "BiometricRecord can only have one of OneToOneFields assigned."
-        )
+        raise ValidationError("BiometricRecord can only have one of OneToOneFields assigned.")
 
 
 @receiver(post_save, sender=BiometricRecord)
 def clean_orphaned_metric_records(sender, instance, **kwargs):
     user_profile = UserProfile.objects.get(id=instance.related_note.author.id)
-    medical_records = MedicalRecord.objects.filter(
-        author=user_profile, type_of_event="biometric_record"
-    )
+    medical_records = MedicalRecord.objects.filter(author=user_profile, type_of_event="biometric_record")
 
     for record in medical_records:
         if not record.biometricrecord_set.filter(
