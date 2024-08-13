@@ -1,11 +1,7 @@
 from django import forms
 from django.conf import settings
+from medical_notes.models.type_feeding_notes import EmailNotification, FeedingNote
 from timezone_field import TimeZoneFormField
-
-from AHC_app.medical_notes.models.type_feeding_notes import (
-    EmailNotification,
-    FeedingNote,
-)
 
 
 class DietRecordForm(forms.ModelForm):

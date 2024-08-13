@@ -1,8 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
-
-from AHC_app.homepage.utils import ImageGenerator
+from homepage.utils import ImageGenerator
 
 
 class Privilege(models.Model):

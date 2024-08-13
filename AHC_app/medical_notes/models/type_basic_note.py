@@ -1,11 +1,10 @@
 import uuid
 
+from animals.models import Animal
 from django.db import models
 from taggit.managers import TaggableManager
 from taggit.models import GenericUUIDTaggedItemBase, TaggedItemBase
-
-from AHC_app.animals.models import Animal
-from AHC_app.users.models import Profile as UserProfile
+from users.models import Profile as UserProfile
 
 
 class UUIDTaggedItem(GenericUUIDTaggedItemBase, TaggedItemBase):

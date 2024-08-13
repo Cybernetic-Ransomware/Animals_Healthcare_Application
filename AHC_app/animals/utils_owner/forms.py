@@ -1,10 +1,9 @@
 from datetime import date
 
+from animals.models import Animal
 from django import forms
 from PIL import Image
-
-from AHC_app.animals.models import Animal
-from AHC_app.users.models import Profile
+from users.models import Profile
 
 
 class ImageUploadForm(forms.ModelForm):

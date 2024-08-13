@@ -1,9 +1,8 @@
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-from AHC_app.medical_notes.models.type_feeding_notes import FeedingNote
-from AHC_app.users.models import Profile as UserProfile
+from medical_notes.models.type_feeding_notes import FeedingNote
+from users.models import Profile as UserProfile
 
 
 @receiver(post_save, sender=FeedingNote)

@@ -1,8 +1,7 @@
 import subprocess
 
 from django.core.management.base import BaseCommand
-
-from AHC_app.homepage.models import CronJob
+from homepage.models import CronJob
 
 
 class Command(BaseCommand):

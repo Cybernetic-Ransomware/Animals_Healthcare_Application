@@ -2,10 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-
-from AHC_app.medical_notes.models.type_basic_note import MedicalRecord
-from AHC_app.medical_notes.models.type_measurement_notes import BiometricRecord
-from AHC_app.users.models import Profile as UserProfile
+from medical_notes.models.type_basic_note import MedicalRecord
+from medical_notes.models.type_measurement_notes import BiometricRecord
+from users.models import Profile as UserProfile
 
 
 @receiver(pre_save, sender=BiometricRecord)
