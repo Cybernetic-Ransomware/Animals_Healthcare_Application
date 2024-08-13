@@ -1,5 +1,6 @@
 from django import template
-from medical_notes.models.type_feeding_notes import FeedingNotification
+
+from AHC_app.medical_notes.models.type_feeding_notes import FeedingNotification
 
 register = template.Library()
 

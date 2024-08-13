@@ -1,5 +1,5 @@
 from django.contrib import admin
 
-from .models import Profile
+from AHC_app.users.models import Profile
 
 admin.site.register(Profile)

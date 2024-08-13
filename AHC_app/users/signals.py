@@ -1,9 +1,9 @@
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from homepage.models import Privilege, ProfileBackground
 
-from .models import Profile
+from AHC_app.homepage.models import Privilege, ProfileBackground
+from AHC_app.users.models import Profile
 
 
 @receiver(pre_save, sender=Profile)
@@ -16,18 +16,14 @@ def create_basic_privilege(sender, instance, **kwargs):
 @receiver(pre_save, sender=Profile)
 def create_background(sender, instance, **kwargs):
     if not instance.profile_background:
-        background, _ = ProfileBackground.objects.get_or_create(
-            title="Default Background"
-        )
+        background, _ = ProfileBackground.objects.get_or_create(title="Default Background")
         instance.profile_background = background
 
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
     if created:
-        background, _ = ProfileBackground.objects.get_or_create(
-            title="Default Background"
-        )
+        background, _ = ProfileBackground.objects.get_or_create(title="Default Background")
         Profile.objects.create(user=instance)
 
 

@@ -2,9 +2,9 @@ from datetime import date
 
 from django import forms
 from PIL import Image
-from users.models import Profile
 
-from animals.models import Animal
+from AHC_app.animals.models import Animal
+from AHC_app.users.models import Profile
 
 
 class ImageUploadForm(forms.ModelForm):
@@ -38,9 +38,7 @@ class ImageUploadForm(forms.ModelForm):
 
 
 class ChangeOwnerForm(forms.Form):
-    new_owner = forms.CharField(
-        max_length=255, required=True, label="New owner's profile name"
-    )
+    new_owner = forms.CharField(max_length=255, required=True, label="New owner's profile name")
     set_keeper = forms.BooleanField(required=False, label="Set as keeper")
 
     def __init__(self, *args, **kwargs):
@@ -63,9 +61,7 @@ class ChangeOwnerForm(forms.Form):
 
 
 class ManageKeepersForm(forms.Form):
-    input_user = forms.CharField(
-        max_length=255, required=True, label="Full keeper profile name"
-    )
+    input_user = forms.CharField(max_length=255, required=True, label="Full keeper profile name")
 
     def __init__(self, *args, **kwargs):
         self.instance = kwargs.pop("instance", None)
@@ -75,9 +71,7 @@ class ManageKeepersForm(forms.Form):
         input_user = self.cleaned_data.get("input_user")
 
         if input_user == self.instance.owner.user.username:
-            raise forms.ValidationError(
-                "As the owner you can not set yourself as a keeper."
-            )
+            raise forms.ValidationError("As the owner you can not set yourself as a keeper.")
 
         if input_user in self.instance.allowed_users.all():
             raise forms.ValidationError("User is already on the list of keepers.")
@@ -101,9 +95,7 @@ class ChangeBirthdayForm(forms.ModelForm):
         current_date = date.today()
 
         if birthdate > current_date:
-            raise forms.ValidationError(
-                "Date could not be set further than current day."
-            )
+            raise forms.ValidationError("Date could not be set further than current day.")
 
         return birthdate
 

@@ -16,7 +16,7 @@ services:
         condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/AHC_app
+      - PYTHONPATH=/app
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -84,6 +84,8 @@ services:
       - "5000:5000"
     environment:
       - DJANGO_SETTINGS_MODULE=AHC_app.settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
 
   redis:
     image: redis:7-alpine

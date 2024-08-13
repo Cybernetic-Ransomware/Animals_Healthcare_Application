@@ -1,7 +1,10 @@
 from django import forms
 
 # from animals.models import Animal as AnimalProfile
-from medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
+from AHC_app.medical_notes.models.type_basic_note import (
+    MedicalRecord,
+    MedicalRecordAttachment,
+)
 
 # from django.core.validators import MaxLengthValidator, MinLengthValidator
 # from django.db.models import Q

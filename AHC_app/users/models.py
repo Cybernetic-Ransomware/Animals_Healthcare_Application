@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
 from django.db import models
-from homepage.models import Privilege, ProfileBackground
 from PIL import Image
+
+from AHC_app.homepage.models import Privilege, ProfileBackground
 
 
 class Profile(models.Model):

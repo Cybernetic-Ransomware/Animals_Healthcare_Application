@@ -1,16 +1,15 @@
 import subprocess
 
 from django.core.management.base import BaseCommand
-from homepage.models import CronJob
+
+from AHC_app.homepage.models import CronJob
 
 
 class Command(BaseCommand):
     help = "Sync cronjobs with the actual cron configuration"
 
     def handle(self, *args, **options):
-        cronjob_info = subprocess.run(
-            ["crontab", "-l"], stdout=subprocess.PIPE, text=True
-        ).stdout.splitlines()
+        cronjob_info = subprocess.run(["crontab", "-l"], stdout=subprocess.PIPE, text=True).stdout.splitlines()
 
         CronJob.objects.all().delete()
 
