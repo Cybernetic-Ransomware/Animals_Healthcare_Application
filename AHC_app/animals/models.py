@@ -1,8 +1,7 @@
 import uuid
 
 from django.db import models
-
-from AHC_app.users.models import Profile as UserProfile
+from users.models import Profile as UserProfile
 
 
 class Animal(models.Model):

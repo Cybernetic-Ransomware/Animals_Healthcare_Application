@@ -1,10 +1,9 @@
 import os
 
+from animals.models import Animal
 from django.db.models.signals import post_delete, post_save, pre_delete
 from django.dispatch import receiver
-
-from AHC_app.animals.models import Animal
-from AHC_app.users.models import Profile
+from users.models import Profile
 
 
 @receiver(post_save, sender=Animal)

@@ -2,8 +2,7 @@ from html.parser import HTMLParser
 
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
-
-from AHC_app.homepage.models import AnimalTitle
+from homepage.models import AnimalTitle
 
 client = Client()
 
@@ -40,7 +39,7 @@ class TestHomepage(TestCase):
         actual_status_code = resp.status_code
 
         # assert actual_status_code == expected_status_code
-        self.assertEquals(expected_status_code, actual_status_code)
+        self.assertEqual(expected_status_code, actual_status_code)
 
     def test_should_return_valid_render_template_name_when_view_is_get_called(self):
         expected_template_name = "homepage/homepage.html"

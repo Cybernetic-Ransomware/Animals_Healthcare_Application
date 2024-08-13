@@ -1,10 +1,9 @@
+from animals.models import Animal as AnimalProfile
 from django.shortcuts import get_object_or_404, redirect, reverse
 from django.views.generic.edit import FormView
-
-from AHC_app.animals.models import Animal as AnimalProfile
-from AHC_app.medical_notes.forms.type_measurement_notes import BiometricRecordForm
-from AHC_app.medical_notes.models.type_basic_note import MedicalRecord
-from AHC_app.medical_notes.models.type_measurement_notes import (
+from medical_notes.forms.type_measurement_notes import BiometricRecordForm
+from medical_notes.models.type_basic_note import MedicalRecord
+from medical_notes.models.type_measurement_notes import (
     BiometricCustomRecords,
     BiometricHeightRecords,
     BiometricRecord,

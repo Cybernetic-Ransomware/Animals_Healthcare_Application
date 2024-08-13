@@ -6,8 +6,7 @@ from django.contrib.auth.views import (
     PasswordResetView,
 )
 from django.urls import path
-
-from AHC_app.users import views as user_views
+from users import views as user_views
 
 urlpatterns = [
     path("", auth_views.LoginView.as_view(template_name="users/login.html"), name="login"),

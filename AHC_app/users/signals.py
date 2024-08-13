@@ -1,9 +1,8 @@
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-
-from AHC_app.homepage.models import Privilege, ProfileBackground
-from AHC_app.users.models import Profile
+from homepage.models import Privilege, ProfileBackground
+from users.models import Profile
 
 
 @receiver(pre_save, sender=Profile)
