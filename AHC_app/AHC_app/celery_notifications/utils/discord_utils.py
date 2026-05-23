@@ -4,7 +4,8 @@ from discord import Client, Intents
 from discord.ext import commands
 from django.conf import settings
 
-TOKEN = settings.DISCORD_TOKEN
+# TOKEN = settings.DISCORD_TOKEN
+TOKEN = "none"
 
 
 def send_via_discord(user_id: int, user_message: str) -> None:
