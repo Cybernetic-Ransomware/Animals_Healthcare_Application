@@ -8,9 +8,7 @@ class Command(BaseCommand):
     help = "Sync cronjobs with the actual cron configuration"
 
     def handle(self, *args, **options):
-        cronjob_info = subprocess.run(
-            ["crontab", "-l"], stdout=subprocess.PIPE, text=True
-        ).stdout.splitlines()
+        cronjob_info = subprocess.run(["crontab", "-l"], stdout=subprocess.PIPE, text=True).stdout.splitlines()
 
         CronJob.objects.all().delete()
 

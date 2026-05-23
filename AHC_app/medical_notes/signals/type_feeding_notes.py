@@ -9,7 +9,5 @@ from users.models import Profile as UserProfile
 def clean_orphaned_diet_records(sender, instance, **kwargs):
     user_profile = UserProfile.objects.get(id=instance.related_note.author.id)
     with transaction.atomic():
-        orphaned_notes = FeedingNote.objects.filter(
-            author=user_profile, related_note=None
-        )
+        orphaned_notes = FeedingNote.objects.filter(author=user_profile, related_note=None)
         orphaned_notes.delete()

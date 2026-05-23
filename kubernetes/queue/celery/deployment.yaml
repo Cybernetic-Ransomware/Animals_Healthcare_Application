@@ -27,7 +27,6 @@ spec:
           image: ahc_app-queue:latest
           imagePullPolicy: Never
           command: [ "celery", "-A", "AHC_app.celery_notifications.config:celery_obj", "worker", "-l", "info"]
-#          command: [ "sleep", "infinity" ] # debug
           env:
             - name: PYTHONUNBUFFERED
               value: "1"

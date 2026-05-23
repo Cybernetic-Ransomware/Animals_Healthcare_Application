@@ -1,7 +1,9 @@
 version: "3.9"
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile-web
     image: ahc_app-web:latest
     ports:
       - "8000:8000"
@@ -16,7 +18,7 @@ services:
         condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/AHC_app
+      - PYTHONPATH=/app
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -71,7 +73,9 @@ services:
     restart: always
 
   queue:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile-queue
     command: celery -A AHC_app.celery_notifications.config:celery_obj worker -l info
     depends_on:
       redis:
@@ -84,6 +88,8 @@ services:
       - "5000:5000"
     environment:
       - DJANGO_SETTINGS_MODULE=AHC_app.settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
 
   redis:
     image: redis:7-alpine

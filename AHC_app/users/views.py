@@ -1,10 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, FormView, UpdateView
-
-from .forms import ProfileUpdateForm, UserRegisterForm, UserUpdateForm
-from .models import Profile
+from django.views.generic import CreateView, UpdateView
+from users.forms import ProfileUpdateForm, UserRegisterForm, UserUpdateForm
+from users.models import Profile
 
 
 class UserRegisterView(CreateView):

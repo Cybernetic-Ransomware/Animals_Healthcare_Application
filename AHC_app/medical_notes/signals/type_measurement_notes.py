@@ -23,17 +23,13 @@ def validate_one_to_one_fields(sender, instance, **kwargs):
         )
         > 1
     ):
-        raise ValidationError(
-            "BiometricRecord can only have one of OneToOneFields assigned."
-        )
+        raise ValidationError("BiometricRecord can only have one of OneToOneFields assigned.")
 
 
 @receiver(post_save, sender=BiometricRecord)
 def clean_orphaned_metric_records(sender, instance, **kwargs):
     user_profile = UserProfile.objects.get(id=instance.related_note.author.id)
-    medical_records = MedicalRecord.objects.filter(
-        author=user_profile, type_of_event="biometric_record"
-    )
+    medical_records = MedicalRecord.objects.filter(author=user_profile, type_of_event="biometric_record")
 
     for record in medical_records:
         if not record.biometricrecord_set.filter(
