@@ -4,10 +4,8 @@ from celery import Celery, shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 
-from AHC_app.celery_notifications.utils.discord_utils import send_via_discord
-from AHC_app.celery_notifications.utils.sending_utils import (
-    send_via_email,  # , send_via_sms, send_via_discord
-)
+# from AHC_app.celery_notifications.utils.discord_utils import send_via_discord
+from AHC_app.celery_notifications.utils.sending_utils import send_via_email
 
 logger = get_task_logger(__name__)
 
@@ -44,6 +42,7 @@ def send_sms_notifications(**kwargs):
 
 @shared_task(bind=True)
 def send_discord_notifications(self, *args, **kwargs):
-    user_id = kwargs.get("user_id")
-    user_message = kwargs.get("user_message")
-    send_via_discord(user_id, user_message)
+    # user_id = kwargs.get("user_id")
+    # user_message = kwargs.get("user_message")
+    # send_via_discord(user_id, user_message)
+    pass
