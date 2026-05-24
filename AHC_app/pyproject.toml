@@ -5,7 +5,7 @@ description = "Animals Healthcare Application — pet health data management"
 requires-python = ">=3.14"
 
 dependencies = [
-    "django>=5.2,<5.3",
+    "django>=6.0,<6.1",
     "djangorestframework>=3.14",
     "psycopg[binary]>=3.2",
     "celery>=5.4",
