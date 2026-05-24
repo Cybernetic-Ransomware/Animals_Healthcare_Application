@@ -207,12 +207,18 @@ COMPRESS_ROOT = STATIC_ROOT
 COMPRESS_PRECOMPILERS = (("text/x-scss", "django_libsass.SassCompiler"),)
 COMPRESS_OFFLINE = True
 LIBSASS_OUTPUT_STYLE = "compressed"
+
+_staticfiles_backend = (
+    "django.contrib.staticfiles.storage.StaticFilesStorage"
+    if _is_test_run()
+    else "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+)
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+        "BACKEND": _staticfiles_backend,
     },
 }
 
