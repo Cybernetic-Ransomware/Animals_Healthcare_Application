@@ -17,9 +17,31 @@ from pathlib import Path
 import pycouchdb
 from decouple import config
 
+_OFFLINE_COMMANDS = {
+    "check",
+    "collectstatic",
+    "compress",
+    "crontab",
+    "makemigrations",
+    "migrate",
+    "shell",
+    "showmigrations",
+    "sqlmigrate",
+    "test",
+}
+
 
 def _is_test_run() -> bool:
     return "test" in sys.argv or (bool(sys.argv) and "pytest" in sys.argv[0])
+
+
+def _skip_external_services() -> bool:
+    """Return True when live network backends (CouchDB) must not be initialised.
+
+    Covers: pytest invocations, manage.py test, and any manage.py command that
+    does not require a running CouchDB connection at import time.
+    """
+    return _is_test_run() or any(cmd in sys.argv for cmd in _OFFLINE_COMMANDS)
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -120,7 +142,7 @@ else:
 
 # COUCH_CONNECTOR = (config("COUCH_CONNECTOR"),)
 
-if not _is_test_run():
+if not _skip_external_services():
     COUCHDB_USER = config("COUCHDB_USER")
     COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
     COUCHDB_PORT = config("COUCHDB_PORT")

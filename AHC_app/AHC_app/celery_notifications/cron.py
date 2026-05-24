@@ -85,12 +85,6 @@ def send_emails() -> None:
 
     for notification in notifications_to_send:
         _user_set_zone: str = notification.timezone
-        # user_weekday_number: int = datetime.now(
-        #     tz=pytz.timezone(user_set_zone)
-        # ).weekday()
-        #
-        # if user_weekday_number in notification.related_note.days_of_week:
-        #     break
 
         email: str = notification.email
         animal: str = notification.related_note.related_note.animal
