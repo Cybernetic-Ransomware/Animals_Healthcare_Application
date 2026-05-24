@@ -7,6 +7,7 @@ from datetime import date, datetime, time, timedelta
 from functools import wraps
 
 from django.db.models import Q, QuerySet
+from django.tasks import task
 from django.utils import timezone
 
 from AHC_app.celery_notifications.config import (
@@ -146,24 +147,13 @@ def send_discord_notes():
     send_discord_notifications.apply_async(kwargs={"user_id": user_id, "user_message": user_message}, countdown=delay)
 
 
-# class SynchNotificationsCron(CronJobBase):
-#     RUN_EVERY_MINS = 60
-#
-#     schedule = Schedule(run_every_mins=RUN_EVERY_MINS)
-#     code = "AHC_app.SynchNotificationsCronJob"
-#
-#     # run_at_times = ["55"]
-#
-#     @staticmethod
-#     def cron_send_emails():
-#         from icecream import ic
-#         ic()
-#
-#         send_emails()
-#
-#     @staticmethod
-#     def cron_send_discord():
-#         from icecream import ic
-#         ic()
-#
-#         send_discord_notes()
+@task
+def log_notification_count() -> int:
+    """Django Background Tasks example. Use for simple in-process tasks.
+
+    For distributed / retryable work, use Celery (@shared_task).
+    Enqueue with: log_notification_count.enqueue()
+    """
+    count = EmailNotification.objects.filter(is_active=True).count()
+    logger.info("Active email notifications: %d", count)
+    return count

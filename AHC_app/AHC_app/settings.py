@@ -83,6 +83,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -247,3 +248,23 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 DISCORD_TOKEN = config("DISCORD_TOKEN")
 
 TEST_RUNNER = "django.test.runner.DiscoverRunner"
+
+from django.utils.csp import CSP  # noqa: E402
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE, "https://fonts.googleapis.com"],
+    "img-src": [CSP.SELF, "data:"],
+    "font-src": [CSP.SELF, "https://fonts.gstatic.com"],
+    "connect-src": [CSP.SELF],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.SELF],
+}
+SECURE_CSP_REPORT_ONLY = SECURE_CSP
+
+TASKS = {
+    "default": {
+        "BACKEND": "django.tasks.backends.immediate.ImmediateBackend",
+    },
+}
