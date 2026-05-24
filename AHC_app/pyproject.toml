@@ -1,0 +1,50 @@
+[project]
+name = "animals-healthcare-application"
+version = "0.1.0"
+description = "Animals Healthcare Application — pet health data management"
+requires-python = ">=3.14"
+
+dependencies = [
+    "django>=5.2,<5.3",
+    "djangorestframework>=3.14",
+    "psycopg[binary]>=3.2",
+    "celery>=5.4",
+    "redis>=5.0",
+    "flower",
+    "pycouchdb",
+    "discord",
+    "python-decouple",
+    "pillow>=11.0",
+    "cryptography>=43",
+    "cffi>=1.17",
+    "django-crispy-forms",
+    "crispy-bootstrap4",
+    "django-bootstrap-modal-forms",
+    "django-compressor",
+    "django-libsass",
+    "libsass",
+    "django-appconf",
+    "django-taggit",
+    "django-timezone-field>=6.1",
+    "django-crontab",
+    "pytz",
+    "tzdata",
+    "python3-openid",
+    "requests",
+    "requests-oauthlib",
+    "httplib2",
+    "python-dateutil",
+    "pyjwt",
+    "defusedxml",
+    "icecream",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit",
+    "black",
+    "isort",
+]
+
+[tool.uv]
+package = false

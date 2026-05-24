@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     "compressor",
     "taggit",
     "django_crontab",
-    "django_cron",
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",
     "animals.apps.AnimalsConfig",
@@ -210,9 +209,6 @@ CRONJOBS = [
     ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
 ]
 
-CRON_CLASSES = [
-    # 'AHC_app.celery_notifications.cron.SynchNotificationsCron',
-]
 
 CELERY_BROKER_URL = config("CELERY_BROKER_URL")
 CELERY_BACKEND = config("CELERY_BACKEND")
