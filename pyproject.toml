@@ -69,6 +69,7 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "AHC_app.settings"
+pythonpath = ["AHC_app"]
 python_files = ["test_*.py", "tests.py"]
 addopts = "--strict-markers"
 markers = [

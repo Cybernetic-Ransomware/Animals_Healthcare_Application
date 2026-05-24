@@ -105,7 +105,7 @@ just docker-up
       docker image save -o ahc_app-web.tar ahc_app-web:latest
       docker image save -o ahc_app-queue.tar ahc_app-queue:latest
       docker image save -o ahc_app-couch_db.tar ahc_app-couch_db:latest
-      docker image save -o postgres.tar postgres:15-alpine
+      docker image save -o postgres.tar postgres:18-alpine
       ```
 
 5. Push Docker images to a registry:
@@ -115,7 +115,7 @@ just docker-up
       minikube image load ahc_app-web.tar
       minikube image load ahc_app-queue.tar
       minikube image load ahc_app-couch_db.tar
-      minikube image load postgres.tar
+      minikube image load postgres.tar   # postgres:18-alpine
       ```
 
 6. Deploy to Kubernetes using kustom files:

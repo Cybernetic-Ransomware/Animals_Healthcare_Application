@@ -5,10 +5,10 @@ repos:
   hooks:
   - id: uv-lock-check
     name: uv lock --check
-    entry: uv --directory AHC_app lock --check
+    entry: uv lock --check
     language: system
     pass_filenames: false
-    files: ^AHC_app/pyproject\.toml$
+    files: ^pyproject\.toml$
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v5.0.0
@@ -34,7 +34,7 @@ repos:
   hooks:
   - id: bandit
     name: bandit
-    entry: bandit -r AHC_app -c AHC_app/pyproject.toml
+    entry: bandit -r AHC_app -c pyproject.toml
     language: python
     additional_dependencies: ["bandit[toml]==1.9.4"]
     pass_filenames: false
