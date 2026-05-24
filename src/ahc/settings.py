@@ -45,7 +45,7 @@ def _skip_external_services() -> bool:
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 # Quick-start development settings - unsuitable for production
@@ -92,13 +92,13 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "AHC_app.urls"
+ROOT_URLCONF = "ahc.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # 'DIRS': [],
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "AHC_app" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -116,7 +116,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 
-WSGI_APPLICATION = "AHC_app.wsgi.application"
+WSGI_APPLICATION = "ahc.wsgi.application"
 
 
 # Database
@@ -194,7 +194,7 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = "static_collected"
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static/"),
+    os.path.join(BASE_DIR, "AHC_app/static/"),
 ]
 
 STATICFILES_FINDERS = [
@@ -232,7 +232,7 @@ python manage.py compress --force
 """
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "static/media")
+MEDIA_ROOT = os.path.join(BASE_DIR, "AHC_app/static/media")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

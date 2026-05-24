@@ -83,7 +83,7 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - DJANGO_SETTINGS_MODULE=AHC_app.settings
+      - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/AHC_app
 
@@ -98,7 +98,7 @@ services:
       postgres_db:
         condition: service_healthy
     environment:
-      - DJANGO_SETTINGS_MODULE=AHC_app.settings
+      - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/AHC_app
     env_file:

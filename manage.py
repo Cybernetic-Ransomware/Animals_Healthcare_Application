@@ -8,8 +8,9 @@ from pathlib import Path
 
 def main():
     """Run administrative tasks."""
-    sys.path.insert(0, str(Path(__file__).resolve().parent / "AHC_app"))
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AHC_app.settings")
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+    sys.path.insert(1, str(Path(__file__).resolve().parent / "AHC_app"))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ahc.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
