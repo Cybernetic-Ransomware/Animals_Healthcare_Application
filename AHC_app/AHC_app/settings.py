@@ -184,7 +184,14 @@ COMPRESS_ROOT = STATIC_ROOT
 COMPRESS_PRECOMPILERS = (("text/x-scss", "django_libsass.SassCompiler"),)
 COMPRESS_OFFLINE = True
 LIBSASS_OUTPUT_STYLE = "compressed"
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+    },
+}
 
 """ DOCUMENTATION TO CUSTOM SCSS:
 https://picocss.com/docs/customization.html
