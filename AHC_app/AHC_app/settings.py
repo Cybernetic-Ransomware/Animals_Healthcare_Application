@@ -74,7 +74,6 @@ INSTALLED_APPS = [
     "bootstrap_modal_forms",
     "compressor",
     "taggit",
-    "django_crontab",
     "homepage.apps.HomepageConfig",
     "users.apps.UsersConfig",
     "animals.apps.AnimalsConfig",
@@ -231,15 +230,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "static/media")
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-
-CRONJOBS = [
-    # ("*/4 * * * *", "AHC_app.celery_notifications.cron.send_emails"),
-    # ("*/2 * * * *", "AHC_app.celery_notifications.cron.send_email_example"),
-    # # ('2 * * * *', 'AHC_app.celery_notifications.cron:send_emails'),
-    # ("4 * * * *", "AHC_app.celery_notifications.cron.send_sms"),
-    ("6 * * * *", "AHC_app.celery_notifications.cron.send_discord_notes"),
-]
 
 
 CELERY_BROKER_URL = config("CELERY_BROKER_URL")

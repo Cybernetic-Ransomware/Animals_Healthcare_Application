@@ -1,6 +1,7 @@
 import os
 
 from celery import Celery, shared_task
+from celery.schedules import crontab
 from celery.utils.log import get_task_logger
 from django.conf import settings
 
@@ -16,6 +17,21 @@ celery_obj = Celery("django_with_celery")
 celery_obj.config_from_object("django.conf:settings", namespace="CELERY")
 celery_obj.conf.broker_connection_retry_on_startup = True
 celery_obj.autodiscover_tasks(["AHC_app"])
+
+
+@celery_obj.task(name="ahc.beat.dispatch_discord_notes")
+def dispatch_discord_notes():
+    from AHC_app.celery_notifications.cron import send_discord_notes
+
+    send_discord_notes()
+
+
+celery_obj.conf.beat_schedule = {
+    "send-discord-notes-hourly": {
+        "task": "ahc.beat.dispatch_discord_notes",
+        "schedule": crontab(minute=6),
+    },
+}
 
 
 @celery_obj.task()

@@ -102,7 +102,6 @@ dependencies = [
     { name = "django-bootstrap-modal-forms" },
     { name = "django-compressor" },
     { name = "django-crispy-forms" },
-    { name = "django-crontab" },
     { name = "django-libsass" },
     { name = "django-taggit" },
     { name = "django-timezone-field" },
@@ -149,7 +148,6 @@ requires-dist = [
     { name = "django-bootstrap-modal-forms" },
     { name = "django-compressor" },
     { name = "django-crispy-forms" },
-    { name = "django-crontab" },
     { name = "django-libsass" },
     { name = "django-taggit" },
     { name = "django-timezone-field", specifier = ">=6.1" },
@@ -674,15 +672,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/73/42/c2cfb672493730b96
 wheels = [
     { url = "https://files.pythonhosted.org/packages/96/e3/4c5915a732d6ab54da8871400852b67529518eedfb6b78ecf10bbccfcabb/django_crispy_forms-2.6-py3-none-any.whl", hash = "sha256:8ee0ae28b6b0ac41ff48a65944480c049fe8d1b0047086874fd7efabf4ec1374", size = 31479, upload-time = "2026-03-01T09:03:36.048Z" },
 ]
-
-[[package]]
-name = "django-crontab"
-version = "0.7.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/37/bd/a122ba96167f5dfab70a58ca22fa046b7ef1ebad9ff026f7831bd6c2a49c/django-crontab-0.7.1.tar.gz", hash = "sha256:1201810a212460aaaa48eb6a766738740daf42c1a4f6aafecfb1525036929236", size = 7089, upload-time = "2016-03-07T19:35:54.714Z" }
 
 [[package]]
 name = "django-libsass"

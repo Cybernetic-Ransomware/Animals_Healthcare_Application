@@ -26,7 +26,6 @@ dependencies = [
     "django-appconf",
     "django-taggit",
     "django-timezone-field>=6.1",
-    "django-crontab",
     "tzdata",
     "python3-openid",
     "requests",

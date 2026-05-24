@@ -25,10 +25,6 @@ services:
         python manage.py makemigrations
         python manage.py migrate
         python manage.py collectstatic --noinput
-        python manage.py crontab remove
-        python manage.py crontab add
-        python manage.py sync_cronjobs
-        python manage.py runcrons
         python manage.py runserver 0.0.0.0:8000
 
   postgres_db:
@@ -90,6 +86,23 @@ services:
       - DJANGO_SETTINGS_MODULE=AHC_app.settings
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile-queue
+    command: celery -A AHC_app.celery_notifications.config:celery_obj beat -l info
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+    environment:
+      - DJANGO_SETTINGS_MODULE=AHC_app.settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
 
   redis:
     image: redis:7-alpine
