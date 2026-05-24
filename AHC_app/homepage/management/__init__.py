@@ -1,1 +1,1 @@
-from .commands.sync_cronjobs import Command
+from .commands.sync_cronjobs import Command  # noqa: F401

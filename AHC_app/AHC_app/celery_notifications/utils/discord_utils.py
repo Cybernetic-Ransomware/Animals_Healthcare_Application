@@ -2,10 +2,9 @@ import asyncio
 
 from discord import Client, Intents
 from discord.ext import commands
-from django.conf import settings
 
 # TOKEN = settings.DISCORD_TOKEN
-TOKEN = "none"
+TOKEN = "none"  # nosec B105
 
 
 def send_via_discord(user_id: int, user_message: str) -> None:

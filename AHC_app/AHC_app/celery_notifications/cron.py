@@ -3,26 +3,25 @@ import logging
 import logging.config
 import logging.handlers
 import pathlib
-
 from datetime import date, datetime, time, timedelta
 from functools import wraps
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
-from medical_notes.models.type_feeding_notes import EmailNotification
 
 from AHC_app.celery_notifications.config import (
     send_discord_notifications,
     send_email_notifications,
 )
 from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
+from medical_notes.models.type_feeding_notes import EmailNotification
 
 logger = logging.getLogger("crons_logger")
 
 
 def setup_logging():
     config_file = pathlib.Path("AHC_app/celery_notifications/logger_config.json")
-    with open(config_file, "r") as file:
+    with open(config_file) as file:
         config = json.load(file)
     logging.config.dictConfig(config)
 
@@ -85,7 +84,7 @@ def send_emails() -> None:
         return None
 
     for notification in notifications_to_send:
-        user_set_zone: str = notification.timezone
+        _user_set_zone: str = notification.timezone
         # user_weekday_number: int = datetime.now(
         #     tz=pytz.timezone(user_set_zone)
         # ).weekday()
@@ -103,7 +102,7 @@ def send_emails() -> None:
         #     "note_edit", kwargs={"pk": notification.related_note.id}
         # )
         note_url: str = ""
-        center: str = f"{message} \n\n " f"For further information:\n{note_url}"
+        center: str = f"{message} \n\n For further information:\n{note_url}"
 
         sender: str = notification.related_note.related_note.author
         footer: str = f"Best regards \n{sender}"

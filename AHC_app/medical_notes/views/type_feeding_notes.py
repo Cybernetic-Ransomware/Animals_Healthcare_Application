@@ -1,4 +1,3 @@
-from animals.models import Animal as AnimalProfile
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponseRedirect
@@ -6,6 +5,8 @@ from django.shortcuts import get_object_or_404, redirect, reverse
 from django.urls import reverse_lazy
 from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
+
+from animals.models import Animal as AnimalProfile
 from medical_notes.forms.type_feeding_notes import (
     DietRecordForm,
     NotificationRecordForm,
@@ -27,7 +28,7 @@ class DietRecordCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         note_id = self.kwargs.get("pk")
 
         related_note = get_object_or_404(MedicalRecord, id=note_id)
-        animal = related_note.animal
+        _animal = related_note.animal
 
         feeding_note = form.save(commit=False)
         feeding_note.related_note = related_note

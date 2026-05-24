@@ -5,23 +5,23 @@
 `2023-06-05`
 
 
-### Status  
+### Status
 Proposed
 
 
-### Context  
+### Context
 We need to choose a basic API framework to inside and outside communication.\
-Considered approaches: 
+Considered approaches:
 - Django REST Framework,
 - Django Ninja,
 - FastAPI,
 - GraphQL.
 
 
-### Decision  
+### Decision
 pass
 
-### Consequences  
+### Consequences
 pass
 
 

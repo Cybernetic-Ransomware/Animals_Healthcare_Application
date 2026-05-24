@@ -42,8 +42,9 @@ celerybeat.pid
 .dmypy.json
 .ty_cache/
 
-# Claude Code — local settings are machine-specific
-.claude/settings.local.json
+# Claude Code — not tracked in this repository
+.claude/
+CLAUDE.md
 
 # IDE
 .idea/

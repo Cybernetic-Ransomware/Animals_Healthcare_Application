@@ -47,7 +47,7 @@ class MedicalRecordForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         animal_choices = kwargs.pop("animal_choices", None)
         type_of_event_param = kwargs.pop("type_of_event_param", None)
-        super(MedicalRecordForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # self.Meta.fields.append('TYPES_OF_EVENTS')
 
         if animal_choices:
@@ -64,7 +64,7 @@ class MedicalRecordForm(forms.ModelForm):
 class MedicalRecordEditForm(MedicalRecordForm):
     def __init__(self, *args, **kwargs):
         animal = kwargs.pop("animal", None)
-        super(MedicalRecordEditForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.animal = animal
         tag_names = list(self.instance.note_tags.values_list("name", flat=True))
         self.initial["note_tags"] = ", ".join(tag_names)
@@ -91,7 +91,7 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         kwargs.pop("animal")
         animal_choices = kwargs.pop("animal_choices", None)
         is_author = kwargs.pop("is_author", None)
-        super(MedicalRecordEditRelatedAnimalsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if animal_choices:
             self.fields["animal"].widget.choices = animal_choices

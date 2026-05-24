@@ -5,11 +5,11 @@
 `2023-12-19`
 
 
-### Status  
+### Status
 In-building
 
 
-### Context  
+### Context
 We need to choose a technology for sending set by users notifications.
 The basic channel for sending notifications include:
 - e-mail,
@@ -25,11 +25,11 @@ Options:
 - django-cron.
 
 
-### Decision  
+### Decision
 Django-crontab
 
 
-### Consequences  
+### Consequences
 
 1. **Integration with Django:** django-crontab is a Django extension, making it a natural choice for seamlessly scheduling tasks in a Django-based application. This integration facilitates code maintenance and management.
 
@@ -43,7 +43,7 @@ Django-crontab
 ### Keywords
 -   Celery,
 -   Cronjobs,
--   queue, 
+-   queue,
 -   broker,
 -   subscriptions,.
 

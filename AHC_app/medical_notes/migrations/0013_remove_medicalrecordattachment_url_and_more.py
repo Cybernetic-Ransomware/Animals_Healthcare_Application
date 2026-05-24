@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("medical_notes", "0012_medicalrecordattachment_file_name_and_more"),
     ]

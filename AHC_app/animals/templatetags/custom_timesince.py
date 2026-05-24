@@ -16,19 +16,8 @@ def years_and_months_since(value, arg):
         years -= 1
         months += 12
 
-    if years == 1:
-        years_str = "1 year"
-    else:
-        years_str = f"{years} years"
-
-    if months == 1:
-        months_str = "1 month"
-    else:
-        months_str = f"{months} months"
-
-    if years > 0:
-        response = f"{years_str}, {months_str}"
-    else:
-        response = f"{months_str}"
+    years_str = "1 year" if years == 1 else f"{years} years"
+    months_str = "1 month" if months == 1 else f"{months} months"
+    response = f"{years_str}, {months_str}" if years > 0 else f"{months_str}"
 
     return response

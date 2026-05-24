@@ -1,6 +1,7 @@
-from animals.models import Animal
 from django.db.models import Q
 from django.views.generic import TemplateView
+
+from animals.models import Animal
 from users.models import Profile as UserProfile
 
 
@@ -23,7 +24,6 @@ class HomepageView(TemplateView):
             context["pinned_animals"] = pinned_animals_query
 
         if user_query.allow_recennt_animals_list:
-
             recent_created_animals_query = Animal.objects.filter(
                 Q(owner=self.request.user.profile) | Q(allowed_users=self.request.user.profile)
             ).order_by("-creation_date")[:3]

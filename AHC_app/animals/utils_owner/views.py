@@ -1,3 +1,10 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
+from django.views.generic import DeleteView
+from django.views.generic.edit import FormView
+from PIL import Image
+
 from animals.mixins.animal_owner_permissions import UserPassesOwnershipTestMixin
 from animals.models import Animal
 from animals.utils_owner.forms import (
@@ -7,12 +14,6 @@ from animals.utils_owner.forms import (
     ImageUploadForm,
     ManageKeepersForm,
 )
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
-from django.views.generic import DeleteView
-from django.views.generic.edit import FormView
-from PIL import Image
 
 
 class AnimalDeleteView(LoginRequiredMixin, UserPassesOwnershipTestMixin, DeleteView):

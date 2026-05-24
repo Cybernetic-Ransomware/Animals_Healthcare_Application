@@ -1,0 +1,41 @@
+exclude: 'AHC_app/static/|AHC_app/static_collected/'
+
+repos:
+- repo: local
+  hooks:
+  - id: uv-lock-check
+    name: uv lock --check
+    entry: uv --directory AHC_app lock --check
+    language: system
+    pass_filenames: false
+    files: ^AHC_app/pyproject\.toml$
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v5.0.0
+  hooks:
+  - id: end-of-file-fixer
+    exclude: '\.sh$'
+  - id: trailing-whitespace
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.15.14
+  hooks:
+  - id: ruff
+    args: [--fix]
+  - id: ruff-format
+
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.2
+  hooks:
+  - id: codespell
+    types_or: [python, markdown, yaml]
+
+- repo: local
+  hooks:
+  - id: bandit
+    name: bandit
+    entry: bandit -r AHC_app -c AHC_app/pyproject.toml
+    language: python
+    additional_dependencies: ["bandit[toml]==1.9.4"]
+    pass_filenames: false
+    always_run: true

@@ -146,9 +146,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "animal",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="animals.animal"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="animals.animal"),
                 ),
                 (
                     "author",
@@ -199,9 +197,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "animal",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="animals.animal"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="animals.animal"),
                 ),
             ],
         ),
@@ -225,9 +221,7 @@ class Migration(migrations.Migration):
                 ("description", models.CharField(max_length=250)),
                 (
                     "animal",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="animals.animal"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="animals.animal"),
                 ),
             ],
         ),
@@ -246,9 +240,7 @@ class Migration(migrations.Migration):
                 ("date_updated", models.DateTimeField(auto_now_add=True)),
                 (
                     "animal",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="animals.animal"
-                    ),
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="animals.animal"),
                 ),
                 (
                     "custom_biometric_record",

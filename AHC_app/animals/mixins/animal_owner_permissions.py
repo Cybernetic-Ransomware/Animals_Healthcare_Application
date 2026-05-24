@@ -1,5 +1,6 @@
-from animals.models import Animal
 from django.contrib.auth.mixins import UserPassesTestMixin
+
+from animals.models import Animal
 
 
 class UserPassesOwnershipTestMixin(UserPassesTestMixin):

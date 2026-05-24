@@ -1,9 +1,10 @@
 import uuid
 
-from animals.models import Animal
 from django.db import models
 from taggit.managers import TaggableManager
 from taggit.models import GenericUUIDTaggedItemBase, TaggedItemBase
+
+from animals.models import Animal
 from users.models import Profile as UserProfile
 
 

@@ -5,13 +5,13 @@
 `2023-06-05`
 
 
-### Status  
+### Status
 In-building
 
 
-### Context  
+### Context
 We need to choose a database for a specific task within the application.\
-Considered DBMS: 
+Considered DBMS:
 - [x] PostgreSQL,
 - [ ] MS SQL,
 - [ ] MySQL,
@@ -22,7 +22,7 @@ Considered DBMS:
 - [x] CouchDB.
 
 
-### Decision  
+### Decision
 Tree databases have been selected for routing testing.
 
 PostgreSQL - quick database creation and configuration with a good SQL interface. It has many use cases with Django.
@@ -32,8 +32,8 @@ CouchDB - native support for files as attachments. Non-relational database, inte
 Redis - default broker for Celery queue.
 
 
-### Consequences  
-In basic form database routing is required. 
+### Consequences
+In basic form database routing is required.
 The implementation should be quick, as the second database will be used only for storing attachment files.
 
 
@@ -53,11 +53,11 @@ Homepages:
     https://www.sqlite.org/index.html
 
     https://www.mongodb.com/
-    
+
     https://redis.io/
-    
+
     https://firebirdsql.org/
-    
+
     https://couchdb.apache.org/
 
 *[2023-01-24]*\

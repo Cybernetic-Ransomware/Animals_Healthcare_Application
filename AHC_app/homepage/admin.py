@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from homepage.models import AnimalTitle, CronJob
 
 admin.site.register(AnimalTitle)

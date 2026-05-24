@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("animals", "0001_initial"),
         ("users", "0002_profile_allow_recennt_animals_list"),

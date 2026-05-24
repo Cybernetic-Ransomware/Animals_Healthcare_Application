@@ -1,8 +1,9 @@
 from datetime import date
 
-from animals.models import Animal
 from django import forms
 from PIL import Image
+
+from animals.models import Animal
 from users.models import Profile
 
 
@@ -23,9 +24,8 @@ class ImageUploadForm(forms.ModelForm):
             if extension not in self.ALLOWED_EXTENSIONS:
                 raise forms.ValidationError("Invalid file extension.")
 
-        if image:
-            if image.size > self.MAX_IMAGE_SIZE_MB * 1024 * 1024:
-                raise forms.ValidationError("Image size is too large.")
+        if image and image.size > self.MAX_IMAGE_SIZE_MB * 1024 * 1024:
+            raise forms.ValidationError("Image size is too large.")
 
         if image:
             img = Image.open(image)

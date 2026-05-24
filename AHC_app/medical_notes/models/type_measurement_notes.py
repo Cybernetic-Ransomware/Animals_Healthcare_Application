@@ -1,5 +1,6 @@
-from animals.models import Animal
 from django.db import models
+
+from animals.models import Animal
 from medical_notes.models.type_basic_note import MedicalRecord
 
 
@@ -23,17 +24,9 @@ class BiometricCustomRecords(models.Model):
 
 class BiometricRecord(models.Model):
     animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
-    related_note = models.ForeignKey(
-        MedicalRecord, on_delete=models.SET_NULL, blank=True, null=True
-    )
+    related_note = models.ForeignKey(MedicalRecord, on_delete=models.SET_NULL, blank=True, null=True)
     date_updated = models.DateTimeField(auto_now_add=True, editable=True)
 
-    weight_biometric_record = models.OneToOneField(
-        BiometricWeightRecords, on_delete=models.CASCADE, blank=True, null=True
-    )
-    height_biometric_record = models.OneToOneField(
-        BiometricHeightRecords, on_delete=models.CASCADE, blank=True, null=True
-    )
-    custom_biometric_record = models.OneToOneField(
-        BiometricCustomRecords, on_delete=models.CASCADE, blank=True, null=True
-    )
+    weight_biometric_record = models.OneToOneField(BiometricWeightRecords, on_delete=models.CASCADE, blank=True, null=True)
+    height_biometric_record = models.OneToOneField(BiometricHeightRecords, on_delete=models.CASCADE, blank=True, null=True)
+    custom_biometric_record = models.OneToOneField(BiometricCustomRecords, on_delete=models.CASCADE, blank=True, null=True)

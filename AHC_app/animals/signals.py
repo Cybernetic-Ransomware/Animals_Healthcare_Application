@@ -1,8 +1,9 @@
 import os
 
-from animals.models import Animal
 from django.db.models.signals import post_delete, post_save, pre_delete
 from django.dispatch import receiver
+
+from animals.models import Animal
 from users.models import Profile
 
 

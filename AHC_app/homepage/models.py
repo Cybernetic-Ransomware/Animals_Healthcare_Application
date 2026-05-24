@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
+
 from homepage.utils import ImageGenerator
 
 
@@ -8,7 +9,7 @@ class Privilege(models.Model):
     title = models.CharField(max_length=30)
     privilege_to_delete_animal = models.BooleanField(default=False)
 
-    # TODO: reconsider usage to simplyfy priveliges test mixins
+    # TODO: reconsider usage to simplify privileges test mixins
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         raise NotImplementedError

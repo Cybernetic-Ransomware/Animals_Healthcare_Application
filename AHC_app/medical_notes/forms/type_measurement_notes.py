@@ -1,5 +1,7 @@
 from django import forms
 
+from medical_notes.models.type_measurement_notes import BiometricHeightRecords, BiometricWeightRecords
+
 
 class BiometricRecordForm(forms.Form):
     RECORD_CHOICES = [
@@ -21,14 +23,10 @@ class BiometricRecordForm(forms.Form):
     custom_unit = forms.CharField(max_length=12, required=False)
 
     def __init__(self, *args, **kwargs):
-        super(BiometricRecordForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-        default_height_unit_to_present = BiometricHeightRecords._meta.get_field(
-            "height_unit_to_present"
-        ).get_default()
-        default_weight_unit_to_present = BiometricWeightRecords._meta.get_field(
-            "weight_unit_to_present"
-        ).get_default()
+        default_height_unit_to_present = BiometricHeightRecords._meta.get_field("height_unit_to_present").get_default()
+        default_weight_unit_to_present = BiometricWeightRecords._meta.get_field("weight_unit_to_present").get_default()
 
         self.fields["height_unit_to_present"].initial = default_height_unit_to_present
         self.fields["weight_unit_to_present"].initial = default_weight_unit_to_present

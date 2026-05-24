@@ -9,8 +9,8 @@ def standardize_message_size(message: str, max_length: int = 2500) -> str:
 
 
 def send_via_email(**kwargs):
-    recipient_list = kwargs.get("email")
-    subject = kwargs.get("subject")
+    _recipient_list = kwargs.get("email")
+    _subject = kwargs.get("subject")
     message = kwargs.get("message")
     message = standardize_message_size(message, max_length=2500)
     sender_email = settings.EMAIL_HOST_USER
@@ -33,7 +33,8 @@ def send_via_email(**kwargs):
         server.login("0c425676241dc7", "3ca81a9102980f")
         server.sendmail(sender, receiver, message)
 
-    # send_mail(subject=subject, message=message, from_email=sender_email, recipient_list=recipient_list, fail_silently=False)
+    # send_mail(subject=subject, message=message, from_email=sender_email,
+    #           recipient_list=recipient_list, fail_silently=False)
 
 
 def send_via_sms(**kwargs):

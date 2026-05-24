@@ -1,6 +1,7 @@
-from animals.models import Animal as AnimalProfile
 from django.shortcuts import get_object_or_404, redirect, reverse
 from django.views.generic.edit import FormView
+
+from animals.models import Animal as AnimalProfile
 from medical_notes.forms.type_measurement_notes import BiometricRecordForm
 from medical_notes.models.type_basic_note import MedicalRecord
 from medical_notes.models.type_measurement_notes import (
@@ -34,7 +35,7 @@ class BiometricRecordCreateView(FormView):
             weight = form.cleaned_data["weight"]
             unit = form.cleaned_data["weight_unit_to_present"]
             weight_record = BiometricWeightRecords.objects.create(weight=weight, weight_unit_to_present=unit)
-            biometric_record = BiometricRecord.objects.create(
+            _biometric_record = BiometricRecord.objects.create(
                 animal=animal,
                 related_note=related_note,
                 weight_biometric_record=weight_record,
@@ -43,7 +44,7 @@ class BiometricRecordCreateView(FormView):
             height = form.cleaned_data["height"]
             unit = form.cleaned_data["height_unit_to_present"]
             height_record = BiometricHeightRecords.objects.create(height=height, height_unit_to_present=unit)
-            biometric_record = BiometricRecord.objects.create(
+            _biometric_record = BiometricRecord.objects.create(
                 animal=animal,
                 related_note=related_note,
                 height_biometric_record=height_record,
@@ -57,7 +58,7 @@ class BiometricRecordCreateView(FormView):
                 record_value=custom_value,
                 record_unit=custom_unit,
             )
-            biometric_record = BiometricRecord.objects.create(
+            _biometric_record = BiometricRecord.objects.create(
                 animal=animal,
                 related_note=related_note,
                 custom_biometric_record=custom_record,

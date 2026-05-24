@@ -1,4 +1,3 @@
-from animals.models import Animal as AnimalProfile
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -12,6 +11,8 @@ from django.utils import timezone
 from django.views.generic import View
 from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
+
+from animals.models import Animal as AnimalProfile
 from medical_notes.forms.type_basic_note import (
     MedicalRecordEditForm,
     MedicalRecordEditRelatedAnimalsForm,
@@ -32,9 +33,7 @@ class CreateNoteFormView(LoginRequiredMixin, UserPassesTestMixin, FormView):
         kwargs = super().get_form_kwargs()
 
         query = (
-            AnimalProfile.objects.filter(
-                Q(owner=self.request.user.profile) | Q(allowed_users=self.request.user.profile)
-            )
+            AnimalProfile.objects.filter(Q(owner=self.request.user.profile) | Q(allowed_users=self.request.user.profile))
             .exclude(id=self.kwargs.get("pk"))
             .order_by("-creation_date")
         )
@@ -133,7 +132,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
             form.fields["medical_record_id"].initial = str(note.id)
             upload_forms.append(form)
 
-        notes_with_forms = zip(context["notes"], upload_forms)
+        notes_with_forms = zip(context["notes"], upload_forms, strict=False)
 
         context["notes"] = notes_with_forms
 
@@ -182,7 +181,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
         else:
             print(form.errors)
-            for field, errors in form.errors.items():
+            for _field, errors in form.errors.items():
                 messages.error(request, f"Failed to upload: {', '.join(errors)}")
 
         return redirect(request.path)
@@ -371,7 +370,7 @@ class DownloadAttachmentView(LoginRequiredMixin, UserPassesTestMixin, View):
     def get(self, request, *args, **kwargs):
         couch_connector = settings.COUCH_DB
         reference_id = self.kwargs.get("id")
-        filename = self.kwargs.get("name")
+        _filename = self.kwargs.get("name")
 
         attachment = couch_connector.get(reference_id)
         if not attachment:

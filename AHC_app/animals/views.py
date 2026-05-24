@@ -1,5 +1,3 @@
-from animals.forms import AnimalRegisterForm, PinAnimalForm
-from animals.models import Animal
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.http import JsonResponse
@@ -8,6 +6,9 @@ from django.utils import timezone
 from django.views.generic import TemplateView, View
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
+
+from animals.forms import AnimalRegisterForm, PinAnimalForm
+from animals.models import Animal
 from medical_notes.models.type_basic_note import MedicalRecord
 
 # from users.models import Profile as UserProfile

@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Vendor static files — preserve LF line endings as published
+AHC_app/static/**/* text eol=lf
+AHC_app/static_collected/**/* text eol=lf

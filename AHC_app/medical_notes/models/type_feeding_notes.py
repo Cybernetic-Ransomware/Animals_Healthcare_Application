@@ -3,8 +3,9 @@ from zoneinfo import ZoneInfo
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from medical_notes.models.type_basic_note import MedicalRecord
 from timezone_field import TimeZoneField
+
+from medical_notes.models.type_basic_note import MedicalRecord
 
 
 class FeedingNote(models.Model):

@@ -56,7 +56,7 @@
 1. Download repository.
 2. Set .env file based on template.
 3. Install Docker Desktop.
-4. Run containters:
+4. Run containers:
     ```
     docker-compose up -d --build
     ```
@@ -78,7 +78,7 @@
     ```
     pre-commit install
     ```
-7. Run containters:
+7. Run containers:
     ```
     docker-compose up -d --build
     ```

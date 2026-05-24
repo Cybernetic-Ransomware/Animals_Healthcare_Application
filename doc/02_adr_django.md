@@ -5,35 +5,35 @@
 `2023-06-05`
 
 
-### Status  
+### Status
 Done
 
 
-### Context  
+### Context
 We need to choose a main web framework for the project to create the core of the application.\
 Considered technologies:
-- [x] Django, 
+- [x] Django,
 - [ ] Flask,
 - [ ] Dash Plotly.
 
 
-### Decision  
+### Decision
 Django was selected. The developer has the most recent experience and the desire to systematize knowledge.
 
 Flask, as a microframework, could extend the time to the first working prototype.
 
-Dash is a derivative framework for Flask with extensive features for generating interactive dashboards. 
+Dash is a derivative framework for Flask with extensive features for generating interactive dashboards.
 This functionality has been postponed to a later stage of the application development.
 
 
-### Consequences  
+### Consequences
 An expected short time to prepare the first working prototype.
 With good community support, plugins supporting specific functionalities should be available (ORM, logging, api, etc.).
 
 
 ### Keywords
 -   Django,
--   Flask, 
+-   Flask,
 -   Dash Plotly,
 -   web framework.
 

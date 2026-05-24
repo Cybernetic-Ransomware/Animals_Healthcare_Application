@@ -5,15 +5,15 @@
 `2023-06-04`
 
 
-### Status  
+### Status
 In-building
 
 
-### Context  
+### Context
 We need to create a list of main functions to define business justification of first version of an application and decide what functionality should be canceled or suspended to further implementation in next releases.
 
 
-### Decision  
+### Decision
 
 A first brainstorm created a list of basic functions expectted to implement:
 - Create a databases to contain at least data like:
@@ -25,18 +25,18 @@ A first brainstorm created a list of basic functions expectted to implement:
 - Generate static diagrams on button demand, like a charts of weight and consumed amount of medicines,
 - Creat sticky notes kanboard to manage a feeding period per purchased food,
 - Sending visit notifications via at least one of: sms, whatsap, messenger, e-mail, discord,
-- Printable notes and charts into pdf reports, 
+- Printable notes and charts into pdf reports,
 - Synchronization into a google calendar,
 - Basic API to consider a transfer of charts into Dash-Plotly.
 
 List to-do's suspended until next iterations of application:
 - Interactive dashboards,
-- Implementation all of proposed notification methods, 
+- Implementation all of proposed notification methods,
 - Direct chat between users, without using animal's notes.
 
 
-### Consequences  
-An effortful list of functionality has been created to exercise a building process of web applications. 
+### Consequences
+An effortful list of functionality has been created to exercise a building process of web applications.
 The demands have been divided into quickly attainable goals, leaving a basic draft of a further development.
 
 

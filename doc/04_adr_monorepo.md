@@ -5,13 +5,13 @@
 `2023-06-05`
 
 
-### Status  
+### Status
 Done
 
 
-### Context  
+### Context
 We need to choose an approach to building and maintaining the repositories and branches.\
-Considered approaches: 
+Considered approaches:
 - [x] Monorepo,
 - [ ] Polirepo,
 ---
@@ -21,14 +21,14 @@ Considered approaches:
 - [ ] Trunk-based development.
 
 
-### Decision  
+### Decision
 The Monorepo approach will be used due to the small number of developers and the expected number of parallel branches.
 
-The number of developers also affects the decision to manage branches and approach to deployment. 
-GitHub-Flow was selected. In a small organization, a least detailed approach will suffice. 
+The number of developers also affects the decision to manage branches and approach to deployment.
+GitHub-Flow was selected. In a small organization, a least detailed approach will suffice.
 
 
-### Consequences  
+### Consequences
 Possible future migrations will be easier in the direction from simpler to more complicated.
 
 

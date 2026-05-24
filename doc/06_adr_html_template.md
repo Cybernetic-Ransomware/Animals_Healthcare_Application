@@ -5,19 +5,19 @@
 `2023-06-05`
 
 
-### Status  
+### Status
 Done
 
 
-### Context  
+### Context
 We need to choose a main template for frontend part of the project.
 
 
-### Decision  
+### Decision
 pass
 
 
-### Consequences  
+### Consequences
 pass
 
 ### Keywords

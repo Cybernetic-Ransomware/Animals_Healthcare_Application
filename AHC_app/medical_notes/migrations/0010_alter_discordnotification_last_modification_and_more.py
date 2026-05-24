@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("medical_notes", "0009_discordnotification_last_modification_and_more"),
     ]

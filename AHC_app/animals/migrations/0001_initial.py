@@ -29,15 +29,11 @@ class Migration(migrations.Migration):
                 ("full_name", models.CharField(max_length=50)),
                 (
                     "short_description",
-                    models.CharField(
-                        blank=True, default=None, max_length=250, null=True
-                    ),
+                    models.CharField(blank=True, default=None, max_length=250, null=True),
                 ),
                 (
                     "long_description",
-                    models.CharField(
-                        blank=True, default=None, max_length=2500, null=True
-                    ),
+                    models.CharField(blank=True, default=None, max_length=2500, null=True),
                 ),
                 ("birthdate", models.DateField(default=None, null=True)),
                 (
@@ -50,15 +46,11 @@ class Migration(migrations.Migration):
                 ("creation_date", models.DateTimeField(auto_now_add=True)),
                 (
                     "first_contact_vet",
-                    models.CharField(
-                        blank=True, default=None, max_length=250, null=True
-                    ),
+                    models.CharField(blank=True, default=None, max_length=250, null=True),
                 ),
                 (
                     "first_contact_medical_place",
-                    models.CharField(
-                        blank=True, default=None, max_length=250, null=True
-                    ),
+                    models.CharField(blank=True, default=None, max_length=250, null=True),
                 ),
                 ("last_control_visit", models.DateTimeField(default=None, null=True)),
                 (

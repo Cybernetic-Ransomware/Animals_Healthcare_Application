@@ -1,14 +1,13 @@
+from django.urls import path
+
 from animals import views as animal_views
 from animals.utils_owner import views as animal_owner_views
-from django.urls import path
 
 urlpatterns = [
     path("create/", animal_views.CreateAnimalView.as_view(), name="animal_create"),
     path("<uuid:pk>/delete/", animal_owner_views.AnimalDeleteView.as_view(), name="animal_delete"),
     path("<uuid:pk>/owner/", animal_owner_views.ChangeOwnerView.as_view(), name="animal_ownership"),
-    path(
-        "<uuid:pk>/cnt/", animal_owner_views.ChangeFirstContactView.as_view(), name="animal_first_contact"
-    ),  # TO change
+    path("<uuid:pk>/cnt/", animal_owner_views.ChangeFirstContactView.as_view(), name="animal_first_contact"),  # TO change
     path("<uuid:pk>/btd/", animal_owner_views.ChangeBirthdayView.as_view(), name="animal_birthday"),
     path("<uuid:pk>/", animal_views.AnimalProfileDetailView.as_view(), name="animal_profile"),
     path("<uuid:pk>/upload-image/", animal_owner_views.ImageUploadView.as_view(), name="upload_image"),

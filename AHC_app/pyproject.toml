@@ -42,9 +42,36 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pre-commit",
-    "black",
-    "isort",
+    "ruff",
+    "ty",
+    "codespell",
+    "bandit[toml]",
 ]
 
 [tool.uv]
 package = false
+
+[tool.ruff]
+line-length = 124
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "SIM", "I", "RUF", "DJ"]
+ignore = [
+    "DJ001",
+    "DJ008",
+    "RUF012",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.codespell]
+skip = "uv.lock,./static,./static_collected"
+
+[tool.bandit]
+exclude_dirs = [".venv"]
+skips = ["B101", "B404", "B603", "B607"]
