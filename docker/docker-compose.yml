@@ -2,13 +2,13 @@ version: "3.9"
 services:
   web:
     build:
-      context: .
-      dockerfile: Dockerfile-web
+      context: ..
+      dockerfile: docker/Dockerfile-web
     image: ahc_app-web:latest
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ..:/app
     depends_on:
       postgres_db:
         condition: service_healthy
@@ -18,7 +18,7 @@ services:
         condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/AHC_app
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -47,8 +47,8 @@ services:
 
   couch_db:
     build:
-      context: .
-      dockerfile: Dockerfile-couchdb
+      context: ..
+      dockerfile: docker/Dockerfile-couchdb
       args:
         COUCHDB_USER: ${COUCHDB_USER}
         COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
@@ -70,8 +70,8 @@ services:
 
   queue:
     build:
-      context: .
-      dockerfile: Dockerfile-queue
+      context: ..
+      dockerfile: docker/Dockerfile-queue
     command: celery -A AHC_app.celery_notifications.config:celery_obj worker -l info
     depends_on:
       redis:
@@ -85,12 +85,12 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=AHC_app.settings
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/AHC_app
 
   celery_beat:
     build:
-      context: .
-      dockerfile: Dockerfile-queue
+      context: ..
+      dockerfile: docker/Dockerfile-queue
     command: celery -A AHC_app.celery_notifications.config:celery_obj beat -l info
     depends_on:
       redis:
@@ -100,9 +100,9 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=AHC_app.settings
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/AHC_app
     env_file:
-      - .env
+      - ../.env
 
   redis:
     image: redis:7-alpine

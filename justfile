@@ -41,11 +41,11 @@ shell:
 
 # Start all Docker services
 docker-up:
-    docker-compose -f AHC_app/docker-compose.yml up -d --build
+    docker-compose -f docker/docker-compose.yml up -d --build
 
 # Stop all Docker services
 docker-down:
-    docker-compose -f AHC_app/docker-compose.yml down
+    docker-compose -f docker/docker-compose.yml down
 
 # Run pre-commit hooks on all files
 precommit:
