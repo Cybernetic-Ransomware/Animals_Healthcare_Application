@@ -44,11 +44,13 @@
 
 ---
 ### Requirements:
-- Python 3.12.2
+- Python 3.14
+- [uv](https://docs.astral.sh/uv/) (package manager)
+- [just](https://just.systems/) (task runner, optional)
 - Docker & Docker Compose
 - PostgreSQL 15 (instance for volumes)
 - Apache CouchDB 3.3.3 (instance for volumes)
-- [Packages](AHC_app/Pipfile)
+- [Packages](AHC_app/pyproject.toml)
 - [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
 
 ---
@@ -65,23 +67,29 @@
 ### Dev-instance steps:
 1. Download repository.
 2. Set .env file based on the template.
-3. Install Python, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_.
-4. Install pipenv:
+3. Install Python 3.14, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_.
+4. Install uv and sync dependencies:
     ```
-    pipenv install
+    pip install uv
+    cd AHC_app
+    uv sync
     ```
-5. Deploy vevn and synch requirements:
+5. Install pre-commit hooks:
     ```
-    pipenv install --dev
+    uv run pre-commit install
     ```
-6. Install precommit hooks:
-    ```
-    pre-commit install
-    ```
-7. Run containers:
+6. Run containers:
     ```
     docker-compose up -d --build
     ```
+
+With `just` installed, steps 4–6 simplify to:
+```
+cd AHC_app
+just install
+just precommit
+just docker-up
+```
 
 ---
 ### Kubernetes Deploy steps (alternative deploy):
@@ -127,8 +135,18 @@
 
 ---
 ### Test running:
-- by now tests are only reachable by terminal in main container's terminal (container_name: web)
-- simply run command "python manage.py test" or use with needed flags
+```bash
+# pytest (recommended)
+cd AHC_app
+uv run pytest -m integration
+
+# or with just
+just test
+just test-integration
+
+# Django runner (legacy, still supported)
+uv run python manage.py test
+```
 
 ---
 ### Sources:
