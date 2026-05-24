@@ -17,6 +17,11 @@ from pathlib import Path
 import pycouchdb
 from decouple import config
 
+
+def _is_test_run() -> bool:
+    return "test" in sys.argv or (bool(sys.argv) and "pytest" in sys.argv[0])
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -94,7 +99,7 @@ WSGI_APPLICATION = "AHC_app.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-if "test" in sys.argv:
+if _is_test_run():
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -115,7 +120,7 @@ else:
 
 # COUCH_CONNECTOR = (config("COUCH_CONNECTOR"),)
 
-if "test" not in sys.argv:
+if not _is_test_run():
     COUCHDB_USER = config("COUCHDB_USER")
     COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
     COUCHDB_PORT = config("COUCHDB_PORT")

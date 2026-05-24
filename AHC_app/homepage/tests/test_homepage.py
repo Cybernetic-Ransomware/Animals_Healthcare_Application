@@ -1,5 +1,6 @@
 from html.parser import HTMLParser
 
+import pytest
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 
@@ -18,6 +19,8 @@ class HrefParser(HTMLParser):
                     self.found_href = True
 
 
+@pytest.mark.integration
+@pytest.mark.django_db
 class TestHomepage(TestCase):
     def setUp(self) -> None:
         my_user = User.objects.create(username="test_user_placeholder")
