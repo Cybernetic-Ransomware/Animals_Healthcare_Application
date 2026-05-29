@@ -9,19 +9,19 @@ from functools import wraps
 from django.db.models import Q, QuerySet
 from django.tasks import task
 from django.utils import timezone
+from medical_notes.models.type_feeding_notes import EmailNotification
 
-from AHC_app.celery_notifications.config import (
+from celery_notifications.config import (
     send_discord_notifications,
     send_email_notifications,
 )
-from AHC_app.celery_notifications.utils.example_task import send_mail_fnc
-from medical_notes.models.type_feeding_notes import EmailNotification
+from celery_notifications.utils.example_task import send_mail_fnc
 
 logger = logging.getLogger("crons_logger")
 
 
 def setup_logging():
-    config_file = pathlib.Path("AHC_app/celery_notifications/logger_config.json")
+    config_file = pathlib.Path(__file__).parent / "logger_config.json"
     with open(config_file) as file:
         config = json.load(file)
     logging.config.dictConfig(config)

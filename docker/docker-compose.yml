@@ -18,7 +18,7 @@ services:
         condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/AHC_app
+      - PYTHONPATH=/app/src:/app/AHC_app
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -72,7 +72,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile-queue
-    command: celery -A AHC_app.celery_notifications.config:celery_obj worker -l info
+    command: celery -A celery_notifications.config:celery_obj worker -l info
     depends_on:
       redis:
         condition: service_healthy
@@ -85,13 +85,13 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/AHC_app
+      - PYTHONPATH=/app/src:/app/AHC_app
 
   celery_beat:
     build:
       context: ..
       dockerfile: docker/Dockerfile-queue
-    command: celery -A AHC_app.celery_notifications.config:celery_obj beat -l info
+    command: celery -A celery_notifications.config:celery_obj beat -l info
     depends_on:
       redis:
         condition: service_healthy
@@ -100,7 +100,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/AHC_app
+      - PYTHONPATH=/app/src:/app/AHC_app
     env_file:
       - ../.env
 
