@@ -18,7 +18,7 @@ services:
         condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src:/app/AHC_app
+      - PYTHONPATH=/app/src
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -85,7 +85,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src:/app/AHC_app
+      - PYTHONPATH=/app/src
 
   celery_beat:
     build:
@@ -100,7 +100,7 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src:/app/AHC_app
+      - PYTHONPATH=/app/src
     env_file:
       - ../.env
 

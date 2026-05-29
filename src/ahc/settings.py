@@ -75,10 +75,10 @@ INSTALLED_APPS = [
     "bootstrap_modal_forms",
     "compressor",
     "taggit",
-    "homepage.apps.HomepageConfig",
-    "users.apps.UsersConfig",
-    "animals.apps.AnimalsConfig",
-    "medical_notes.apps.MedicalNotesConfig",
+    "ahc.apps.homepage.apps.HomepageConfig",
+    "ahc.apps.users.apps.UsersConfig",
+    "ahc.apps.animals.apps.AnimalsConfig",
+    "ahc.apps.medical_notes.apps.MedicalNotesConfig",
 ]
 
 MIDDLEWARE = [

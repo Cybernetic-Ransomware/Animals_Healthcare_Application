@@ -23,10 +23,10 @@ from django.views.generic.base import RedirectView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("homepage.urls")),
-    path("user/", include("users.urls")),
-    path("pet/", include("animals.urls")),
-    path("note/", include("medical_notes.urls")),
+    path("", include("ahc.apps.homepage.urls")),
+    path("user/", include("ahc.apps.users.urls")),
+    path("pet/", include("ahc.apps.animals.urls")),
+    path("note/", include("ahc.apps.medical_notes.urls")),
     path(
         "favicon.ico",
         RedirectView.as_view(url=static("media/icons/chinchilla.png")),

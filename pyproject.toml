@@ -69,7 +69,7 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "ahc.settings"
-pythonpath = ["src", "AHC_app"]
+pythonpath = ["src"]
 python_files = ["test_*.py", "tests.py"]
 addopts = "--strict-markers"
 markers = [
@@ -82,7 +82,7 @@ markers = [
 python-version = "3.14"
 
 [tool.codespell]
-skip = "uv.lock,./static,./static_collected"
+skip = "uv.lock,./AHC_app/static,./AHC_app/static_collected,./static,./static_collected"
 
 [tool.bandit]
 exclude_dirs = [".venv"]

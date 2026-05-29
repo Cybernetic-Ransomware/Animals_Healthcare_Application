@@ -9,8 +9,8 @@ from functools import wraps
 from django.db.models import Q, QuerySet
 from django.tasks import task
 from django.utils import timezone
-from medical_notes.models.type_feeding_notes import EmailNotification
 
+from ahc.apps.medical_notes.models.type_feeding_notes import EmailNotification
 from celery_notifications.config import (
     send_discord_notifications,
     send_email_notifications,

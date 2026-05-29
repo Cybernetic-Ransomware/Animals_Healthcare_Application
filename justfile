@@ -8,7 +8,7 @@ install:
 lint:
     uv run ruff check .
     uv run codespell
-    uv run bandit -r . -c pyproject.toml
+    uv run bandit -r . -c pyproject.toml -q
 
 # Format code and auto-fix lint issues
 format:

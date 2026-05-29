@@ -31,7 +31,7 @@ spec:
             - name: PYTHONUNBUFFERED
               value: "1"
             - name: PYTHONPATH
-              value: "/app/src:/app/AHC_app"
+              value: "/app/src"
           envFrom:
             - secretRef:
                 name: web-secrets
