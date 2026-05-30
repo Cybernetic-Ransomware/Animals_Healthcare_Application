@@ -1,7 +1,5 @@
-{% partialdef animal_card %}
 <a role="button"
    class="contrast btn-with-bg"
    style="background-image: url('{{ animal.profile_image.url }}');"
    href="{% url 'animal_profile' pk=animal.id %}"
 >{{ animal.full_name }}</a>
-{% endpartialdef %}

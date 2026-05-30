@@ -86,8 +86,12 @@ built with `uv sync --no-group dev` no longer install it.
   dropped `rcssmin`, `rjsmin`.
 - `cffi` kept — still required by `cryptography`.
 
-**Follow-up:** upgrade PicoCSS and bring it in as a git submodule (the 6d SCSS
-deprecation warnings originate in pico 1.5.9 internals).
+**Follow-up — PicoCSS upgrade:** ✅ Upgraded to **2.1.1** (vendored precompiled CSS).
+`static/css/pico-2.1.1/pico.yellow.min.css` downloaded from jsDelivr; `pico-1.5.9/`
+and `custom_pico.scss` removed; `custom_pico.css` rewritten to `--pico-*` variable
+overrides only (secondary grey `#bbbbbb`). To update in the future: replace the
+single file and bump the `<link>` version in `base.html`. No Node/Sass/git-submodule
+required.
 
 ### 6e. Monitor: transitive Python-2-era deps
 

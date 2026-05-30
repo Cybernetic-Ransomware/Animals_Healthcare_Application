@@ -44,12 +44,12 @@ shell:
     uv run python manage.py shell
 
 # Start all Docker services
-docker-up:
-    docker-compose -f docker/docker-compose.yml up -d --build
+up:
+    docker-compose --env-file .env -f docker/docker-compose.yml up -d --build
 
 # Stop all Docker services
-docker-down:
-    docker-compose -f docker/docker-compose.yml down
+down:
+    docker-compose --env-file .env -f docker/docker-compose.yml down
 
 # Run pre-commit hooks on all files
 precommit:

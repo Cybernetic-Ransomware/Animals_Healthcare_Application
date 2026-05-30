@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1.7
-FROM python:3.14-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS builder
 WORKDIR /app
-RUN pip install uv --break-system-packages
 COPY pyproject.toml uv.lock ./
 ENV UV_PYTHON_PREFERENCE=only-system \
     UV_PROJECT_ENVIRONMENT=/opt/venv
@@ -10,7 +9,14 @@ RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
 
 FROM python:3.14-slim AS runtime
 LABEL authors="AM"
+
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid 1000 --no-create-home appuser
+
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-COPY . .
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH=/app/src
+
+COPY --chown=appuser:appuser . .
+USER appuser

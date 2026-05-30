@@ -28,7 +28,7 @@
 
                 <div class="grid">
                     {% for animal in recent_animals %}
-                        {% partial "partials/animal_card.html#animal_card" %}
+                        {% include "partials/animal_card.html" %}
                     {% endfor %}
                 </div>
             <br>
@@ -43,7 +43,7 @@
 
                 <div class="grid">
                     {% for animal in recent_animals %}
-                        {% partial "partials/animal_card.html#animal_card" %}
+                        {% include "partials/animal_card.html" %}
                     {% endfor %}
                 </div>
             <br>

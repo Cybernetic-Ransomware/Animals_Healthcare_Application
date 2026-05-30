@@ -1,4 +1,5 @@
-version: "3.9"
+name: ahc
+
 services:
   web:
     build:
@@ -9,6 +10,10 @@ services:
       - "8000:8000"
     volumes:
       - ..:/app
+    env_file:
+      - ../.env
+    environment:
+      - PYTHONUNBUFFERED=1
     depends_on:
       postgres_db:
         condition: service_healthy
@@ -16,9 +21,6 @@ services:
         condition: service_started
       couch_db:
         condition: service_healthy
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -26,6 +28,9 @@ services:
         python manage.py migrate
         python manage.py collectstatic --noinput
         python manage.py runserver 0.0.0.0:8000
+    networks:
+      - ahc_net
+    restart: unless-stopped
 
   postgres_db:
     image: postgres:18-alpine
@@ -37,13 +42,15 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - animals_db:/var/lib/postgresql/data
+      - animals_db:/var/lib/postgresql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 30s
       retries: 6
-    restart: always
+    networks:
+      - ahc_net
+    restart: unless-stopped
 
   couch_db:
     build:
@@ -66,13 +73,20 @@ services:
       interval: 5s
       timeout: 30s
       retries: 6
-    restart: always
+    networks:
+      - ahc_net
+    restart: unless-stopped
 
   queue:
     build:
       context: ..
       dockerfile: docker/Dockerfile-queue
     command: celery -A celery_notifications.config:celery_obj worker -l info
+    env_file:
+      - ../.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=ahc.settings
+      - PYTHONUNBUFFERED=1
     depends_on:
       redis:
         condition: service_healthy
@@ -82,37 +96,47 @@ services:
         condition: service_healthy
     ports:
       - "5000:5000"
-    environment:
-      - DJANGO_SETTINGS_MODULE=ahc.settings
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_notifications.config:celery_obj inspect ping -d celery@$$HOSTNAME --timeout 5 2>&1 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - ahc_net
+    restart: unless-stopped
 
   celery_beat:
     build:
       context: ..
       dockerfile: docker/Dockerfile-queue
     command: celery -A celery_notifications.config:celery_obj beat -l info
+    env_file:
+      - ../.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=ahc.settings
+      - PYTHONUNBUFFERED=1
     depends_on:
       redis:
         condition: service_healthy
       postgres_db:
         condition: service_healthy
-    environment:
-      - DJANGO_SETTINGS_MODULE=ahc.settings
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/src
-    env_file:
-      - ../.env
+    networks:
+      - ahc_net
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 1s
       timeout: 3s
       retries: 30
     ports:
       - "6379:6379"
+    networks:
+      - ahc_net
+    restart: unless-stopped
 
   celery_flower:
     image: mher/flower:2.0.1
@@ -123,7 +147,15 @@ services:
       - FLOWER_PORT=${FLOWER_PORT}
       - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH}
     depends_on:
-      - queue
+      queue:
+        condition: service_healthy
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+networks:
+  ahc_net:
+    driver: bridge
 
 volumes:
   animals_db:

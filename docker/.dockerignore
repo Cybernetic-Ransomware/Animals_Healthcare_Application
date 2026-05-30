@@ -1,9 +1,0 @@
-./tars/*
-*.tar
-.venv/
-__pycache__/
-*.py[cod]
-db.sqlite3
-static_collected/
-static/media/profile_pics/
-static/media/attachments/

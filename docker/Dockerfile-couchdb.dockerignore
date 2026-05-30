@@ -1,0 +1,5 @@
+# Build-context exclusions for Dockerfile-couchdb (context = project root)
+# Only docker/setup_couchdb.sh is needed; exclude everything else.
+
+*
+!docker/setup_couchdb.sh

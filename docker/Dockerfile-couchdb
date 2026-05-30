@@ -1,10 +1,7 @@
-FROM couchdb:3.3.3
+FROM couchdb:3.5.2
 
 ARG COUCHDB_USER
 ARG COUCHDB_PASSWORD
-ARG COUCHDB_PORT
 
-EXPOSE ${COUCHDB_PORT}
 COPY docker/setup_couchdb.sh setup_couchdb.sh
-RUN chmod +x setup_couchdb.sh
-RUN sh setup_couchdb.sh
+RUN chmod +x setup_couchdb.sh && sh setup_couchdb.sh
