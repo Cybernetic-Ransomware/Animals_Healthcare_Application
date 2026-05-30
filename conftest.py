@@ -9,7 +9,7 @@ def user_profile(db):
     """Create a User + Profile pair, mocking image processing in Profile.save()."""
     from ahc.apps.users.models import Profile
 
-    user = User.objects.create_user(username="testuser", password="testpass123")
+    user = User.objects.create_user(username="testuser", password="testpass123")  # nosec B106
     with patch("ahc.apps.users.models.Image.open") as mock_open:
         mock_img = MagicMock()
         mock_img.height = 100
@@ -24,7 +24,7 @@ def second_user_profile(db):
     """A second User + Profile for multi-user permission tests."""
     from ahc.apps.users.models import Profile
 
-    user = User.objects.create_user(username="otheruser", password="testpass123")
+    user = User.objects.create_user(username="otheruser", password="testpass123")  # nosec B106
     with patch("ahc.apps.users.models.Image.open") as mock_open:
         mock_img = MagicMock()
         mock_img.height = 100

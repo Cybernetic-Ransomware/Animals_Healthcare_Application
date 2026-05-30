@@ -1,18 +1,15 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, reverse
 from django.views.generic.edit import FormView
 
 from ahc.apps.animals.models import Animal as AnimalProfile
 from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-from ahc.apps.medical_notes.models.type_measurement_notes import (
-    BiometricCustomRecords,
-    BiometricHeightRecords,
-    BiometricRecord,
-    BiometricWeightRecords,
-)
+from ahc.apps.medical_notes.services.biometrics import create_biometric_record
+from ahc.apps.medical_notes.views.mixins.user_animal_permisions import AnimalDirectAccessRequiredMixin
 
 
-class BiometricRecordCreateView(FormView):
+class BiometricRecordCreateView(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = BiometricRecordForm
 
@@ -22,47 +19,17 @@ class BiometricRecordCreateView(FormView):
         return context
 
     def form_valid(self, form):
-        record_type = form.cleaned_data["record_type"]
         animal_id = self.kwargs.get("pk")
         note_id = self.kwargs.get("note_id")
 
         animal = get_object_or_404(AnimalProfile, id=animal_id)
-        # print(f'{note_id=}')
         related_note = get_object_or_404(MedicalRecord, id=note_id)
-        # print(f'{related_note=}')
 
-        if record_type == "weight":
-            weight = form.cleaned_data["weight"]
-            unit = form.cleaned_data["weight_unit_to_present"]
-            weight_record = BiometricWeightRecords.objects.create(weight=weight, weight_unit_to_present=unit)
-            _biometric_record = BiometricRecord.objects.create(
-                animal=animal,
-                related_note=related_note,
-                weight_biometric_record=weight_record,
-            )
-        elif record_type == "height":
-            height = form.cleaned_data["height"]
-            unit = form.cleaned_data["height_unit_to_present"]
-            height_record = BiometricHeightRecords.objects.create(height=height, height_unit_to_present=unit)
-            _biometric_record = BiometricRecord.objects.create(
-                animal=animal,
-                related_note=related_note,
-                height_biometric_record=height_record,
-            )
-        else:
-            custom_name = form.cleaned_data["custom_name"]
-            custom_value = form.cleaned_data["custom_value"]
-            custom_unit = form.cleaned_data["custom_unit"]
-            custom_record = BiometricCustomRecords.objects.create(
-                record_name=custom_name,
-                record_value=custom_value,
-                record_unit=custom_unit,
-            )
-            _biometric_record = BiometricRecord.objects.create(
-                animal=animal,
-                related_note=related_note,
-                custom_biometric_record=custom_record,
-            )
+        create_biometric_record(
+            animal=animal,
+            related_note=related_note,
+            record_type=form.cleaned_data["record_type"],
+            data=form.cleaned_data,
+        )
 
-        success_url = reverse("animal_profile", kwargs={"pk": animal_id})
-        return redirect(success_url)
+        return redirect(reverse("animal_profile", kwargs={"pk": animal_id}))

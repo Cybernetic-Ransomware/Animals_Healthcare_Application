@@ -55,6 +55,71 @@ risk of changing form validation error messages.
 Extraction to a service layer is already started. Keep signal decisions (§1)
 in sync with this work to avoid duplicating logic.
 
+## 6. Dependency migrations
+
+### 6a. Remove `httplib2` (no-risk, easy)
+
+`httplib2` is declared as a direct dependency but is **never imported** anywhere in `src/`.
+It is a legacy Python 2-era HTTP library superseded by `requests` (already in use).
+
+Action: remove from `pyproject.toml`, run `uv lock`.
+
+### 6b. Move `icecream` to dev dependencies
+
+`icecream` is in the main (production) dependency group but the only usage is a
+**lazy import inside a debug branch** in `src/celery_notifications/cron.py:121`.
+
+Action: move to `[dependency-groups] dev` in `pyproject.toml`.
+
+### 6c. Replace `pycouchdb` with maintained HTTP client
+
+`pycouchdb v1.16.0` has not been maintained since ~2019 and has no Python 3.13+
+test coverage. The entire interaction is already isolated in one adapter:
+
+- `src/ahc/settings.py` — `pycouchdb.Server(...)` connection init
+- `src/ahc/apps/medical_notes/services/couch.py` — single thin adapter class
+
+Migration options (pick one):
+- **Raw `requests`** — CouchDB exposes a plain HTTP/JSON API; no client lib needed.
+  Simplest: replaces `pycouchdb.Server` + `db[key]` with `requests.get/put` calls.
+- **`httpx`** — async-capable drop-in; useful if the app ever adopts ASGI fully.
+
+Risk is low because ADR-08 scopes CouchDB to file/attachment storage only (no
+complex queries). The adapter in `couch.py` is the single change surface.
+
+### 6d. Remove `django-libsass` + `libsass` by precompiling SCSS
+
+`django-libsass v0.9` (2021) drives `COMPRESS_PRECOMPILERS` to compile
+`static/custom_pico.scss` at request time via `SassCompiler`.
+
+The SCSS file is small (17 lines — PicoCSS variable overrides + one `@import`).
+Precompiling it once at build/deploy time removes two C-extension deps (`libsass`,
+`cffi`) from the runtime and the runtime compilation overhead.
+
+Action:
+1. Run `sass static/custom_pico.scss static/css/custom_pico.css` once (dart-sass
+   or node-sass; **not** a Python dep — run as a build step or commit the output).
+2. Replace the `<link>` in `base.html` from the compressor tag to a plain CSS link.
+3. Remove `django-libsass`, `libsass`, `django-compressor`, `django-appconf` from
+   `pyproject.toml` (if compressor is not used for anything else).
+4. Remove `COMPRESS_PRECOMPILERS` block from `settings.py`.
+
+Check `settings.py` for other `COMPRESS_*` entries before removing `django-compressor`.
+
+### 6e. Monitor: transitive Python-2-era deps
+
+These cannot be removed directly — they are pulled in by maintained packages:
+
+| Package | Via | Concern |
+|---------|-----|---------|
+| `six v1.17.0` | `python-dateutil` → `celery` | Python 2 compat; harmless but signals old dep chain |
+| `audioop-lts v0.2.2` | `discord.py` | Shim for `audioop` removed in Python 3.13; watch discord.py changelog |
+| `pytz v2026.2` | `flower` | Django 4.0+ prefers `zoneinfo`; not actionable until Flower drops pytz |
+
+No action needed now; re-check when upgrading Celery or discord.py.
+
+---
+
 ## Already fixed in `refactor/django-5x-prep`
 
 - `STATIC_ROOT` → `BASE_DIR / "static_collected"` ✅

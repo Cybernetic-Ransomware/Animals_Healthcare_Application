@@ -1,11 +1,10 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
 
 from ahc.apps.animals.models import Animal
+from ahc.apps.animals.selectors import is_animal_owner
 
 
 class UserPassesOwnershipTestMixin(UserPassesTestMixin):
     def test_func(self):
-        owner = Animal.objects.get(pk=self.kwargs["pk"]).owner
-        user = self.request.user.profile
-
-        return user == owner
+        animal = Animal.objects.get(pk=self.kwargs["pk"])
+        return is_animal_owner(self.request.user.profile, animal)

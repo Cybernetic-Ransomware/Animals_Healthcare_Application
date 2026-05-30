@@ -46,7 +46,6 @@ class ChangeOwnerForm(forms.Form):
 
     def clean_new_owner(self):
         new_owner = self.cleaned_data.get("new_owner")
-        print(self.cleaned_data.keys())
 
         if new_owner == self.instance.owner.user.username:
             raise forms.ValidationError("You are already the owner.")

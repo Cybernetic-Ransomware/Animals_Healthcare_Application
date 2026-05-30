@@ -3,10 +3,16 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView
 from django.views.generic.edit import FormView
-from PIL import Image
 
 from ahc.apps.animals.mixins.animal_owner_permissions import UserPassesOwnershipTestMixin
 from ahc.apps.animals.models import Animal
+from ahc.apps.animals.services import (
+    add_keeper,
+    process_profile_image,
+    set_birthday,
+    set_first_contact,
+    transfer_ownership,
+)
 from ahc.apps.animals.utils_owner.forms import (
     ChangeBirthdayForm,
     ChangeFirstContactForm,
@@ -44,16 +50,8 @@ class ImageUploadView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView
 
     def form_valid(self, form):
         form.save()
-
-        animal_instance = form.instance
-        img = Image.open(animal_instance.profile_image.path)
-
-        if img.height > 448 or img.width > 448:
-            output_size = (448, 448)
-            img.thumbnail(output_size)
-            img.save(animal_instance.profile_image.path)
-
-        success_url = reverse("animal_profile", kwargs={"pk": animal_instance.pk})
+        process_profile_image(form.instance)
+        success_url = reverse("animal_profile", kwargs={"pk": form.instance.pk})
         return redirect(success_url)
 
 
@@ -74,15 +72,12 @@ class ChangeOwnerView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView
         return kwargs
 
     def form_valid(self, form):
-        animal = form.instance
-        new_owner = form.cleaned_data["new_owner"]
-        set_keeper = form.cleaned_data["set_keeper"]
-        animal.owner = new_owner
-        animal.save()
-
-        if set_keeper:
-            animal.allowed_users.add(self.request.user.profile)
-
+        transfer_ownership(
+            animal=form.instance,
+            new_owner=form.cleaned_data["new_owner"],
+            set_keeper=form.cleaned_data["set_keeper"],
+            requesting_profile=self.request.user.profile,
+        )
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -107,10 +102,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormVi
         return kwargs
 
     def form_valid(self, form):
-        animal = form.instance
-        new_keeper = form.cleaned_data["input_user"]
-
-        animal.allowed_users.add(new_keeper)
+        add_keeper(form.instance, form.cleaned_data["input_user"])
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -133,10 +125,7 @@ class ChangeBirthdayView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormV
         return context
 
     def form_valid(self, form):
-        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
-        animal.birthdate = form.cleaned_data["birthdate"]
-        animal.save()
-
+        set_birthday(get_object_or_404(Animal, pk=self.kwargs["pk"]), form.cleaned_data["birthdate"])
         success_url = reverse("animal_profile", kwargs={"pk": self.kwargs["pk"]})
         return redirect(success_url)
 
@@ -154,10 +143,11 @@ class ChangeFirstContactView(LoginRequiredMixin, UserPassesOwnershipTestMixin, F
         return context
 
     def form_valid(self, form):
-        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
-        animal.first_contact_vet = form.cleaned_data["first_contact_vet"]
-        animal.first_contact_medical_place = form.cleaned_data["first_contact_medical_place"]
-        animal.save()
+        set_first_contact(
+            get_object_or_404(Animal, pk=self.kwargs["pk"]),
+            vet=form.cleaned_data["first_contact_vet"],
+            place=form.cleaned_data["first_contact_medical_place"],
+        )
         return super().form_valid(form)
 
     def get_success_url(self):
