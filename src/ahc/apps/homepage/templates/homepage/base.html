@@ -14,10 +14,7 @@
 -->
     <link rel="shortcut icon" type="image/png" href="{% static 'media/icons/chinchilla.png' %}" >
 
-    {% load compress %}
-    {% compress css %}
-        <link type="text/x-scss" href="{% static 'custom_pico.scss' %}" rel="stylesheet" media="screen">
-    {% endcompress %}
+    <link rel="stylesheet" href="{% static 'css/custom_pico.css' %}">
 
 
     {% if title %}

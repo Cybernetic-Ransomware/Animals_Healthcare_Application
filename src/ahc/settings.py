@@ -13,13 +13,11 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import sys
 from pathlib import Path
 
-import pycouchdb
 from decouple import Csv, config
 
 _OFFLINE_COMMANDS = {
     "check",
     "collectstatic",
-    "compress",
     "crontab",
     "makemigrations",
     "migrate",
@@ -72,7 +70,6 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap4",
     "bootstrap_modal_forms",
-    "compressor",
     "taggit",
     "ahc.apps.homepage.apps.HomepageConfig",
     "ahc.apps.users.apps.UsersConfig",
@@ -146,11 +143,9 @@ if not _skip_external_services():
     COUCHDB_USER = config("COUCHDB_USER")
     COUCHDB_PASSWORD = config("COUCHDB_PASSWORD")
     COUCHDB_PORT = config("COUCHDB_PORT")
-
-    COUCH_SERVER = pycouchdb.Server(
-        f"http://{COUCHDB_USER}:{COUCHDB_PASSWORD}@appendixes-db:{COUCHDB_PORT}/", authmethod="basic"
-    )
-    COUCH_DB = COUCH_SERVER.database("appendixes")
+    COUCHDB_HOST = config("COUCHDB_HOST", default="appendixes-db")
+    COUCHDB_DB_NAME = config("COUCHDB_DB_NAME", default="appendixes")
+    COUCHDB_BASE_URL = f"http://{COUCHDB_HOST}:{COUCHDB_PORT}"
 
     COUCH_DB_LIMIT_PER_NOTE = 5
 
@@ -199,13 +194,7 @@ STATICFILES_DIRS = [
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    "compressor.finders.CompressorFinder",
 ]
-
-COMPRESS_ROOT = STATIC_ROOT
-COMPRESS_PRECOMPILERS = (("text/x-scss", "django_libsass.SassCompiler"),)
-COMPRESS_OFFLINE = True
-LIBSASS_OUTPUT_STYLE = "compressed"
 
 _staticfiles_backend = (
     "django.contrib.staticfiles.storage.StaticFilesStorage"
@@ -220,15 +209,6 @@ STORAGES = {
         "BACKEND": _staticfiles_backend,
     },
 }
-
-""" DOCUMENTATION TO CUSTOM SCSS:
-https://picocss.com/docs/customization.html
-https://www.accordbox.com/blog/how-use-scss-sass-your-django-project-python-way/
-
-commands:
-python manage.py collectstatic
-python manage.py compress --force
-"""
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "static" / "media"

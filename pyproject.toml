@@ -11,7 +11,6 @@ dependencies = [
     "celery>=5.4",
     "redis>=5.0",
     "flower",
-    "pycouchdb",
     "discord",
     "python-decouple",
     "pillow>=11.0",
@@ -20,21 +19,15 @@ dependencies = [
     "django-crispy-forms",
     "crispy-bootstrap4",
     "django-bootstrap-modal-forms",
-    "django-compressor",
-    "django-libsass",
-    "libsass",
-    "django-appconf",
     "django-taggit",
     "django-timezone-field>=6.1",
     "tzdata",
     "python3-openid",
     "requests",
     "requests-oauthlib",
-    "httplib2",
     "python-dateutil",
     "pyjwt",
     "defusedxml",
-    "icecream",
 ]
 
 [dependency-groups]
@@ -47,6 +40,7 @@ dev = [
     "pytest",
     "pytest-django",
     "pytest-cov",
+    "icecream",
 ]
 
 [tool.uv]
