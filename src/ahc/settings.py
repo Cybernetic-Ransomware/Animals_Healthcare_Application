@@ -51,7 +51,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 if _is_test_run():
-    SECRET_KEY = config("SECRET_KEY", default="django-insecure-test-only-not-for-production")  # nosec B105
+    SECRET_KEY = config("SECRET_KEY", default="django-insecure-test-only-not-for-production")
     DEBUG = True
 else:
     SECRET_KEY = config("SECRET_KEY")

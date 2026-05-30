@@ -1,5 +1,9 @@
 set shell := ["pwsh", "-NoLogo", "-Command"]
 
+# List all available recipes
+help:
+    @just --list
+
 # Install all dependencies including dev group
 install:
     uv sync
