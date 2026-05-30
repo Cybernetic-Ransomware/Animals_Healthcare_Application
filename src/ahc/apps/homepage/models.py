@@ -42,15 +42,3 @@ class AnimalTitle(models.Model):
 
     def get_absolute_url(self):
         return reverse("article-detail", kwargs={"pk": self.pk})
-
-
-# TODO: implement to allow set cronjobs from admin panel, must run shell command
-class CronJob(models.Model):
-    name = models.CharField(max_length=255)
-    command = models.CharField(max_length=255)
-    schedule = models.CharField(max_length=255)
-    last_execution = models.DateTimeField(null=True, blank=True)
-    next_execution = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return self.name
