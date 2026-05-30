@@ -34,7 +34,6 @@ jobs:
       EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
       PYTHONUNBUFFERED: "1"
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
 
     steps:
       - name: Checkout

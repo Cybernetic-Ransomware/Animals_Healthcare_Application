@@ -14,16 +14,16 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="discordnotification",
             name="last_modification",
-            field=models.DateTimeField(default=datetime.datetime(2024, 2, 2, 13, 46, 49, 356514)),
+            field=models.DateTimeField(default=datetime.datetime(2024, 2, 2, 13, 46, 49, 356514, tzinfo=datetime.UTC)),
         ),
         migrations.AddField(
             model_name="emailnotification",
             name="last_modification",
-            field=models.DateTimeField(default=datetime.datetime(2024, 2, 2, 13, 46, 49, 356514)),
+            field=models.DateTimeField(default=datetime.datetime(2024, 2, 2, 13, 46, 49, 356514, tzinfo=datetime.UTC)),
         ),
         migrations.AddField(
             model_name="smsnotification",
             name="last_modification",
-            field=models.DateTimeField(default=datetime.datetime(2024, 2, 2, 13, 46, 49, 356514)),
+            field=models.DateTimeField(default=datetime.datetime(2024, 2, 2, 13, 46, 49, 356514, tzinfo=datetime.UTC)),
         ),
     ]
