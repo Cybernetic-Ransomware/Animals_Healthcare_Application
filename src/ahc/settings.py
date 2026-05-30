@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 import pycouchdb
-from decouple import config
+from decouple import Csv, config
 
 _OFFLINE_COMMANDS = {
     "check",
@@ -50,13 +50,13 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-x#q0@altnjw2yrhh)edi)co2)n3p8q&0qmz7m8oxu-*jhd8d9-"  # nosec B105
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+if _is_test_run():
+    SECRET_KEY = config("SECRET_KEY", default="django-insecure-test-only-not-for-production")  # nosec B105
+    DEBUG = True
+else:
+    SECRET_KEY = config("SECRET_KEY")
+    DEBUG = config("DEBUG", default=False, cast=bool)
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
 
 # Application definition
