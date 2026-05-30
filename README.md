@@ -22,12 +22,12 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><p>Animal profile</p><img src="AHC_app/static/media/readme_examples/Animal profile.png" height="250px"></td>
-      <td align="center"><p>Full timeline of notes</p><img src="AHC_app/static/media/readme_examples/Full timeline of notes.png" height="250px"></td>
+      <td align="center"><p>Animal profile</p><img src="static/media/readme_examples/Animal profile.png" height="250px"></td>
+      <td align="center"><p>Full timeline of notes</p><img src="static/media/readme_examples/Full timeline of notes.png" height="250px"></td>
     </tr>
     <tr>
-      <td align="center"><p>Diet note details</p><img src="AHC_app/static/media/readme_examples/Diet note details.png" height="250px"></td>
-      <td align="center"><p>User registration</p><img src="AHC_app/static/media/readme_examples/User registration.png" height="250px"></td>
+      <td align="center"><p>Diet note details</p><img src="static/media/readme_examples/Diet note details.png" height="250px"></td>
+      <td align="center"><p>User registration</p><img src="static/media/readme_examples/User registration.png" height="250px"></td>
     </tr>
   </table>
 </div>
@@ -50,7 +50,7 @@
 - Docker & Docker Compose
 - PostgreSQL 15 (instance for volumes)
 - Apache CouchDB 3.3.3 (instance for volumes)
-- [Packages](AHC_app/pyproject.toml)
+- [Packages](pyproject.toml)
 - [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
 
 ---
@@ -71,7 +71,6 @@
 4. Install uv and sync dependencies:
     ```
     pip install uv
-    cd AHC_app
     uv sync
     ```
 5. Install pre-commit hooks:
@@ -85,7 +84,6 @@
 
 With `just` installed, steps 4–6 simplify to:
 ```
-cd AHC_app
 just install
 just precommit
 just docker-up
@@ -137,7 +135,6 @@ just docker-up
 ### Test running:
 ```bash
 # pytest (recommended)
-cd AHC_app
 uv run pytest -m integration
 
 # or with just

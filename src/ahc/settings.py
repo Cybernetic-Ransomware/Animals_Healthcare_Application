@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -98,7 +97,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # 'DIRS': [],
-        "DIRS": [BASE_DIR / "AHC_app" / "templates"],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -194,7 +193,7 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = "static_collected"
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "AHC_app/static/"),
+    BASE_DIR / "static",
 ]
 
 STATICFILES_FINDERS = [
@@ -232,7 +231,7 @@ python manage.py compress --force
 """
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "AHC_app/static/media")
+MEDIA_ROOT = BASE_DIR / "static" / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

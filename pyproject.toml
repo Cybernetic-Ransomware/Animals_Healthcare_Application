@@ -82,7 +82,7 @@ markers = [
 python-version = "3.14"
 
 [tool.codespell]
-skip = "uv.lock,./AHC_app/static,./AHC_app/static_collected,./static,./static_collected"
+skip = "uv.lock,./static,./static_collected"
 
 [tool.bandit]
 exclude_dirs = [".venv"]

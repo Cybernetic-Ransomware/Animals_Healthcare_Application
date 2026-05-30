@@ -1,4 +1,4 @@
-exclude: 'AHC_app/static/|AHC_app/static_collected/'
+exclude: 'static/|static_collected/'
 
 repos:
 - repo: local

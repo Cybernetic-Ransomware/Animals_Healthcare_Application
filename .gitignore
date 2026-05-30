@@ -50,12 +50,12 @@ CLAUDE.md
 .idea/
 
 # Project-specific
-/AHC_app/static_collected/
-/AHC_app/static/media/profile_pics/animals/
-/AHC_app/static/media/attachments/
+/static_collected/
+/static/media/profile_pics/animals/
+/static/media/attachments/
 
 # Kubernetes
-/AHC_app/tars/
+/tars/
 /kubernetes/**/*.tar
 secret.yaml
 
