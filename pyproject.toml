@@ -1,0 +1,83 @@
+[project]
+name = "animals-healthcare-application"
+version = "0.1.0"
+description = "Animals Healthcare Application — pet health data management"
+requires-python = ">=3.14"
+
+dependencies = [
+    "django>=6.0,<6.1",
+    "djangorestframework>=3.14",
+    "psycopg[binary]>=3.2",
+    "celery>=5.4",
+    "redis>=5.0",
+    "flower",
+    "discord",
+    "python-decouple",
+    "pillow>=11.0",
+    "cryptography>=43",
+    "cffi>=1.17",
+    "django-crispy-forms",
+    "crispy-bootstrap4",
+    "django-bootstrap-modal-forms",
+    "django-taggit",
+    "django-timezone-field>=6.1",
+    "tzdata",
+    "python3-openid",
+    "requests",
+    "requests-oauthlib",
+    "python-dateutil",
+    "pyjwt",
+    "defusedxml",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit",
+    "ruff",
+    "ty",
+    "codespell",
+    "bandit[toml]",
+    "pytest",
+    "pytest-django",
+    "pytest-cov",
+    "icecream",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 124
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "SIM", "I", "RUF", "DJ"]
+ignore = [
+    "DJ001",
+    "DJ008",
+    "RUF012",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "ahc.settings"
+pythonpath = ["src"]
+python_files = ["test_*.py", "tests.py"]
+addopts = "--strict-markers"
+markers = [
+    "unit: fast isolated tests with no DB access",
+    "integration: tests that use the DB or external services",
+    "slow: tests that take more than a few seconds",
+]
+
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.codespell]
+skip = "uv.lock,./static,./static_collected"
+
+[tool.bandit]
+exclude_dirs = [".venv"]
+skips = ["B101", "B404", "B603", "B607"]

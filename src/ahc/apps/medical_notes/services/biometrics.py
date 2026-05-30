@@ -1,0 +1,50 @@
+"""Service for creating BiometricRecord entries."""
+
+from __future__ import annotations
+
+from ahc.apps.medical_notes.models.type_measurement_notes import (
+    BiometricCustomRecords,
+    BiometricHeightRecords,
+    BiometricRecord,
+    BiometricWeightRecords,
+)
+
+
+def create_biometric_record(animal, related_note, record_type: str, data: dict) -> BiometricRecord:
+    """Create the appropriate sub-record and link it to a parent BiometricRecord.
+
+    record_type must be one of: "weight", "height", or a custom type.
+    data is the cleaned_data dict from BiometricRecordForm.
+    """
+    if record_type == "weight":
+        sub_record = BiometricWeightRecords.objects.create(
+            weight=data["weight"],
+            weight_unit_to_present=data["weight_unit_to_present"],
+        )
+        return BiometricRecord.objects.create(
+            animal=animal,
+            related_note=related_note,
+            weight_biometric_record=sub_record,
+        )
+
+    if record_type == "height":
+        sub_record = BiometricHeightRecords.objects.create(
+            height=data["height"],
+            height_unit_to_present=data["height_unit_to_present"],
+        )
+        return BiometricRecord.objects.create(
+            animal=animal,
+            related_note=related_note,
+            height_biometric_record=sub_record,
+        )
+
+    sub_record = BiometricCustomRecords.objects.create(
+        record_name=data["custom_name"],
+        record_value=data["custom_value"],
+        record_unit=data["custom_unit"],
+    )
+    return BiometricRecord.objects.create(
+        animal=animal,
+        related_note=related_note,
+        custom_biometric_record=sub_record,
+    )

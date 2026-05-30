@@ -22,12 +22,12 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><p>Animal profile</p><img src="AHC_app/static/media/readme_examples/Animal profile.png" height="250px"></td>
-      <td align="center"><p>Full timeline of notes</p><img src="AHC_app/static/media/readme_examples/Full timeline of notes.png" height="250px"></td>
+      <td align="center"><p>Animal profile</p><img src="static/media/readme_examples/Animal profile.png" height="250px"></td>
+      <td align="center"><p>Full timeline of notes</p><img src="static/media/readme_examples/Full timeline of notes.png" height="250px"></td>
     </tr>
     <tr>
-      <td align="center"><p>Diet note details</p><img src="AHC_app/static/media/readme_examples/Diet note details.png" height="250px"></td>
-      <td align="center"><p>User registration</p><img src="AHC_app/static/media/readme_examples/User registration.png" height="250px"></td>
+      <td align="center"><p>Diet note details</p><img src="static/media/readme_examples/Diet note details.png" height="250px"></td>
+      <td align="center"><p>User registration</p><img src="static/media/readme_examples/User registration.png" height="250px"></td>
     </tr>
   </table>
 </div>
@@ -44,11 +44,13 @@
 
 ---
 ### Requirements:
-- Python 3.12.2
+- Python 3.14
+- [uv](https://docs.astral.sh/uv/) (package manager)
+- [just](https://just.systems/) (task runner, optional)
 - Docker & Docker Compose
 - PostgreSQL 15 (instance for volumes)
 - Apache CouchDB 3.3.3 (instance for volumes)
-- [Packages](AHC_app/Pipfile)
+- [Packages](pyproject.toml)
 - [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
 
 ---
@@ -56,7 +58,7 @@
 1. Download repository.
 2. Set .env file based on template.
 3. Install Docker Desktop.
-4. Run containters:
+4. Run containers:
     ```
     docker-compose up -d --build
     ```
@@ -65,23 +67,27 @@
 ### Dev-instance steps:
 1. Download repository.
 2. Set .env file based on the template.
-3. Install Python, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_.
-4. Install pipenv:
+3. Install Python 3.14, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_.
+4. Install uv and sync dependencies:
     ```
-    pipenv install
+    pip install uv
+    uv sync
     ```
-5. Deploy vevn and synch requirements:
+5. Install pre-commit hooks:
     ```
-    pipenv install --dev
+    uv run pre-commit install
     ```
-6. Install precommit hooks:
-    ```
-    pre-commit install
-    ```
-7. Run containters:
+6. Run containers:
     ```
     docker-compose up -d --build
     ```
+
+With `just` installed, steps 4–6 simplify to:
+```
+just install
+just precommit
+just docker-up
+```
 
 ---
 ### Kubernetes Deploy steps (alternative deploy):
@@ -97,7 +103,7 @@
       docker image save -o ahc_app-web.tar ahc_app-web:latest
       docker image save -o ahc_app-queue.tar ahc_app-queue:latest
       docker image save -o ahc_app-couch_db.tar ahc_app-couch_db:latest
-      docker image save -o postgres.tar postgres:15-alpine
+      docker image save -o postgres.tar postgres:18-alpine
       ```
 
 5. Push Docker images to a registry:
@@ -107,7 +113,7 @@
       minikube image load ahc_app-web.tar
       minikube image load ahc_app-queue.tar
       minikube image load ahc_app-couch_db.tar
-      minikube image load postgres.tar
+      minikube image load postgres.tar   # postgres:18-alpine
       ```
 
 6. Deploy to Kubernetes using kustom files:
@@ -127,8 +133,17 @@
 
 ---
 ### Test running:
-- by now tests are only reachable by terminal in main container's terminal (container_name: web)
-- simply run command "python manage.py test" or use with needed flags
+```bash
+# pytest (recommended)
+uv run pytest -m integration
+
+# or with just
+just test
+just test-integration
+
+# Django runner (legacy, still supported)
+uv run python manage.py test
+```
 
 ---
 ### Sources:

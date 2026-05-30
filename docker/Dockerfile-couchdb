@@ -1,0 +1,7 @@
+FROM couchdb:3.5.2
+
+ARG COUCHDB_USER
+ARG COUCHDB_PASSWORD
+
+COPY docker/setup_couchdb.sh setup_couchdb.sh
+RUN chmod +x setup_couchdb.sh && sh setup_couchdb.sh

@@ -3,4 +3,4 @@
 #metadata:
 #  name: celery-config
 #data:
-#  DJANGO_SETTINGS_MODULE: AHC_app.settings
+#  DJANGO_SETTINGS_MODULE: ahc.settings

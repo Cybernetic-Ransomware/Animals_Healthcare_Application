@@ -1,0 +1,22 @@
+{% extends "homepage/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+    <div class="content-section">
+        <h4>Current first contact vet:</h4>
+        <p>{{ vet|linebreaks }}</p>
+        <h4>Current first contact medical place:</h4>
+        <p>{{ place|linebreaks }}</p>
+    </div>
+    <br>
+    <div class="content-section">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.first_contact_vet|as_crispy_field }}
+            {{ form.first_contact_medical_place|as_crispy_field }}
+            <button type="submit">Change</button>
+        </form>
+    </div>
+
+    <p><a href="{% url 'animal_profile' pk=animal_id %}">Return to profile</a></p>
+{% endblock %}

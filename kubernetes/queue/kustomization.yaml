@@ -1,5 +1,6 @@
 resources:
   - secret.yaml
   - celery/
+  - celery-beat/
   - flower/
   - redis/

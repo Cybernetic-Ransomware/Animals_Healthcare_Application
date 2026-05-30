@@ -5,13 +5,13 @@
 `2023-07-09`
 
 
-### Status  
+### Status
 In-building
 
 
-### Context  
+### Context
 We need to set up a place in documentation to list all collect all data about users and group them by correct place in databases and direct tables.
-Main sections of data by sources: 
+Main sections of data by sources:
 - user,
 - animal,
 - medical record note,
@@ -19,14 +19,14 @@ Main sections of data by sources:
 - medicines,
 - medical facility,
 - veterinarian,
-- dates sheduling,
+- dates scheduling,
 - costs counting.
 
 
-### Decision  
+### Decision
 User datatables:
 - collected by the registration process:
-  - basic provided by user informations:
+  - basic provided by user information:
     - name,
     - email,
     - password,
@@ -34,21 +34,21 @@ User datatables:
     - date of registration,
     - default profile image,
     - default background image,
-    - default user priviliges (viever, owner, creator, moderator, admin etc.)
+    - default user privileges (viewer, owner, creator, moderator, admin etc.)
 - collected after the registration process:
   - provided in profil page:
     - profile image,
-    - bacground image choosen,
+    - background image chosen,
     - email-change,
     - password-change,
     - date of birthday,
   - stable view(compedium of animals: owned and cared)
   - connections other models:
-    - animal - ovner, viewer, 
-    - medical record nove - participation in visit
+    - animal - owner, viewer,
+    - medical record note - participation in visit
     - medical_place_id,
     - note_
-    - 
+    -
 
 
 Medical records (animal timeline)
@@ -73,7 +73,7 @@ Medical records (animal timeline)
 
 
 
-### Consequences  
+### Consequences
 ##### _Placeholder_
 
 

@@ -1,0 +1,220 @@
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.paginator import Paginator
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.utils import timezone
+from django.views.generic import View
+from django.views.generic.edit import DeleteView, FormView, UpdateView
+from django.views.generic.list import ListView
+
+from ahc.apps.animals.models import Animal as AnimalProfile
+from ahc.apps.medical_notes.forms.type_basic_note import (
+    MedicalRecordEditForm,
+    MedicalRecordEditRelatedAnimalsForm,
+    MedicalRecordForm,
+    UploadAppendixForm,
+)
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
+from ahc.apps.medical_notes.selectors import (
+    animal_choices_for,
+    can_access_note_animal,
+    is_attachment_author,
+    timeline_for,
+)
+from ahc.apps.medical_notes.services.attachments import (
+    AttachmentLimitExceeded,
+    delete_attachment,
+    download_attachment,
+    upload_attachment,
+)
+from ahc.apps.medical_notes.services.notes import create_note, next_route_for, update_note
+from ahc.apps.medical_notes.views.mixins.user_animal_permisions import (
+    AnimalDirectAccessRequiredMixin,
+    AttachmentAuthorRequiredMixin,
+    NoteAuthorRequiredMixin,
+)
+
+
+class CreateNoteFormView(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, FormView):
+    template_name = "medical_notes/create.html"
+    form_class = MedicalRecordForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["animal_choices"] = animal_choices_for(self.request.user.profile, exclude_id=self.kwargs.get("pk"))
+        kwargs["type_of_event_param"] = self.request.GET.get("type_of_event")
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_name"] = str(self.form_class.__name__)
+        return context
+
+    def form_valid(self, form):
+        animal_id = self.kwargs.get("pk")
+        animal = get_object_or_404(AnimalProfile, id=animal_id)
+        note = create_note(self.request.user.profile, animal, form)
+        url_name, kwargs = next_route_for(note, animal_id)
+        return redirect(reverse(url_name, kwargs=kwargs))
+
+    def get_success_url(self):
+        animal_id = self.kwargs.get("pk")
+        return reverse("animal_profile", kwargs={"pk": animal_id})
+
+
+class FullTimelineOfNotes(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, ListView):
+    model = MedicalRecord
+    template_name = "medical_notes/full_timeline_of_notes.html"
+    context_object_name = "notes"
+    paginate_by = 4
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        animal = get_object_or_404(AnimalProfile, id=self.kwargs.get("pk"))
+        query = timeline_for(
+            animal,
+            type_of_event=self.request.GET.get("type_of_event"),
+            tag_name=self.request.GET.get("tag_name"),
+        )
+
+        # Localise auto-timestamps to the user's current timezone (presentation layer)
+        user_timezone = timezone.get_current_timezone()
+        for record in query:
+            record.date_creation = timezone.localtime(record.date_creation, user_timezone)
+            record.date_updated = timezone.localtime(record.date_updated, user_timezone)
+            for attachment in record.attachments.all():
+                attachment.upload_date = timezone.localtime(attachment.upload_date, user_timezone)
+
+        paginator = Paginator(list(query.order_by("-date_creation")), per_page=self.paginate_by)
+        notes = paginator.get_page(self.request.GET.get("page"))
+        context["notes"] = notes
+
+        upload_forms = []
+        for note in context["notes"]:
+            form = UploadAppendixForm()
+            form.fields["medical_record_id"].initial = str(note.id)
+            upload_forms.append(form)
+
+        context["notes"] = zip(context["notes"], upload_forms, strict=False)
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        form = UploadAppendixForm(request.POST, request.FILES)
+        if form.is_valid():
+            medical_record_id = form["medical_record_id"].value()
+            medical_record = get_object_or_404(MedicalRecord, id=medical_record_id)
+            form.save(commit=False)
+            try:
+                upload_attachment(
+                    medical_record=medical_record,
+                    attachment_instance=form.instance,
+                    uploaded_file=request.FILES["file"],
+                )
+                messages.success(request, "Attachment uploaded successfully.")
+            except AttachmentLimitExceeded as exc:
+                messages.error(request, f"Failed to upload. {exc}")
+        else:
+            for _field, errors in form.errors.items():
+                messages.error(request, f"Failed to upload: {', '.join(errors)}")
+
+        return redirect(request.path)
+
+    def render_to_response(self, context, **response_kwargs):
+        return super().render_to_response(context, **response_kwargs)
+
+
+class EditNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, UpdateView):
+    model = MedicalRecord
+    form_class = MedicalRecordEditForm
+    template_name = "medical_notes/edit.html"
+    context_object_name = "note"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["animal_choices"] = animal_choices_for(self.request.user.profile)
+
+        note = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
+        kwargs["animal"] = get_object_or_404(AnimalProfile, id=note.animal.id)
+
+        return kwargs
+
+    def form_valid(self, form):
+        note = get_object_or_404(MedicalRecord, id=self.kwargs.get("pk"))
+        update_note(note, form)
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        note = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
+        return reverse("full_timeline_of_notes", kwargs={"pk": note.animal.id})
+
+
+class EditMedicalRecordAttachmentDescription(LoginRequiredMixin, AttachmentAuthorRequiredMixin, UpdateView):
+    model = MedicalRecordAttachment
+    fields = ["description"]
+    template_name = "medical_notes/edit.html"
+
+    def get_success_url(self):
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=self.kwargs.get("pk"))
+        return reverse("full_timeline_of_notes", kwargs={"pk": attachment.medical_record.animal.id})
+
+
+class EditRelatedAnimalsView(EditNoteView):
+    model = MedicalRecord
+    form_class = MedicalRecordEditRelatedAnimalsForm
+    template_name = "medical_notes/edit.html"
+    context_object_name = "note"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        user = self.request.user.profile
+        kwargs["is_author"] = MedicalRecord.objects.filter(author=user).exists()
+        return kwargs
+
+    def test_func(self):
+        note = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
+        return can_access_note_animal(self.request.user.profile, note)
+
+
+class DeleteMedicalRecordAttachment(LoginRequiredMixin, AttachmentAuthorRequiredMixin, DeleteView):
+    model = MedicalRecordAttachment
+    template_name = "medical_notes/delete_confirm.html"
+    context_object_name = "note"
+
+    def get_success_url(self):
+        attachment = get_object_or_404(MedicalRecordAttachment, pk=self.kwargs.get("pk"))
+        return reverse("full_timeline_of_notes", kwargs={"pk": attachment.medical_record.animal.id})
+
+    def form_valid(self, form):
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        delete_attachment(self.object)
+        return redirect(success_url)
+
+
+class DeleteNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, DeleteView):
+    model = MedicalRecord
+    template_name = "medical_notes/delete_confirm.html"
+    context_object_name = "note"
+
+    def get_success_url(self):
+        note = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
+        return reverse("full_timeline_of_notes", kwargs={"pk": note.animal.id})
+
+
+class DownloadAttachmentView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Download attachment by CouchDB reference id (URL kwarg: id, not pk)."""
+
+    def test_func(self):
+        attachment = get_object_or_404(MedicalRecordAttachment, couch_id=self.kwargs.get("id"))
+        return is_attachment_author(self.request.user.profile, attachment)
+
+    def get(self, request, *args, **kwargs):
+        reference_id = self.kwargs.get("id")
+        file_data, file_name = download_attachment(reference_id)
+        response = HttpResponse(file_data, content_type="application/octet-stream")
+        response["Content-Disposition"] = f'attachment; filename="{file_name}"'
+        return response

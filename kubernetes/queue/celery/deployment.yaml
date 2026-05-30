@@ -26,12 +26,12 @@ spec:
         - name: queue
           image: ahc_app-queue:latest
           imagePullPolicy: Never
-          command: [ "celery", "-A", "AHC_app.celery_notifications.config:celery_obj", "worker", "-l", "info"]
+          command: [ "celery", "-A", "celery_notifications.config:celery_obj", "worker", "-l", "info"]
           env:
             - name: PYTHONUNBUFFERED
               value: "1"
             - name: PYTHONPATH
-              value: "/app"
+              value: "/app/src"
           envFrom:
             - secretRef:
                 name: web-secrets

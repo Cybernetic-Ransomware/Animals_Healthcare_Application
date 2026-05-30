@@ -1,0 +1,57 @@
+{% extends 'homepage/base.html' %}
+{% load static %}
+
+
+{% block content %}
+
+    <div class="container-fluid" style="text-align: center">
+      <h2>Welcome to your pet organizer</h2>
+    <br>
+    </div>
+
+    {% if user.is_authenticated %}
+
+        <div class="container-fluid">
+            <h4>Operations:</h4>
+
+            <div class="grid">
+                <a role="button" class="secondary outline" href="{% url 'animals_stable' %}">Manage all animals</a>
+                <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
+            </div>
+        <br>
+        </div>
+
+        {% if pinned_animals %}
+            <div class="container-fluid">
+            <br>
+                <h4>Pinned up:</h4>
+
+                <div class="grid">
+                    {% for animal in recent_animals %}
+                        {% include "partials/animal_card.html" %}
+                    {% endfor %}
+                </div>
+            <br>
+            </div>
+
+        {% endif %}
+
+        {% if recent_animals %}
+            <div class="container-fluid">
+            <br>
+                <h4>Recent added:</h4>
+
+                <div class="grid">
+                    {% for animal in recent_animals %}
+                        {% include "partials/animal_card.html" %}
+                    {% endfor %}
+                </div>
+            <br>
+            </div>
+
+        {% endif %}
+
+    {% endif %}
+
+
+{% endblock %}

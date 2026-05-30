@@ -1,0 +1,172 @@
+name: ahc
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile-web
+    image: ahc_app-web:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/app
+    env_file:
+      - ../.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      queue:
+        condition: service_started
+      couch_db:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        python manage.py makemigrations
+        python manage.py migrate
+        python manage.py collectstatic --noinput
+        python manage.py runserver 0.0.0.0:8000
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+  postgres_db:
+    image: postgres:18-alpine
+    container_name: main-db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - animals_db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 30s
+      retries: 6
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+  couch_db:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile-couchdb
+      args:
+        COUCHDB_USER: ${COUCHDB_USER}
+        COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+    container_name: appendixes-db
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+      - COUCHDB_PORT=${COUCHDB_PORT}
+    ports:
+      - "5982:5982"
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5982/_up"]
+      interval: 5s
+      timeout: 30s
+      retries: 6
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+  queue:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile-queue
+    command: celery -A celery_notifications.config:celery_obj worker -l info
+    env_file:
+      - ../.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=ahc.settings
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+      couch_db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_notifications.config:celery_obj inspect ping -d celery@$$HOSTNAME --timeout 5 2>&1 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+  celery_beat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile-queue
+    command: celery -A celery_notifications.config:celery_obj beat -l info
+    env_file:
+      - ../.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=ahc.settings
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "6379:6379"
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+  celery_flower:
+    image: mher/flower:2.0.1
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - FLOWER_PORT=${FLOWER_PORT}
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH}
+    depends_on:
+      queue:
+        condition: service_healthy
+    networks:
+      - ahc_net
+    restart: unless-stopped
+
+networks:
+  ahc_net:
+    driver: bridge
+
+volumes:
+  animals_db:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${DB_VOLUMEN_POSTGRES}
+      o: bind
+  couchdb_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${DB_VOLUMEN_COUCH}
+      o: bind

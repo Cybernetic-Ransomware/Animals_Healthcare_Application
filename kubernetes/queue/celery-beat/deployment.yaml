@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+  labels:
+    app: celery-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-beat
+  template:
+    metadata:
+      name: celery-beat
+      labels:
+        app: celery-beat
+    spec:
+      initContainers:
+        - name: init-myservice
+          image: busybox
+          command: [ 'sh', '-c', 'env' ]
+          envFrom:
+            - secretRef:
+                name: web-secrets
+      containers:
+        - name: celery-beat
+          image: ahc_app-queue:latest
+          imagePullPolicy: Never
+          command: [ "celery", "-A", "celery_notifications.config:celery_obj", "beat", "-l", "info" ]
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONPATH
+              value: "/app/src"
+          envFrom:
+            - secretRef:
+                name: web-secrets
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+      restartPolicy: Always

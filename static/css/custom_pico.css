@@ -1,0 +1,15 @@
+/* Custom overrides on top of Pico 2.1.1 yellow theme.
+ *
+ * Secondary color: neutral grey #bbbbbb (instead of the default blue-grey).
+ * --pico-secondary-border / --pico-secondary-hover-border inherit from
+ * --pico-secondary / --pico-secondary-hover and do not need explicit overrides.
+ */
+:root {
+  --pico-secondary: #bbbbbb;
+  --pico-secondary-hover: #cccccc;
+  --pico-secondary-background: #bbbbbb;
+  --pico-secondary-hover-background: #cccccc;
+  --pico-secondary-focus: rgba(187, 187, 187, 0.25);
+  --pico-secondary-underline: rgba(187, 187, 187, 0.5);
+  --pico-secondary-inverse: #000;
+}

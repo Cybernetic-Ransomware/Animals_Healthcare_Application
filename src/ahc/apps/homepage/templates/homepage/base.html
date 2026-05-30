@@ -1,0 +1,68 @@
+{% load i18n %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AHC</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="shortcut icon" type="image/png" href="{% static 'media/icons/chinchilla.png' %}">
+
+    <link rel="stylesheet" href="{% static 'css/pico-2.1.1/pico.yellow.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/custom_pico.css' %}">
+
+
+    {% if title %}
+        <title>{{ title }}</title>
+    {% else %}
+        <title>AHC app</title>
+    {% endif %}
+
+</head>
+<body>
+
+<header class="container" style="height: 15vh;">
+    <div class="grid" style="height: 100%;">
+        <div class="container" style="margin: auto; flex: 1; width: 30vw">
+            <a href="{% url 'Homepage' %}"><h2>Homepage</h2></a>
+        </div>
+        <div class="container" style="max-height: 100%; margin: auto; overflow: hidden;">
+            <img src="{% static 'media/background/lizard2.jpg' %}" alt="Background lizard" style="max-height: 100%; width: auto; margin-top: -80px;">
+        </div>
+    </div>
+</header>
+
+<main class="container" style="margin-top: 15vh;">
+     {% block content %}{% endblock %}
+</main>
+
+<footer class="container">
+    <div class="grid">
+        <nav>
+        <ul>
+            {% if user.is_authenticated %}
+              <li><small>Hi {{ user.username }}!</small><br></li>
+            {% endif %}
+        </ul>
+        <ul>
+           <li><a href="https://github.com/Cybernetic-Ransomware">Credits</a></li>
+        </ul>
+         <ul>
+            {% if user.is_authenticated %}
+            <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
+            <li><a role="button" class="secondary outline" href="{% url 'logout' %}">Logout</a></li>
+            {% else %}
+            <li><a role="button" class="secondary outline" href="{% url 'login' %}">Login</a></li>
+            <li><a role="button" class="secondary outline" href="{% url 'register' %}">Register</a></li>
+            {% endif %}
+        </ul>
+        </nav>
+    </div>
+</footer>
+
+</body>
+</html>
