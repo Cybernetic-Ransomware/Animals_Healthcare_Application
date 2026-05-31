@@ -1,32 +1,28 @@
 {% extends 'homepage/base.html' %}
 {% load static %}
-
-
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/stable_grid.css' %}">
+{% endblock %}
 {% block content %}
 
-  <h3>Placeholder title</h3>
-  <p>Placeholder paragraph</p>
     {% if user.is_authenticated %}
 
-    <div class="container">
+    <div>
         {% if animals %}
-            <br>
-            <link rel="stylesheet" type="text/css" href="{% static 'css/stable_grid.css' %}">
             <h3>All pets:</h3>
             <div class="stable_grid">
-            {% for animal in animals %}
-                {% include "partials/animal_card.html" %}
-            {% endfor %}
+                {% for animal in animals %}
+                    {% include "partials/animal_card.html" %}
+                {% endfor %}
             </div>
         {% endif %}
-
     </div>
+
     <h4>Operations:</h4>
     <div class="grid">
-        <a role="button" class="secondary outline" style="visibility: hidden" href="#">Placeholder</a>
-        <a role="button" class="secondary outline" style="visibility: hidden" href="#">Placeholder</a>
         <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
     </div>
+
     {% endif %}
 
 {% endblock %}

@@ -67,9 +67,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.postgres",
-    "crispy_forms",
-    "crispy_bootstrap4",
-    "bootstrap_modal_forms",
     "taggit",
     "ahc.apps.homepage.apps.HomepageConfig",
     "ahc.apps.users.apps.UsersConfig",
@@ -106,10 +103,6 @@ TEMPLATES = [
         },
     },
 ]
-
-
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
-CRISPY_TEMPLATE_PACK = "bootstrap4"
 
 
 WSGI_APPLICATION = "ahc.wsgi.application"

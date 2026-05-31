@@ -1,35 +1,34 @@
 const link = document.getElementById('togglePinnedButton');
 
-link.addEventListener('click', async function(event) {
-  event.preventDefault();
+if (link) {
+  link.addEventListener('click', async function(event) {
+    event.preventDefault();
 
-  const animalId = link.dataset.animalId;
-  const action = link.dataset.action;
-  const newAction = (action === 'add') ? 'remove' : 'add';
+    const animalId = link.dataset.animalId;
+    const action = link.dataset.action;
+    const newAction = (action === 'add') ? 'remove' : 'add';
 
-  try {
-    const response = await fetch(link.href, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify({animal_id: animalId, action: action}),
-    });
+    try {
+      const body = new URLSearchParams({animal_id: animalId, action: action});
+      const response = await fetch(link.href, {
+          method: 'POST',
+          headers: {
+              'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: body,
+      });
 
-    if (!response.ok) {
-      throw new Error('Request failed: ' + response.statusText);
+      if (!response.ok) {
+        throw new Error('Request failed: ' + response.statusText);
+      }
+
+      link.dataset.action = newAction;
+      link.innerText = (newAction === 'add') ? 'Add to Pinned' : 'Remove from Pinned';
+    } catch (error) {
+      console.error('Error:', error);
     }
-
-    link.dataset.action = newAction;
-    link.innerText = (newAction === 'add') ? 'Add to Pinned' : 'Remove from Pinned';
-
-    const result = await response.json();
-    console.log(result); // Check the result in the console
-  } catch (error) {
-    console.error('Error:', error);
-  }
-});
+  });
+}
 
 function getCookie(name) {
   let cookieValue = null;

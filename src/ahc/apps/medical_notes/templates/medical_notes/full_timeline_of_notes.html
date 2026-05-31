@@ -1,143 +1,122 @@
 {% extends "homepage/base.html" %}
 {% load static %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/hide_large_description.css' %}">
+{% endblock %}
 {% block content %}
 
 {% for note, form in notes %}
-<article class="media content-section">
-    <div class="media-body">
-        <a class="mr-2" href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>
-        <div class="article-metadata">
-            <small class="text-muted">{{ note.date_creation }}</small>
-            <br>
-            <small class="text-muted">
+<article>
+    <header>
+        <a href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>
+        <br>
+        <small>{{ note.date_creation }}</small>
+        <br>
+        <small>
             Type:
-            <a class="mr-2" href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}type_of_event={{ note.type_of_event }}">{{ note.type_of_event }}</a>
-            </small>
-        </div>
-        <br>
-        <p class="article-content">{{ note.short_description }}</p>
+            <a href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}type_of_event={{ note.type_of_event }}">{{ note.type_of_event }}</a>
+        </small>
+    </header>
 
-        <br>
-            <div>
-            <h4>Appendixes:</h4>
-                {% for attachment in note.attachments.all %}
-                    <div class="grid" style="grid-template-columns: 1fr 2fr 2fr 1fr 1fr">
-                    <div>
-                        <p>Uploaded: {{ attachment.upload_date }}</p>
-                    </div>
-                    <div>
-                        <a href="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}" download="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}">
-                            Download: {{ attachment.file_name }}
-                        </a>
-                    </div>
-                    <div>
-                        <link rel="stylesheet" type="text/css" href="{% static 'css/hide_large_description.css' %}">
-                        {% if not attachment.description %}
+    <p>{{ note.short_description }}</p>
+
+    <div>
+        <h4>Appendixes:</h4>
+        {% for attachment in note.attachments.all %}
+            <div class="grid">
+                <div>
+                    <p>Uploaded: {{ attachment.upload_date }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}"
+                       download="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}">
+                        Download: {{ attachment.file_name }}
+                    </a>
+                </div>
+                <div>
+                    {% if attachment.description %}
+                        <p class="truncate" data-full-text="{{ attachment.description }}">{{ attachment.description }}</p>
+                    {% else %}
                         <p>No description</p>
-                        {% else %}
-                         <p class="truncate" data-full-text="{{ attachment.description }}">{{ attachment.description }}</p>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <a href="{% url 'attachment_edit' pk=attachment.id %}">
-                            <button type="button" class="btn btn-danger btn-link inline">
-                                Edit
-                            </button>
-                        </a>
-                    </div>
-                    <div>
-                        <a href="{% url 'attachment_delete' pk=attachment.id %}">
-                            <button type="button" class="btn btn-danger btn-link inline">
-                                Delete
-                            </button>
-                        </a>
-                    </div>
-                    </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <a role="button" class="secondary outline" href="{% url 'attachment_edit' pk=attachment.id %}">Edit</a>
+                </div>
+                <div>
+                    <a role="button" class="secondary outline" href="{% url 'attachment_delete' pk=attachment.id %}">Delete</a>
+                </div>
+            </div>
+        {% endfor %}
 
-                {% endfor %}
-            <form method="post" action="{% url 'full_timeline_of_notes' pk=note.animal.id %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit">Set appendix</button>
-            </form>
-            {% if messages %}
-                <ul class="messages">
-                    {% for message in messages %}
-                        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-            <br>
+        <form method="post" action="{% url 'full_timeline_of_notes' pk=note.animal.id %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% include "partials/form_fields.html" %}
+            <button type="submit">Set appendix</button>
+        </form>
+    </div>
 
-        </div>
+    {% if note.additional_animals.all %}
+        <p>Related also to:
+            {% for animal in note.additional_animals.all %}
+                <a href="{% url 'animal_profile' pk=animal.id %}">{{ animal.full_name }}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+    {% endif %}
 
-
-        {% if note.additional_animals.all|length != 0 %}
-            <p class="article-content">Related also to:
-                {% for animal in note.additional_animals.all %}
-                    <a class="mr-2" href="{% url 'animal_profile' pk=animal.id %}">{{ animal.full_name }}</a>{% if not forloop.last %},{% endif %}
-                {% endfor %}
-            </p>
-        {% endif %}
-
-        {% if note.note_tags.all %}
+    {% if note.note_tags.all %}
         <p>
             Tags:
             {% for tag in note.note_tags.all %}
-            <a class="mr-2" href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}tag_name={{ tag.slug }}">#{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}            {% endfor %}
+                <a href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}tag_name={{ tag.slug }}">#{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
         </p>
-        {% endif %}
+    {% endif %}
+
+    <footer>
         <div class="grid">
-            <a class="text-muted" href="{% url 'note_edit' pk=note.id %}">View full note</a>
-            <a class="text-muted" href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
+            <a href="{% url 'note_edit' pk=note.id %}">View full note</a>
+            <a href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
             {% if note.type_of_event == 'diet_note' %}
-            <a class="text-muted" href="{% url 'note_related_diets' pk=note.id%}">View diet</a>
-{#            <a class="text-muted" href="{% url 'notification_create' pk=note.id%}">Add notification</a>#}
-            <a class="text-muted" href="{% url 'note_related_notifications' %}?mednote_uuid={{ note.id }}">Check notifications</a>
+                <a href="{% url 'note_related_diets' pk=note.id %}">View diet</a>
+                <a href="{% url 'note_related_notifications' %}?mednote_uuid={{ note.id }}">Check notifications</a>
             {% endif %}
-            <a class="text-muted" href="{% url 'note_delete' pk=note.id %}">Delete</a>
+            <a href="{% url 'note_delete' pk=note.id %}">Delete</a>
         </div>
-    </div>
+    </footer>
 </article>
 {% endfor %}
 
 <div class="grid">
-
-    <div class="border-top pt-3">
-        <small class="text-muted">
-            <a class="ml-2" href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet
-                profile</a>
+    <div>
+        <small>
+            <a href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet profile</a>
         </small>
-
     </div>
 
     {% if paginator.page_range|length > 1 %}
-    <div>
-    <small class="text-muted">
-        Pages:
-    </small>
+    <nav>
+        <small>Pages:</small>
 
-    {% if page_obj.has_previous %}
-    <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
-    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% if page_obj.has_previous %}
+            <a role="button" class="secondary outline" href="?page=1">First</a>
+            <a role="button" class="secondary outline" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+
+        {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+                <a role="button" href="?page={{ num }}">{{ num }}</a>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a role="button" class="secondary outline" href="?page={{ num }}">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a role="button" class="secondary outline" href="?page={{ page_obj.next_page_number }}">Next</a>
+            <a role="button" class="secondary outline" href="?page={{ paginator.num_pages }}">Last</a>
+        {% endif %}
+    </nav>
     {% endif %}
-
-
-    {% for num in paginator.page_range %}
-    {% if page_obj.number == num %}
-    <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
-    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-    <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
-    {% endif %}
-    {% endfor %}
-
-    {% if page_obj.has_next %}
-    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
-    <a class="btn btn-outline-info mb-4" href="?page={{ paginator.num_pages }}">Last</a>
-    {% endif %}
-    </div>
-    {% endif %}
-
 </div>
 
 {% endblock %}

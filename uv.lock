@@ -93,13 +93,10 @@ source = { virtual = "." }
 dependencies = [
     { name = "celery" },
     { name = "cffi" },
-    { name = "crispy-bootstrap4" },
     { name = "cryptography" },
     { name = "defusedxml" },
     { name = "discord" },
     { name = "django" },
-    { name = "django-bootstrap-modal-forms" },
-    { name = "django-crispy-forms" },
     { name = "django-taggit" },
     { name = "django-timezone-field" },
     { name = "djangorestframework" },
@@ -133,13 +130,10 @@ dev = [
 requires-dist = [
     { name = "celery", specifier = ">=5.4" },
     { name = "cffi", specifier = ">=1.17" },
-    { name = "crispy-bootstrap4" },
     { name = "cryptography", specifier = ">=43" },
     { name = "defusedxml" },
     { name = "discord" },
     { name = "django", specifier = ">=6.0,<6.1" },
-    { name = "django-bootstrap-modal-forms" },
-    { name = "django-crispy-forms" },
     { name = "django-taggit" },
     { name = "django-timezone-field", specifier = ">=6.1" },
     { name = "djangorestframework", specifier = ">=3.14" },
@@ -479,19 +473,6 @@ wheels = [
 ]
 
 [[package]]
-name = "crispy-bootstrap4"
-version = "2026.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-    { name = "django-crispy-forms" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5b/cc/638d36595da9fbb2c9d0be98bf6007442a65a521b614cf4645d04311b061/crispy_bootstrap4-2026.2.tar.gz", hash = "sha256:66f8f14bf9c2c16ed94243236ed253a94e5a625afa1ee64022ce29db98c6cd85", size = 34645, upload-time = "2026-02-11T22:45:05.422Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/6d/b90d601ea2449cc6b35b4b08be90fb1f6ca1baf2be383ed195f7bfa91a32/crispy_bootstrap4-2026.2-py3-none-any.whl", hash = "sha256:4b2b99dfe3e3cacb548702159462110901bd38792b650b770e50c62284ac2227", size = 23178, upload-time = "2026-02-11T22:45:04.108Z" },
-]
-
-[[package]]
 name = "cryptography"
 version = "48.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -599,30 +580,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5e/f1/bf85f0d29ef76abf901f193fe8fef4769d3da7794197832bc30151c071d8/django-6.0.5.tar.gz", hash = "sha256:bc6d6872e98a2864c836e42edd644b362db311147dd5aa8d5b82ba7a032f5269", size = 10924131, upload-time = "2026-05-05T13:54:39.329Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/94/5b/1328f8b84fce040c404f76822bf8c57d254e368e8cbd8bd67ec2b26d75f5/django-6.0.5-py3-none-any.whl", hash = "sha256:9d58a7cb49244e74c8e161d5e403a46d6209f1009ba40f5a66d6aa0d0786a8f0", size = 8368680, upload-time = "2026-05-05T13:54:33.532Z" },
-]
-
-[[package]]
-name = "django-bootstrap-modal-forms"
-version = "3.0.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/92/d1d37315c897e2ad311242d617d87e26f507e0446bdfd6a0ef265501d138/django_bootstrap_modal_forms-3.0.5.tar.gz", hash = "sha256:322930953c68e1dcd4c5dc073612c77ff4d68c46074a55d98db2de6e7860050b", size = 38292, upload-time = "2024-09-28T13:39:55.656Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/e7/84a437e7d413e14627b82d6f3478960d01e88b5e927f673cee536e6907ba/django_bootstrap_modal_forms-3.0.5-py3-none-any.whl", hash = "sha256:e56bbe05fb29c5aa9e0f3c0277b0d8363b81cc6c4e4aaf152cedea883edae58a", size = 29560, upload-time = "2024-09-28T13:39:53.645Z" },
-]
-
-[[package]]
-name = "django-crispy-forms"
-version = "2.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/73/42/c2cfb672493730b963ef377b103e29871c56348a215d0ae8cf362fe8ab1e/django_crispy_forms-2.6.tar.gz", hash = "sha256:4921a1087c6cd4f9fa3c139654c1de1c1c385f8bd6729aaee530bc0121ab4b93", size = 1097838, upload-time = "2026-03-01T09:03:37.138Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/e3/4c5915a732d6ab54da8871400852b67529518eedfb6b78ecf10bbccfcabb/django_crispy_forms-2.6-py3-none-any.whl", hash = "sha256:8ee0ae28b6b0ac41ff48a65944480c049fe8d1b0047086874fd7efabf4ec1374", size = 31479, upload-time = "2026-03-01T09:03:36.048Z" },
 ]
 
 [[package]]

@@ -1,39 +1,35 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const typeOfEventField = document.getElementById('id_record_type');
+    if (!typeOfEventField) return;
+
+    const weightField = document.getElementById('field_weight');
+    const weightUnitField = document.getElementById('field_weight_unit_to_present');
+    const heightField = document.getElementById('field_height');
+    const heightUnitField = document.getElementById('field_height_unit_to_present');
+    const customNameField = document.getElementById('field_custom_name');
+    const customValueField = document.getElementById('field_custom_value');
+    const customUnitField = document.getElementById('field_custom_unit');
+
+    const allOptional = [weightField, weightUnitField, heightField, heightUnitField, customNameField, customValueField, customUnitField];
+
+    function show(...fields) {
+        allOptional.forEach(f => { if (f) f.style.display = 'none'; });
+        fields.forEach(f => { if (f) f.style.display = 'block'; });
+    }
+
     function handleTypeOfEventChange() {
-        const typeOfEventField = document.getElementById('id_record_type');
-        const weightField = document.getElementById('div_id_weight');
-        const weightUnitField = document.getElementById('div_id_weight_unit_to_present');
-        const heightField = document.getElementById('div_id_height');
-        const heightUnitField = document.getElementById('div_id_height_unit_to_present');
-        const customNameField = document.getElementById('div_id_custom_name');
-        const customValueField = document.getElementById('div_id_custom_value');
-        const customUnitField = document.getElementById('div_id_custom_unit');
-
-        const selectedRecordType = typeOfEventField.value;
-
-        weightField.style.display = 'none';
-        weightUnitField.style.display = 'none';
-        heightField.style.display = 'none';
-        heightUnitField.style.display = 'none';
-        customNameField.style.display = 'none';
-        customValueField.style.display = 'none';
-        customUnitField.style.display = 'none';
-
-        if (selectedRecordType === 'weight') {
-            weightField.style.display = 'block';
-            weightUnitField.style.display = 'block';
-        } else if (selectedRecordType === 'height') {
-            heightField.style.display = 'block';
-            heightUnitField.style.display = 'block';
-        } else if (selectedRecordType === 'custom') {
-            customNameField.style.display = 'block';
-            customValueField.style.display = 'block';
-            customUnitField.style.display = 'block';
+        const value = typeOfEventField.value;
+        if (value === 'weight') {
+            show(weightField, weightUnitField);
+        } else if (value === 'height') {
+            show(heightField, heightUnitField);
+        } else if (value === 'custom') {
+            show(customNameField, customValueField, customUnitField);
+        } else {
+            show();
         }
     }
 
     handleTypeOfEventChange();
-
-    const typeOfEventField = document.getElementById('id_record_type');
     typeOfEventField.addEventListener('change', handleTypeOfEventChange);
 });

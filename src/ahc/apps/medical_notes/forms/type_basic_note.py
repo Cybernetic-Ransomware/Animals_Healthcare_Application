@@ -1,10 +1,6 @@
 from django import forms
 
-# from animals.models import Animal as AnimalProfile
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
-
-# from django.core.validators import MaxLengthValidator, MinLengthValidator
-# from django.db.models import Q
 
 
 class MedicalRecordForm(forms.ModelForm):
@@ -102,7 +98,6 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        print(cleaned_data)
         animal = cleaned_data.get("animal")
         additional_animals = cleaned_data.get("additional_animals")
 
@@ -126,7 +121,6 @@ class UploadAppendixForm(forms.ModelForm):
         cleaned_data = super().clean()
         file = self.cleaned_data.get("file")
         medical_record_id = self.cleaned_data.get("medical_record_id")
-        print(f"{medical_record_id=}")
 
         if file and file.size > self.MAX_FILE_SIZE:
             raise forms.ValidationError("Files of size above 15MB are not allowed")

@@ -1,115 +1,79 @@
 {% extends "homepage/base.html" %}
-{% load custom_file_name %}
+{% load custom_to_class_name %}
 {% block content %}
 
-
-<div class="headings" style="text-align: center">
-    <h2 >A notes related to PLACEHOLDER_FOR_MEDNOTE/FEEDNOTE/ANIMAL</h2>
-    <br>
+<div style="text-align: center">
+    <h2>Notifications for this record</h2>
 </div>
 
 {% for note in notifications %}
-<article class="media content-section">
-    <div class="media-body">
-        <div class="article-metadata">
+<article>
+    <header>
+        {% if note|to_class_name == "EmailNotification" %}
+            <h4>Email Notification</h4>
+            <small>Email: {{ note.email }}</small>
+        {% elif note|to_class_name == "SMSNotification" %}
+            <h4>SMS Notification</h4>
+            <small>Number: +{{ note.country_code }} {{ note.number }}</small>
+        {% elif note|to_class_name == "DiscordNotification" %}
+            <h4>Discord Notification</h4>
+            <small>User ID: {{ note.user_id }}</small>
+        {% else %}
+            <h4>Notification</h4>
+        {% endif %}
+    </header>
 
-            {% if note|to_class_name == "EmailNotification" %}
-            <div class="notification-info">
-                <h4>Email Notification:</h4>
-                <small class="text-muted">Email: {{ note.email }}</small>
-            </div>
-            {% endif %}
+    {% if note.description %}
+        <p>Description: {{ note.description }}</p>
+        <p>Is active: {{ note.is_active }}</p>
+    {% endif %}
 
-            {% if note|to_class_name == "SMSNotification" %}
-            <div class="notification-info">
-                <h4>SMS Notification:</h4>
-                <small class="text-muted">Number: +{{ note.country_code }} {{ note.number }}</small>
-            </div>
-            {% endif %}
+    <p>Time of sending: {{ note.daily_timestamp }} for timezone: {{ note.timezone }}</p>
+    <p>Period: {{ note.start_date }} – {% if note.end_date %}{{ note.end_date }}{% else %}ongoing{% endif %}</p>
 
-            {% if note|to_class_name == "DiscordNotification" %}
-            <div class="notification-info">
-                <h4>Discord Notification:</h4>
-                <small class="text-muted">User ID: {{ note.user_id }}</small>
-                <small class="text-muted">Server: PLACEHOLDER</small>
-            </div>
-            {% endif %}
+    <table>
+        <thead>
+            <tr>
+                <th scope="col">Mon</th>
+                <th scope="col">Tue</th>
+                <th scope="col">Wed</th>
+                <th scope="col">Thu</th>
+                <th scope="col">Fri</th>
+                <th scope="col">Sat</th>
+                <th scope="col">Sun</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                {% for day in note.days_of_week %}
+                    <td>{% if day %}<span aria-label="active">✅</span>{% endif %}</td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
 
-            {% if note.description %}
-            <small class="text-muted">
-                Description: {{ note.description }}
-            </small>
-            <br>
-            <small class="text-muted">
-                Is Active: {{ note.is_active }}
-            </small>
-            <br>
-            <br>
-            {% endif %}
-            <small class="text-muted">
-                Time of sending: {{ note.daily_timestamp }} for timezone: {{ note.timezone }}
-            </small>
-            <br>
-            <small class="text-muted">
-                Period: {{ note.start_date }} - {% if note.end_date %}{{ note.end_date }}{% else %} n/d {% endif %}
-            </small>
-            <br>
-            <br>
-            <small class="text-muted">
-                Days of week:
-                <br>
-                <table>
-                    <tr>
-                        <td>MONDAY</td>
-                        <td>TUESDAY</td>
-                        <td>WEDNESDAY</td>
-                        <td>THURSDAY</td>
-                        <td>FRIDAY</td>
-                        <td>SATURDAY</td>
-                        <td>SUNDAY</td>
-                    </tr>
-                    <tr>
-                        {% for day in note.days_of_week %}
-                            <td>{% if day %}✅{% endif %}</td>
-                        {% endfor %}
-                    </tr>
-                </table>
-            </small>
+    <article>
+        <header>The message to send:</header>
+        <p>Receiver: {{ note.receiver_name }}</p>
+        <small>{{ note.message }}</small>
+    </article>
 
-            <br>
-            <article>
-            <header>The message to send:</header>
-            <p>Receiver: {{ note.receiver_name }}</p>
-            <small class="text-muted">{{ note.message }}</small>
-            </article>
-
-            <small class="text-muted" style="float: right">Latest changed: {{ note.last_modification }}</small>
-            <br>
-
-        </div>
-        <br>
-            <div class="container, align-right">
-                <div class="grid"></div>
-                  <form method="post" action="{% url 'notification_change_active' pk=note.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="secondary outline">
-                      {% if object.is_active %}
-                        Set inactive
-                      {% else %}
-                        Set active
-                      {% endif %}
-                    </button>
-                  </form>
-    {#            <form method="post" action="{% url 'note_related_notifications_delete' pk=note.pk %}">#}
+    <footer>
+        <small>Latest changed: {{ note.last_modification }}</small>
+        <div class="grid">
+            <form method="post" action="{% url 'notification_change_active' pk=note.pk %}">
                 {% csrf_token %}
                 <button type="submit" class="secondary outline">
-                Delete
+                    {% if note.is_active %}Set inactive{% else %}Set active{% endif %}
                 </button>
-                </form>
-    {#            <a role="button" class="secondary outline" href="#">Set inactive</a>#}
-    {#            <a role="button" class="secondary outline" href="#">Delete</a>#}
-            </div>
-    </article>
+            </form>
+            <form method="post" action="{% url 'note_related_notifications_delete' pk=note.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="secondary outline">Delete</button>
+            </form>
+        </div>
+    </footer>
+</article>
 {% endfor %}
 
 {% endblock %}

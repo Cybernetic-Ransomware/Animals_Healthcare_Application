@@ -13,3 +13,19 @@
   --pico-secondary-underline: rgba(187, 187, 187, 0.5);
   --pico-secondary-inverse: #000;
 }
+
+/* Animal card: background image overlay button */
+.btn-with-bg {
+  background-size: cover;
+  background-position: center;
+  min-height: 8rem;
+  display: flex;
+  align-items: flex-end;
+  padding: 0.5rem;
+}
+
+/* Form validation error hint */
+.form-error {
+  color: var(--pico-color-red-500, #e53e3e);
+  display: block;
+}
