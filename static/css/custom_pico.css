@@ -25,6 +25,49 @@ body {
 
 main {
   flex: 1;
+  padding-top: 2rem;
+}
+
+/* Tab navigation bar — sits between header and main, override in {% block tab_nav %} */
+.tab-nav {
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  background: var(--pico-background-color);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tab-nav ul {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0 var(--pico-spacing);
+  list-style: none;
+  overflow-x: auto;
+}
+
+.tab-nav ul li a {
+  display: block;
+  padding: 0.75rem 1.25rem;
+  font-family: var(--ahc-font-display);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--pico-muted-color);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-nav ul li a:hover {
+  color: var(--pico-color);
+  border-bottom-color: var(--pico-muted-border-color);
+  text-decoration: none;
+}
+
+.tab-nav ul li a.active {
+  color: var(--pico-primary);
+  border-bottom-color: var(--pico-primary);
 }
 
 h1, h2, h3, h4, h5, h6 {
