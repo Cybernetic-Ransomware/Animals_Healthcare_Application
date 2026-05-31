@@ -1,21 +1,4 @@
 {% extends "homepage/base.html" %}
 {% block content %}
-    <div class="content-section">
-        <div>
-            <img src="{{ user.profile.image.url }}" alt="User's profile picture">
-            <div>
-                <h2>{{ user.username }}</h2>
-                <p><small>{{ user.email }}</small></p>
-            </div>
-        </div>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <fieldset>
-                <legend>Profile info</legend>
-                {% include "partials/form_fields.html" with form=user_form %}
-                {% include "partials/form_fields.html" with form=profile_update %}
-            </fieldset>
-            <button type="submit">Update</button>
-        </form>
-    </div>
+    {% include "partials/user_profile_section.html" %}
 {% endblock %}

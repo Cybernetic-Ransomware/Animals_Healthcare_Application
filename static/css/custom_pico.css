@@ -14,6 +14,11 @@
   --pico-secondary-inverse: #000;
 }
 
+/* Centered section/page headings */
+.welcome-heading {
+  text-align: center;
+}
+
 /* Animal card: background image overlay button */
 .btn-with-bg {
   background-size: cover;

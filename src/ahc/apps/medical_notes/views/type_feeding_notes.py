@@ -97,7 +97,7 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 
 class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
-    template_name = "medical_notes/create_notify.html"
+    template_name = "medical_notes/create.html"
     form_class = NotificationRecordForm
     success_url = "/"
 
