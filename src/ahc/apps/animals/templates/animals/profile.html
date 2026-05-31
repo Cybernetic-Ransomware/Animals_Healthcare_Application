@@ -12,13 +12,13 @@
 {% endblock %}
 {% block content %}
     <div class="content-section">
-        <div>
-            <a href="{% url 'upload_image' pk=animal.id %}">
+        <div class="animal-profile-hero">
+            <a class="animal-profile-hero__img" href="{% url 'upload_image' pk=animal.id %}">
                 <img src="{{ animal.profile_image.url }}"
                      alt="Animal's profile picture"
                      title="Change a picture">
             </a>
-            <div class="content-section">
+            <div class="animal-profile-hero__info">
                 <h2>{{ animal.full_name }}</h2>
 
                 {% if animal.birthdate %}

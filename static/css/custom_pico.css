@@ -84,6 +84,36 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
 }
 
+/* Animal profile hero: image left, info right */
+.animal-profile-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.animal-profile-hero__img {
+  flex-shrink: 0;
+}
+
+.animal-profile-hero__img img {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.animal-profile-hero__info {
+  flex: 1;
+  min-width: 180px;
+}
+
+.animal-profile-hero__info h2 {
+  margin-top: 0;
+}
+
 /* Animal card: 48×48 thumbnail on left, name on right */
 .animal-card {
   display: flex;
