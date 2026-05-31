@@ -78,6 +78,12 @@
   color: var(--timeline-crystal);
 }
 
+.records-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .timeline ol::-webkit-scrollbar {
   height: 12px;
 }
