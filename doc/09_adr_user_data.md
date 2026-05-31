@@ -52,6 +52,7 @@ Full field list: see `users/models.py`.
 Split into sub-models by note type. See `medical_notes/models/` for current field lists.
 Core fields: `animal` (FK), `title`, `short_description`, `full_description`, `creation_date`,
 `modify_date`, `start_event_date`, `end_event_date`, `type_of_event`.
+`FeedingNote` additionally carries `purchase_source` (CharField 250, optional) — where to buy the product.
 
 ### Consequences
 - `Animal` fields are edited through the `Change*` pipeline documented in `CLAUDE.md` (Animals App — Conventions).

@@ -1,50 +1,40 @@
-## To create a core functionality as a scope of Animals Healthcare Application project
+## Core functionality scope of the Animals Healthcare Application
 
-
-### Date: 
+### Date
 `2023-06-04`
-
 
 ### Status
 In-building
 
-
 ### Context
-We need to create a list of main functions to define business justification of first version of an application and decide what functionality should be canceled or suspended to further implementation in next releases.
-
+A list of main functions was needed to define the business scope of the first version of the application
+and to decide what functionality should be deferred to future releases.
 
 ### Decision
+Initial brainstorm produced the following feature list:
 
-A first brainstorm created a list of basic functions expectted to implement:
-- Create a databases to contain at least data like:
-	- Profiles of animals (starting examples based on chinchilas: age, weight, size, food preferences etc.)
-	- Profiles of users (not nessesery an owner),
-	- Profiles of Healtcare places (address, geographic location, historical prices, ratings of individual personnel) and vets of different specialisations (internist, ophthalmologist, dentist, surgeon etc.)
-	- Different types of calendars (medical visits, bought info of food and feeding's periods, medicines dosage),
-	- Keeping medical records received from vets in .pdf formats,
-- Generate static diagrams on button demand, like a charts of weight and consumed amount of medicines,
-- Creat sticky notes kanboard to manage a feeding period per purchased food,
-- Sending visit notifications via at least one of: sms, whatsap, messenger, e-mail, discord,
-- Printable notes and charts into pdf reports,
-- Synchronization into a google calendar,
-- Basic API to consider a transfer of charts into Dash-Plotly.
+In scope (first version):
+- Animal profiles (age, weight, size, food preferences, etc.)
+- User profiles (owner and carers)
+- Healthcare place and vet profiles (address, historical prices, ratings)
+- Medical calendars (visits, feeding periods, medicine dosage)
+- Medical record storage (.pdf attachments via CouchDB — see ADR-08)
+- Static charts on demand (weight, medicine consumption)
+- Visit notifications via at least one channel (Discord implemented; SMS/email deferred)
 
-List to-do's suspended until next iterations of application:
-- Interactive dashboards,
-- Implementation all of proposed notification methods,
-- Direct chat between users, without using animal's notes.
-
+Deferred to future iterations:
+- Sticky-note kanban for feeding period tracking
+- Printable PDF reports
+- Google Calendar synchronisation
+- Interactive dashboards (Dash-Plotly microservice — see ADR-05)
+- All notification channels beyond Discord (SMS, WhatsApp, Messenger)
+- Direct chat between users
 
 ### Consequences
-An effortful list of functionality has been created to exercise a building process of web applications.
-The demands have been divided into quickly attainable goals, leaving a basic draft of a further development.
-
+The feature set was scoped to an achievable first version, leaving a documented backlog for future iterations.
+Deferred features are recorded here rather than in code as TODO comments.
 
 ### Keywords
--   init,
--   functionality,
--   scope of project.
-
+- init, functionality, scope of project
 
 ### Links
-	pass

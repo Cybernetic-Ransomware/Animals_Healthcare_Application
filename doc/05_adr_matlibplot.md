@@ -1,50 +1,40 @@
-## To create a technology to chart visualisations of data
+## Chart visualisation technology — Matplotlib first, Chart.js next
 
-
-### Date: 
+### Date
 `2023-06-05`
-
 
 ### Status
 Proposed
 
-
 ### Context
-We need to choose a technology to create charts for the application.\
-Considered approaches:
-- [x] Static charts:
-	- [x] Matplotlib,
+A technology was needed to render charts (weight trends, medicine consumption, etc.) in the application.
 
+Two categories of solutions were considered:
 
-- [ ] Interactive dashboards:
-	- [ ] Dash-Plotly microservice,
-    - [x] Chart.js,
-
+- **Static charts** (server-rendered image): Matplotlib.
+- **Interactive dashboards** (client-side): Chart.js (in-page JS), Dash-Plotly (separate microservice).
 
 ### Decision
-To avoid the proliferation of microservices, a decision has been made to prototype using a static method of generating charts.
-The presented data is not expected to require frequent refreshing and filtering of the range.
+**Phase 1 — Matplotlib** (static server-rendered charts): chosen to avoid adding a JavaScript dependency
+or a microservice before the core application is stable. The data (biometric records, weight history)
+does not require real-time filtering in the initial version.
 
+**Phase 2 — Chart.js** (planned): once the static prototype is validated, Chart.js will be evaluated
+as a drop-in replacement. It runs in-browser without a build pipeline, making it compatible with the
+no-build-step constraint from ADR-11. Dash-Plotly is deferred indefinitely (it would require
+a separate microservice — see ADR-03).
 
 ### Consequences
-A faster development process and the possibility of future functionality replacement.
-After preparing the static prototype, tests with Chart.js will be carried out and the cost of implementation will be estimated.
-
+- Static Matplotlib charts are generated on-demand server-side and served as images.
+- Switching to Chart.js later requires replacing the server-side render path with a JSON data endpoint
+  and a JS chart component — scoped work, no architectural change.
+- Dash-Plotly is not planned unless interactive dashboards become a core requirement.
 
 ### Keywords
--   Matplotlib,
--   Dash Plotly,
--   Dashboards,
--   Charts,
--   Data visualisation.
-
+- Matplotlib, Chart.js, Dash Plotly, dashboards, charts, data visualisation
 
 ### Links
 *[2023-06-14]*\
-Homepages:
-
-	https://matplotlib.org/
-
-    https://dash.plotly.com/
-
-	https://www.chartjs.org/
+https://matplotlib.org/\
+https://www.chartjs.org/\
+https://dash.plotly.com/
