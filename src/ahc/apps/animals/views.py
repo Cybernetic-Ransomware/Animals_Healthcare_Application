@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import Http404, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.generic import TemplateView, View
 from django.views.generic.detail import DetailView
 from django.views.generic.edit import FormView
@@ -36,11 +38,53 @@ def _build_mainpage(request, animal: Animal) -> dict[str, Any]:
     return {}
 
 
+_TIMELINE_PER_PAGE = 20
+
+
+def _timeline_boundary_from_month(month_param: str) -> datetime | None:
+    """Return the start of the month AFTER month_param as an aware local datetime.
+
+    Used to filter records for a month-jump: records with date_creation < boundary
+    start exactly at the end of the target month.  Returns None on parse failure.
+    """
+    try:
+        target = date.fromisoformat(month_param + "-01")
+    except ValueError:
+        return None
+    first_of_next = date(target.year + 1, 1, 1) if target.month == 12 else date(target.year, target.month + 1, 1)
+    tz = timezone.get_current_timezone()
+    return timezone.make_aware(datetime(first_of_next.year, first_of_next.month, first_of_next.day, 0, 0, 0), tz)
+
+
 def _build_vet(request, animal: Animal) -> dict[str, Any]:
-    from ahc.apps.medical_notes.selectors import timeline_for
+    from ahc.apps.medical_notes.selectors import available_months_for, timeline_for
+
+    qs = timeline_for(animal, type_of_event="medical_visit").order_by("-date_creation")
+
+    month_param = request.GET.get("month")
+    before_param = request.GET.get("before")
+
+    if month_param and not before_param:
+        boundary = _timeline_boundary_from_month(month_param)
+        if boundary:
+            qs = qs.filter(date_creation__lt=boundary)
+    elif before_param:
+        before_dt = parse_datetime(before_param)
+        if before_dt:
+            qs = qs.filter(date_creation__lt=before_dt)
+
+    records = list(qs[: _TIMELINE_PER_PAGE + 1])
+    tl_has_more = len(records) > _TIMELINE_PER_PAGE
+    if tl_has_more:
+        records = records[:_TIMELINE_PER_PAGE]
 
     return {
-        "vet_records": timeline_for(animal, type_of_event="medical_visit").order_by("-date_creation"),
+        "vet_records": records,
+        "tl_has_more": tl_has_more,
+        "tl_next_before": records[-1].date_creation.isoformat() if records else None,
+        "tl_slug": "vet",
+        "scroll_to_month": month_param or "",
+        "available_months": available_months_for(animal, type_of_event="medical_visit"),
     }
 
 
@@ -61,7 +105,42 @@ def _build_medications(request, animal: Animal) -> dict[str, Any]:
 def _build_notes(request, animal: Animal) -> dict[str, Any]:
     from ahc.apps.medical_notes.selectors import other_records_for
 
-    return {"other_records": other_records_for(animal)}
+    qs = other_records_for(animal)
+
+    month_param = request.GET.get("month")
+    before_param = request.GET.get("before")
+
+    if month_param and not before_param:
+        boundary = _timeline_boundary_from_month(month_param)
+        if boundary:
+            qs = qs.filter(date_creation__lt=boundary)
+    elif before_param:
+        before_dt = parse_datetime(before_param)
+        if before_dt:
+            qs = qs.filter(date_creation__lt=before_dt)
+
+    records = list(qs[: _TIMELINE_PER_PAGE + 1])
+    tl_has_more = len(records) > _TIMELINE_PER_PAGE
+    if tl_has_more:
+        records = records[:_TIMELINE_PER_PAGE]
+
+    available_months = list(
+        other_records_for(animal).datetimes(
+            "date_creation",
+            "month",
+            order="DESC",
+            tzinfo=timezone.get_current_timezone(),
+        )
+    )
+
+    return {
+        "other_records": records,
+        "tl_has_more": tl_has_more,
+        "tl_next_before": records[-1].date_creation.isoformat() if records else None,
+        "tl_slug": "notes",
+        "scroll_to_month": month_param or "",
+        "available_months": available_months,
+    }
 
 
 def _build_ownership(request, animal: Animal) -> dict[str, Any]:
@@ -168,6 +247,8 @@ class AnimalTabView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def get_template_names(self):
         tab = self._get_tab()
         if self.request.headers.get("HX-Request"):
+            if self.request.GET.get("load_more") and tab.slug in ("vet", "notes"):
+                return [f"animals/tabs/partials/_timeline_nodes_{tab.slug}.html"]
             return [tab.template]
         return ["animals/profile.html"]
 

@@ -193,3 +193,44 @@
   margin-bottom: 8px;
   color: var(--timeline-midnight-green);
 }
+
+/* Month-start node: a wider segment with a month label above the line */
+.timeline ol li.month-start {
+  width: 200px;
+  background: var(--timeline-yellow);
+}
+
+.timeline ol li.month-start::before {
+  content: attr(data-month);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--timeline-midnight-green);
+  white-space: nowrap;
+  background: var(--timeline-yellow);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Controls area: month select and load-more button spacing */
+.records-actions select {
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.timeline-load-more div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Full-page timeline: month heading anchors */
+.timeline-controls {
+  margin-bottom: 1rem;
+}
+
+.timeline-controls select {
+  max-width: 220px;
+}

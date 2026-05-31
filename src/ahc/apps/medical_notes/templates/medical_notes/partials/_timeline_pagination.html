@@ -1,0 +1,48 @@
+{% if paginator.page_range|length > 1 %}
+<nav>
+    <small>Pages:</small>
+
+    {% if page_obj.has_previous %}
+        <a role="button" class="secondary outline"
+           href="?page=1{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-get="?page=1{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-target="#timeline-results"
+           hx-swap="innerHTML"
+           hx-push-url="true">First</a>
+        <a role="button" class="secondary outline"
+           href="?page={{ page_obj.previous_page_number }}{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-get="?page={{ page_obj.previous_page_number }}{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-target="#timeline-results"
+           hx-swap="innerHTML"
+           hx-push-url="true">Previous</a>
+    {% endif %}
+
+    {% for num in paginator.page_range %}
+        {% if page_obj.number == num %}
+            <a role="button" href="?page={{ num }}{% if base_query %}&{{ base_query }}{% endif %}">{{ num }}</a>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a role="button" class="secondary outline"
+               href="?page={{ num }}{% if base_query %}&{{ base_query }}{% endif %}"
+               hx-get="?page={{ num }}{% if base_query %}&{{ base_query }}{% endif %}"
+               hx-target="#timeline-results"
+               hx-swap="innerHTML"
+               hx-push-url="true">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+        <a role="button" class="secondary outline"
+           href="?page={{ page_obj.next_page_number }}{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-get="?page={{ page_obj.next_page_number }}{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-target="#timeline-results"
+           hx-swap="innerHTML"
+           hx-push-url="true">Next</a>
+        <a role="button" class="secondary outline"
+           href="?page={{ paginator.num_pages }}{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-get="?page={{ paginator.num_pages }}{% if base_query %}&{{ base_query }}{% endif %}"
+           hx-target="#timeline-results"
+           hx-swap="innerHTML"
+           hx-push-url="true">Last</a>
+    {% endif %}
+</nav>
+{% endif %}

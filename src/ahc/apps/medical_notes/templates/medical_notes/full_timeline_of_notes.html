@@ -5,96 +5,30 @@
 {% endblock %}
 {% block content %}
 
-{% for note, form in notes %}
-<article>
-    <header>
-        <a href="{% url 'animal_profile' pk=note.animal.id %}">{{ note.animal.full_name }}</a>
-        <br>
-        <small>{{ note.date_creation }}</small>
-        <br>
-        <small>
-            Type:
-            <a href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}type_of_event={{ note.type_of_event }}">{{ note.type_of_event }}</a>
-        </small>
-    </header>
-
-    <p>{{ note.short_description }}</p>
-
-    <div>
-        <h4>Appendixes:</h4>
-        {% for attachment in note.attachments.all %}
-            <div class="grid">
-                <div>
-                    <p>Uploaded: {{ attachment.upload_date }}</p>
-                </div>
-                <div>
-                    <a href="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}"
-                       download="{% url 'attachment_download' id=attachment.couch_id name=attachment.file_name %}">
-                        Download: {{ attachment.file_name }}
-                    </a>
-                </div>
-                <div>
-                    {% if attachment.description %}
-                        <p class="truncate" data-full-text="{{ attachment.description }}">{{ attachment.description }}</p>
-                    {% else %}
-                        <p>No description</p>
-                    {% endif %}
-                </div>
-                <div>
-                    <a role="button" class="secondary outline" href="{% url 'attachment_edit' pk=attachment.id %}">Edit</a>
-                </div>
-                <div>
-                    <a role="button" class="secondary outline" href="{% url 'attachment_delete' pk=attachment.id %}">Delete</a>
-                </div>
-            </div>
+{% if available_months %}
+<div class="timeline-controls">
+    <select
+        hx-get="{% url 'full_timeline_of_notes' pk=request.resolver_match.kwargs.pk %}"
+        hx-target="#timeline-results"
+        hx-swap="innerHTML"
+        hx-push-url="true"
+        hx-include="[name='type_of_event'],[name='tag_name']"
+        name="month"
+        aria-label="Jump to month">
+        <option value="">— Jump to month —</option>
+        {% for month in available_months %}
+        <option value="{{ month|date:'Y-m' }}" {% if scroll_to_month == month|date:"Y-m" %}selected{% endif %}>
+            {{ month|date:"F Y" }}
+        </option>
         {% endfor %}
+    </select>
+    {% if type_of_event %}<input type="hidden" name="type_of_event" value="{{ type_of_event }}">{% endif %}
+    {% if tag_name %}<input type="hidden" name="tag_name" value="{{ tag_name }}">{% endif %}
+</div>
+{% endif %}
 
-        <form method="post" action="{% url 'full_timeline_of_notes' pk=note.animal.id %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            {% include "partials/form_fields.html" %}
-            <button type="submit">Set appendix</button>
-        </form>
-    </div>
-
-    {% if note.additional_animals.all %}
-        <p>Related also to:
-            {% for animal in note.additional_animals.all %}
-                <a href="{% url 'animal_profile' pk=animal.id %}">{{ animal.full_name }}</a>{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        </p>
-    {% endif %}
-
-    {% if note.note_tags.all %}
-        <p>
-            Tags:
-            {% for tag in note.note_tags.all %}
-                <a href="{% url 'full_timeline_of_notes' pk=note.animal.id %}?{% if request.GET.type_of_event %}type_of_event={{ request.GET.type_of_event }}&{% endif %}tag_name={{ tag.slug }}">#{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-        </p>
-    {% endif %}
-
-    <footer>
-        <div class="grid">
-            <a href="{% url 'note_edit' pk=note.id %}">View full note</a>
-            <a href="{% url 'note_animals_edit' pk=note.id %}">Change related animals</a>
-            {% if note.type_of_event == 'diet_note' %}
-                <a href="{% url 'note_related_diets' pk=note.id %}">View diet</a>
-                <a href="{% url 'note_related_notifications' %}?mednote_uuid={{ note.id }}">Check notifications</a>
-            {% endif %}
-            <a href="{% url 'note_delete' pk=note.id %}">Delete</a>
-        </div>
-    </footer>
-</article>
-{% endfor %}
-
-<div class="grid">
-    <div>
-        <small>
-            <a href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet profile</a>
-        </small>
-    </div>
-
-    {% include "partials/pagination.html" %}
+<div id="timeline-results">
+    {% include "medical_notes/partials/_timeline_page.html" %}
 </div>
 
 {% endblock %}

@@ -35,11 +35,31 @@
                    hx-swap="innerHTML"
                    data-modal-title="Add vet visit">Add vet visit</a>
                 <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=medical_visit">View all visits</a>
+                {% if available_months %}
+                <select
+                    hx-get="{% url 'animal_tab' pk=animal.id slug='vet' %}"
+                    hx-target="#tab-panels"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    name="month"
+                    aria-label="Jump to month">
+                    <option value="">— Jump to month —</option>
+                    {% for month in available_months %}
+                    <option value="{{ month|date:'Y-m' }}" {% if scroll_to_month == month|date:"Y-m" %}selected{% endif %}>
+                        {{ month|date:"F Y" }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% endif %}
             </div>
         </div>
+        <span data-scroll-month="{{ scroll_to_month }}" hidden></span>
         {% if vet_records %}
         <ol>
             {% for record in vet_records %}
+            {% ifchanged record.date_creation|date:"Y-m" %}
+            <li class="month-start" id="tlmonth-vet-{{ record.date_creation|date:'Y-m' }}" data-month="{{ record.date_creation|date:'M Y' }}"></li>
+            {% endifchanged %}
             <li>
                 <div>
                     <time>{{ record.date_event_started|date:"Y-m-d" }}</time>
@@ -47,6 +67,17 @@
                 </div>
             </li>
             {% endfor %}
+            {% if tl_has_more %}
+            <li class="timeline-load-more" id="timeline-more-vet">
+                <div>
+                    <a role="button" class="secondary outline"
+                       href="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before }}&load_more=1"
+                       hx-get="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before }}&load_more=1"
+                       hx-target="#timeline-more-vet"
+                       hx-swap="outerHTML">Load older</a>
+                </div>
+            </li>
+            {% endif %}
             <li></li>
         </ol>
         {% else %}

@@ -7,7 +7,11 @@ inline ORM queries.
 
 from __future__ import annotations
 
+from datetime import date, datetime
+
+from django.db.models import DateTimeField as _DateTimeField
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from ahc.apps.animals.selectors import animals_visible_to, user_can_access_animal
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
@@ -41,6 +45,62 @@ def timeline_for(
     if tag_name:
         queryset = queryset.filter(note_tags__slug=tag_name)
     return queryset
+
+
+def available_months_for(
+    animal,
+    type_of_event: str | None = None,
+    tag_name: str | None = None,
+) -> list:
+    """Return distinct months (newest first) for which the animal has records.
+
+    Months are computed in the active timezone so they match what the template
+    renders via ``|date:"Y-m"``.  The returned list contains aware datetime
+    objects truncated to month precision (day=1, time=midnight).
+    """
+    return list(
+        timeline_for(animal, type_of_event=type_of_event, tag_name=tag_name).datetimes(
+            "date_creation",
+            "month",
+            order="DESC",
+            tzinfo=timezone.get_current_timezone(),
+        )
+    )
+
+
+def page_of_month(
+    queryset: QuerySet,
+    target_month: date,
+    per_page: int,
+    date_field: str = "date_creation",
+) -> int:
+    """Return the 1-based page number (newest-first order) containing target_month.
+
+    Counts how many records fall strictly after target_month (i.e. their date
+    is >= the first day of the following month), then divides by per_page.
+    Works for both DateTimeField (boundary is an aware local datetime) and
+    DateField (boundary is a plain date).
+
+    Pass the same ordered+filtered queryset used for pagination so that the
+    count is consistent with the actual pages produced.
+    """
+    if target_month.month == 12:
+        first_of_next = date(target_month.year + 1, 1, 1)
+    else:
+        first_of_next = date(target_month.year, target_month.month + 1, 1)
+
+    model_field = queryset.model._meta.get_field(date_field)
+    if isinstance(model_field, _DateTimeField):
+        tz = timezone.get_current_timezone()
+        boundary = timezone.make_aware(
+            datetime(first_of_next.year, first_of_next.month, first_of_next.day, 0, 0, 0),
+            tz,
+        )
+    else:
+        boundary = first_of_next
+
+    newer = queryset.filter(**{f"{date_field}__gte": boundary}).count()
+    return newer // per_page + 1
 
 
 def feeding_notes_for(medical_record) -> QuerySet:

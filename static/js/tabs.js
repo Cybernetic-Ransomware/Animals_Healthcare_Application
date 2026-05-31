@@ -41,5 +41,8 @@
         if (typeof initPinButton === "function") {
             initPinButton();
         }
+        if (typeof initTimelineJump === "function") {
+            initTimelineJump();
+        }
     });
 }());
