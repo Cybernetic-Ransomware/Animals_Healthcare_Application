@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ahc-app-backend
-          image: ahc_app-web:latest
+          image: ahc-app:latest
           imagePullPolicy: Never
           env:
             - name: PYTHONUNBUFFERED

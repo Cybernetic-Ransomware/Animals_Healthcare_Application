@@ -1,8 +1,7 @@
 /* Custom overrides on top of Pico 2.1.1 yellow theme.
  *
  * Secondary color: neutral grey #bbbbbb (instead of the default blue-grey).
- * --pico-secondary-border / --pico-secondary-hover-border inherit from
- * --pico-secondary / --pico-secondary-hover and do not need explicit overrides.
+ * Fonts: Bricolage Grotesque (headings) + DM Sans (body).
  */
 :root {
   --pico-secondary: #bbbbbb;
@@ -12,6 +11,19 @@
   --pico-secondary-focus: rgba(187, 187, 187, 0.25);
   --pico-secondary-underline: rgba(187, 187, 187, 0.5);
   --pico-secondary-inverse: #000;
+
+  --ahc-font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --ahc-font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--ahc-font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--ahc-font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 /* Centered section/page headings */
@@ -19,18 +31,98 @@
   text-align: center;
 }
 
-/* Animal card: background image overlay button */
-.btn-with-bg {
-  background-size: cover;
-  background-position: center;
-  min-height: 8rem;
-  display: flex;
-  align-items: flex-end;
-  padding: 0.5rem;
-}
-
 /* Form validation error hint */
 .form-error {
   color: var(--pico-color-red-500, #e53e3e);
   display: block;
+}
+
+/* Site header: Pico's .grid provides the 2-col layout; we add height + clip */
+.site-header {
+  padding-block: 0;
+}
+
+.site-header__inner {
+  height: 120px;
+  overflow: hidden;
+  align-items: center;
+}
+
+.site-header__brand {
+  display: flex;
+  align-items: center;
+}
+
+.site-header__brand a {
+  text-decoration: none;
+}
+
+.site-header__brand h2 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.site-header__banner {
+  height: 120px;
+  overflow: hidden;
+}
+
+/* height: 120px beats Pico's img { height: auto } (higher specificity: 0,1,1 vs 0,0,1) */
+.site-header__banner img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  object-position: 50% 30%;
+  display: block;
+}
+
+/* Animal card: 48×48 thumbnail on left, name on right */
+.animal-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  text-decoration: none;
+  color: var(--pico-color);
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.animal-card:hover {
+  border-color: var(--pico-primary);
+  background: var(--pico-card-sectioning-background-color);
+  color: var(--pico-color);
+  text-decoration: none;
+}
+
+.animal-card__thumb {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--pico-muted-border-color);
+  position: relative;
+}
+
+/* absolute fill bypasses Pico's img { height: auto } entirely */
+.animal-card__thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.animal-card__name {
+  font-family: var(--ahc-font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

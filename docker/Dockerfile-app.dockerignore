@@ -1,4 +1,5 @@
-# Build-context exclusions for Dockerfile-web (context = project root)
+# Build-context exclusions for Dockerfile-app (context = project root)
+# Used for web, Celery worker, and Celery Beat services.
 
 .venv/
 

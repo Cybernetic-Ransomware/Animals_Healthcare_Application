@@ -44,13 +44,27 @@ migrate:
 shell:
     uv run python manage.py shell
 
-# Start all Docker services
+# Start all Docker services (full stack, with rebuild)
 up:
     docker-compose --env-file .env -f docker/docker-compose.yml up -d --build
 
 # Stop all Docker services
 down:
     docker-compose --env-file .env -f docker/docker-compose.yml down
+
+# Start only infrastructure services (Postgres, Redis, CouchDB) — no app rebuild
+infra:
+    docker-compose --env-file .env -f docker/docker-compose.yml up -d postgres_db redis couch_db
+
+# Stop infrastructure services
+infra-down:
+    docker-compose --env-file .env -f docker/docker-compose.yml stop postgres_db redis couch_db
+
+# Local dev: wait for healthy infra, migrate, run Django with hot-reload
+dev:
+    docker-compose --env-file .env -f docker/docker-compose.yml up -d --wait postgres_db redis couch_db
+    uv run python manage.py migrate
+    uv run python manage.py runserver
 
 # Run pre-commit hooks on all files
 precommit:

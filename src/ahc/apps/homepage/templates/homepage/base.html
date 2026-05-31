@@ -15,6 +15,10 @@
 
     <link rel="shortcut icon" type="image/png" href="{% static 'media/icons/chinchilla.png' %}">
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="{% static 'css/pico-2.1.1/pico.yellow.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/custom_pico.css' %}">
 
@@ -22,13 +26,13 @@
 </head>
 <body>
 
-<header class="container">
-    <div class="grid">
-        <div>
+<header class="container site-header">
+    <div class="grid site-header__inner">
+        <div class="site-header__brand">
             <a href="{% url 'Homepage' %}"><h2>Homepage</h2></a>
         </div>
-        <div>
-            <img src="{% static 'media/background/lizard2.jpg' %}" alt="Background lizard">
+        <div class="site-header__banner">
+            <img src="{% static 'media/background/lizard2.jpg' %}" alt="">
         </div>
     </div>
 </header>

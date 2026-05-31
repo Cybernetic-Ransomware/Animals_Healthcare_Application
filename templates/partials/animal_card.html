@@ -1,14 +1,11 @@
-{% if animal.profile_image %}
-<a role="button"
-   class="contrast btn-with-bg"
-   style="background-image: url('{{ animal.profile_image.url }}');"
+<a class="animal-card"
    href="{% url 'animal_profile' pk=animal.id %}"
    aria-label="Go to profile of {{ animal.full_name }}"
->{{ animal.full_name }}</a>
-{% else %}
-<a role="button"
-   class="secondary outline"
-   href="{% url 'animal_profile' pk=animal.id %}"
-   aria-label="Go to profile of {{ animal.full_name }}"
->{{ animal.full_name }}</a>
-{% endif %}
+>
+    <div class="animal-card__thumb">
+        {% if animal.profile_image %}
+        <img src="{{ animal.profile_image.url }}" alt="">
+        {% endif %}
+    </div>
+    <span class="animal-card__name">{{ animal.full_name }}</span>
+</a>
