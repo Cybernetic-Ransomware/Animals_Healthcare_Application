@@ -119,7 +119,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, L
                 messages.error(request, f"Failed to upload. {exc}")
         else:
             for _field, errors in form.errors.items():
-                messages.error(request, f"Failed to upload: {', '.join(errors)}")
+                messages.error(request, f"Failed to upload: {', '.join(str(e) for e in errors)}")
 
         return redirect(request.path)
 

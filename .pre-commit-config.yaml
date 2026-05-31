@@ -1,3 +1,4 @@
+default_install_hook_types: [pre-commit, post-merge]
 exclude: 'static/|static_collected/'
 
 repos:
@@ -8,7 +9,7 @@ repos:
     entry: uv lock --check
     language: system
     pass_filenames: false
-    files: ^pyproject\.toml$
+    files: ^(pyproject\.toml|uv\.lock)$
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v5.0.0
@@ -17,21 +18,35 @@ repos:
     exclude: '\.sh$'
   - id: trailing-whitespace
 
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.14
-  hooks:
-  - id: ruff-check
-  - id: ruff-format
-    args: [--check]
-
-- repo: https://github.com/codespell-project/codespell
-  rev: v2.4.2
-  hooks:
-  - id: codespell
-    types_or: [python, markdown, yaml]
-
 - repo: local
   hooks:
+  - id: ruff-check
+    name: ruff check
+    entry: uv run ruff check
+    language: system
+    types_or: [python, pyi]
+    pass_filenames: false
+    always_run: true
+  - id: ruff-format
+    name: ruff format
+    entry: uv run ruff format --check
+    language: system
+    types_or: [python, pyi]
+    pass_filenames: false
+    always_run: true
+  - id: codespell
+    name: codespell
+    entry: uv run codespell
+    language: system
+    types_or: [python, markdown, yaml]
+    pass_filenames: false
+    always_run: true
+  - id: ty-check
+    name: ty check
+    entry: uv run ty check
+    language: system
+    pass_filenames: false
+    always_run: true
   - id: bandit
     name: bandit
     entry: bandit -r src -c pyproject.toml -q

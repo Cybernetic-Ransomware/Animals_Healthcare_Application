@@ -74,10 +74,11 @@ class ManageKeepersForm(forms.Form):
         if input_user in self.instance.allowed_users.all():
             raise forms.ValidationError("User is already on the list of keepers.")
 
-        if not Profile.objects.filter(user__username=input_user).exists():
+        profile = Profile.objects.filter(user__username=input_user).first()
+        if profile is None:
             raise forms.ValidationError("User does not exist.")
 
-        input_user_id = Profile.objects.filter(user__username=input_user).first().id
+        input_user_id = profile.pk
 
         return input_user_id
 
@@ -92,7 +93,7 @@ class ChangeBirthdayForm(forms.ModelForm):
         birthdate = self.cleaned_data.get("birthdate")
         current_date = date.today()
 
-        if birthdate > current_date:
+        if birthdate is not None and birthdate > current_date:
             raise forms.ValidationError("Date could not be set further than current day.")
 
         return birthdate

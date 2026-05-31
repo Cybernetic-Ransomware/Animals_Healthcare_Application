@@ -72,7 +72,7 @@ class MedicalRecordEditForm(MedicalRecordForm):
         cleaned_data = super().clean()
         additional_animals = cleaned_data.get("additional_animals")
 
-        if self.animal in additional_animals:
+        if additional_animals is not None and self.animal in additional_animals:
             raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
 
         return cleaned_data
@@ -101,7 +101,7 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         animal = cleaned_data.get("animal")
         additional_animals = cleaned_data.get("additional_animals")
 
-        if animal in additional_animals:
+        if additional_animals is not None and animal in additional_animals:
             raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
 
         return cleaned_data

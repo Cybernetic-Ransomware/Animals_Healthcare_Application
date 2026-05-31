@@ -42,3 +42,11 @@ kubernetes/
 
 *.md
 doc/
+
+justfile
+.pre-commit-config.yaml
+.gitattributes
+.vscode/
+tests/
+temp/
+log/

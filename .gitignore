@@ -10,6 +10,7 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+tests/result/
 .pytest_cache/
 .hypothesis/
 
@@ -45,9 +46,11 @@ celerybeat.pid
 # Claude Code — not tracked in this repository
 .claude/
 CLAUDE.md
+/.mcp.json
 
 # IDE
 .idea/
+.vscode/
 
 # Project-specific
 /static_collected/
@@ -62,3 +65,8 @@ secret.yaml
 
 # Volumes
 /db/
+
+# Local dev workspace
+/temp/
+/log/*
+!/log/*.template

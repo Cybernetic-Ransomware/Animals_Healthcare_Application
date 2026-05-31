@@ -1,14 +1,17 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+* text eol=lf
 
-# Vendor static files — preserve LF line endings as published
-static/**/* text eol=lf
-static_collected/**/* text eol=lf
+*.py        text eol=lf
+*.toml      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.lock      text eol=lf
+Dockerfile* text eol=lf
 
-# Binary assets — must come after the text rules above (last match wins)
-*.png binary
-*.jpg binary
+*.png  binary
+*.jpg  binary
 *.jpeg binary
-*.gif binary
-*.ico binary
+*.gif  binary
+*.ico  binary
 *.webp binary

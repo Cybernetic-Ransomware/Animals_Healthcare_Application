@@ -8,9 +8,10 @@ help:
 install:
     uv sync
 
-# Run all linters (ruff check, codespell, bandit)
+# Run all linters (ruff check, ty, codespell, bandit)
 lint:
     uv run ruff check .
+    uv run ty check
     uv run codespell
     uv run bandit -r . -c pyproject.toml -q
 
@@ -54,3 +55,11 @@ down:
 # Run pre-commit hooks on all files
 precommit:
     uv run pre-commit run --all-files
+
+# Commit with pre-commit checks and commitizen
+commit:
+    uv run pre-commit run && uv run cz commit
+
+# Bump version using commitizen
+bump:
+    uv run cz bump

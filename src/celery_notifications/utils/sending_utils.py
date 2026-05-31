@@ -11,7 +11,7 @@ def standardize_message_size(message: str, max_length: int = 2500) -> str:
 def send_via_email(**kwargs):
     _recipient_list = kwargs.get("email")
     _subject = kwargs.get("subject")
-    message = kwargs.get("message")
+    message = kwargs.get("message", "")
     message = standardize_message_size(message, max_length=2500)
     sender_email = settings.EMAIL_HOST_USER
 

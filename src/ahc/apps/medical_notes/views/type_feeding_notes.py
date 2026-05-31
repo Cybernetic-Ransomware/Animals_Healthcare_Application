@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, redirect, reverse
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
 from django.views.generic.edit import FormView, UpdateView
 from django.views.generic.list import ListView
 
@@ -65,7 +65,7 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         medical_record = feeding_note.related_note
 
         success_url = reverse_lazy("note_related_diets", kwargs={"pk": medical_record.id})
-        return redirect(success_url)
+        return redirect(str(success_url))
 
     def get_success_url(self):
         note = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))

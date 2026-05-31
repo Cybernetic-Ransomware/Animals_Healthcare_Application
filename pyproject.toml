@@ -29,15 +29,17 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pre-commit",
-    "ruff",
-    "ty",
-    "codespell",
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.6",
+    "ty>=0.0.20",
+    "codespell>=2.4.1",
     "bandit[toml]",
-    "pytest",
+    "pytest>=9.0.2",
     "pytest-django",
-    "pytest-cov",
+    "pytest-cov>=6.1.1",
     "icecream",
+    "commitizen>=4.13.9",
+    "django-stubs>=5.0",
 ]
 
 [tool.uv]
@@ -54,9 +56,15 @@ ignore = [
     "RUF012",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["F401", "F841"]
+"test_*.py" = ["F401", "F841"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+docstring-code-format = true
+docstring-code-line-length = 124
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "ahc.settings"
@@ -71,10 +79,42 @@ markers = [
 
 [tool.ty.environment]
 python-version = "3.14"
+extra-paths = ["src"]
+
+[tool.ty.src]
+exclude = ["src/ahc/apps/*/migrations/*"]
 
 [tool.codespell]
 skip = "uv.lock,./static,./static_collected"
+builtin = "clear"
+quiet-level = 3
 
 [tool.bandit]
 exclude_dirs = [".venv"]
 skips = ["B101", "B404", "B603", "B607"]
+
+[tool.coverage.run]
+data_file = "tests/result/.coverage"
+
+[[tool.ty.overrides]]
+include = [
+    "src/ahc/apps/*/views.py",
+    "src/ahc/apps/*/views/**",
+    "src/ahc/apps/*/*/views.py",
+    "src/ahc/apps/*/*/views/**",
+    "src/ahc/apps/*/mixins/**",
+    "src/ahc/apps/*/*/mixins/**",
+    "src/ahc/apps/*/signals.py",
+    "src/ahc/apps/*/signals/**",
+    "src/ahc/apps/*/forms.py",
+    "src/ahc/apps/*/forms/**",
+]
+rules = { unresolved-attribute = "ignore" }
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:version",
+]
