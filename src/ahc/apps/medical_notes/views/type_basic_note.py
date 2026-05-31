@@ -41,6 +41,11 @@ class CreateNoteFormView(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, Fo
     template_name = "medical_notes/create.html"
     form_class = MedicalRecordForm
 
+    def get_template_names(self):
+        if self.request.headers.get("HX-Request"):
+            return ["partials/modal_note_form.html"]
+        return [self.template_name]
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["animal_choices"] = animal_choices_for(self.request.user.profile, exclude_id=self.kwargs.get("pk"))
@@ -50,14 +55,38 @@ class CreateNoteFormView(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, Fo
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["form_name"] = str(self.form_class.__name__)
+        context["form_action"] = self.request.get_full_path()
+        legend_map = {
+            "medical_visit": "Add vet visit",
+            "diet_note": "Diet note",
+            "biometric_record": "Biometric record",
+            "medicament_note": "Medicament note",
+            "fast_note": "Quick note",
+        }
+        context["legend"] = legend_map.get(self.request.GET.get("type_of_event", ""), "New note")
         return context
 
     def form_valid(self, form):
         animal_id = self.kwargs.get("pk")
         animal = get_object_or_404(AnimalProfile, id=animal_id)
         note = create_note(self.request.user.profile, animal, form)
+        uploaded_file = self.request.FILES.get("attachment_file")
+        if uploaded_file:
+            try:
+                upload_attachment(
+                    medical_record=note,
+                    attachment_instance=MedicalRecordAttachment(),
+                    uploaded_file=uploaded_file,
+                )
+            except AttachmentLimitExceeded as exc:
+                messages.warning(self.request, f"Note saved but attachment upload failed: {exc}")
         url_name, kwargs = next_route_for(note, animal_id)
-        return redirect(reverse(url_name, kwargs=kwargs))
+        redirect_url = reverse(url_name, kwargs=kwargs)
+        if self.request.headers.get("HX-Request"):
+            response = HttpResponse(status=204)
+            response["HX-Redirect"] = redirect_url
+            return response
+        return redirect(redirect_url)
 
     def get_success_url(self):
         animal_id = self.kwargs.get("pk")
@@ -133,6 +162,17 @@ class EditNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, UpdateView):
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
 
+    def get_template_names(self):
+        if self.request.headers.get("HX-Request"):
+            return ["partials/modal_note_form.html"]
+        return [self.template_name]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form_action"] = self.request.get_full_path()
+        context["legend"] = f"Edit note for {self.object.animal.full_name}"
+        return context
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["animal_choices"] = animal_choices_for(self.request.user.profile)
@@ -145,6 +185,20 @@ class EditNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, UpdateView):
     def form_valid(self, form):
         note = get_object_or_404(MedicalRecord, id=self.kwargs.get("pk"))
         update_note(note, form)
+        uploaded_file = self.request.FILES.get("attachment_file")
+        if uploaded_file:
+            try:
+                upload_attachment(
+                    medical_record=note,
+                    attachment_instance=MedicalRecordAttachment(),
+                    uploaded_file=uploaded_file,
+                )
+            except AttachmentLimitExceeded as exc:
+                messages.warning(self.request, f"Note saved but attachment upload failed: {exc}")
+        if self.request.headers.get("HX-Request"):
+            response = HttpResponse(status=204)
+            response["HX-Redirect"] = self.get_success_url()
+            return response
         return super().form_valid(form)
 
     def get_success_url(self):

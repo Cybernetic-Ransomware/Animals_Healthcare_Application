@@ -1,46 +1,55 @@
-const link = document.getElementById('togglePinnedButton');
+// Pin/unpin button: async POST to the pinned_animals endpoint.
+// initPinButton() is called on DOMContentLoaded and after htmx swaps.
+// Uses cloneNode to cleanly remove any stale event listeners before rebinding.
 
-if (link) {
-  link.addEventListener('click', async function(event) {
-    event.preventDefault();
+function initPinButton() {
+    const existing = document.getElementById("togglePinnedButton");
+    if (!existing) return;
 
-    const animalId = link.dataset.animalId;
-    const action = link.dataset.action;
-    const newAction = (action === 'add') ? 'remove' : 'add';
+    // Replace with a clone to drop any previously attached listeners.
+    const link = existing.cloneNode(true);
+    existing.parentNode.replaceChild(link, existing);
 
-    try {
-      const body = new URLSearchParams({animal_id: animalId, action: action});
-      const response = await fetch(link.href, {
-          method: 'POST',
-          headers: {
-              'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: body,
-      });
+    link.addEventListener("click", async function (event) {
+        event.preventDefault();
 
-      if (!response.ok) {
-        throw new Error('Request failed: ' + response.statusText);
-      }
+        const animalId = link.dataset.animalId;
+        const action = link.dataset.action;
+        const newAction = action === "add" ? "remove" : "add";
 
-      link.dataset.action = newAction;
-      link.innerText = (newAction === 'add') ? 'Add to Pinned' : 'Remove from Pinned';
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  });
+        try {
+            const body = new URLSearchParams({ animal_id: animalId, action: action });
+            const response = await fetch(link.href, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") },
+                body: body,
+            });
+
+            if (!response.ok) {
+                throw new Error("Request failed: " + response.statusText);
+            }
+
+            link.dataset.action = newAction;
+            link.innerText = newAction === "add" ? "Add to Pinned" : "Remove from Pinned";
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    });
 }
 
 function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
     }
-  }
-  return cookieValue;
+    return cookieValue;
 }
+
+document.addEventListener("DOMContentLoaded", initPinButton);

@@ -1,0 +1,29 @@
+{% load static %}
+<section class="tab-panel">
+
+    <h3>Animal settings</h3>
+
+    <h5>Profile</h5>
+    <div class="grid">
+        <a role="button" class="secondary outline" href="{% url 'animal_birthday' pk=animal.id %}">Change birthdate</a>
+        <a role="button" class="secondary outline" href="{% url 'upload_image' pk=animal.id %}">Change profile picture</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_first_contact' pk=animal.id %}">Manage vet contacts</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_next_visit' pk=animal.id %}">Set next visit date</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_dietary_restrictions' pk=animal.id %}">Edit dietary restrictions</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_details' pk=animal.id %}">Edit species, breed &amp; sex</a>
+    </div>
+
+    <br>
+    <h5>Records</h5>
+    <div class="grid">
+        <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record">Add biometric record</a>
+    </div>
+
+    <br>
+    <details>
+        <summary>Danger zone</summary>
+        <br>
+        <a role="button" class="secondary outline" href="{% url 'animal_delete' pk=animal.id %}">Remove this animal from the files</a>
+    </details>
+
+</section>

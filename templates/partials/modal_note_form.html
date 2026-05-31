@@ -1,0 +1,16 @@
+<form method="POST" action="{{ form_action }}"
+      enctype="multipart/form-data"
+      hx-post="{{ form_action }}"
+      hx-target="#modal-body"
+      hx-swap="innerHTML"
+      hx-encoding="multipart/form-data">
+    {% csrf_token %}
+    <fieldset>
+        <legend>{{ legend }}</legend>
+        {% include "partials/form_fields.html" %}
+    </fieldset>
+    <div class="modal-form-actions">
+        <button type="button" class="secondary outline" data-close-modal>Cancel</button>
+        <button type="submit">Save</button>
+    </div>
+</form>

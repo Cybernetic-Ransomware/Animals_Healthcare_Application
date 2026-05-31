@@ -1,0 +1,28 @@
+{% load static %}
+<section class="tab-panel">
+
+    <h3>Ownership</h3>
+    <p>Current owner: <strong>{{ animal.owner }}</strong></p>
+    <a role="button" class="secondary outline" href="{% url 'animal_ownership' pk=animal.id %}">Change owner</a>
+
+    <br><br>
+    <h4>Keepers</h4>
+    {% if keepers %}
+    <ul class="keeper-list">
+        {% for keeper in keepers %}
+        <li class="keeper-list__item">
+            <span>{{ keeper }}</span>
+            <form method="post" action="{% url 'remove_keeper' pk=animal.id keeper_pk=keeper.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="secondary outline">Remove</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No keepers assigned yet.</p>
+    {% endif %}
+
+    <a role="button" class="secondary outline" href="{% url 'manage_keepers' pk=animal.id %}">Add a keeper</a>
+
+</section>

@@ -107,3 +107,23 @@ class ChangeFirstContactForm(forms.ModelForm):
             "first_contact_vet": forms.Textarea(attrs={"rows": 4, "cols": 2}),
             "first_contact_medical_place": forms.Textarea(attrs={"rows": 4, "cols": 2}),
         }
+
+
+class ChangeNextVisitForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ["next_visit_date"]
+        widgets = {"next_visit_date": forms.DateInput(attrs={"type": "date"})}
+
+
+class ChangeDietaryRestrictionsForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ["dietary_restrictions"]
+        widgets = {"dietary_restrictions": forms.Textarea(attrs={"rows": 6, "cols": 2})}
+
+
+class ChangeAnimalDetailsForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ["species", "breed", "sex", "sterilization"]

@@ -66,3 +66,31 @@ def set_first_contact(animal: Animal, vet: str, place: str) -> None:
     animal.first_contact_vet = vet
     animal.first_contact_medical_place = place
     animal.save()
+
+
+def set_next_visit(animal: Animal, next_visit_date) -> None:
+    """Set or clear the animal's next scheduled vet visit date."""
+    animal.next_visit_date = next_visit_date
+    animal.save()
+
+
+def set_dietary_restrictions(animal: Animal, restrictions: str) -> None:
+    """Update the animal's dietary restrictions / things to avoid."""
+    animal.dietary_restrictions = restrictions
+    animal.save()
+
+
+def set_animal_details(
+    animal: Animal, species: str | None, breed: str | None, sex: str | None, sterilization: bool
+) -> None:
+    """Update the animal's species, breed, sex and sterilization status."""
+    animal.species = species
+    animal.breed = breed
+    animal.sex = sex
+    animal.sterilization = sterilization
+    animal.save()
+
+
+def remove_keeper(animal: Animal, keeper_id) -> None:
+    """Remove a keeper from the animal's allowed_users list by Profile PK."""
+    animal.allowed_users.remove(keeper_id)

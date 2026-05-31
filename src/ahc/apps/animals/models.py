@@ -5,6 +5,11 @@ from django.db import models
 from ahc.apps.users.models import Profile as UserProfile
 
 
+class Sex(models.TextChoices):
+    MALE = "m", "Male"
+    FEMALE = "f", "Female"
+
+
 class Animal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     full_name = models.CharField(max_length=50, null=False, blank=False)
@@ -26,3 +31,12 @@ class Animal(models.Model):
     # first_contact_medical_place = models.ForeignKey(Place_profile)
 
     last_control_visit = models.DateTimeField(null=True, default=None)
+
+    next_visit_date = models.DateField(null=True, blank=True, default=None)
+
+    dietary_restrictions = models.CharField(max_length=2500, null=True, blank=True, default=None)
+
+    species = models.CharField(max_length=100, default=None, blank=True, null=True)
+    breed = models.CharField(max_length=100, default=None, blank=True, null=True)
+    sex = models.CharField(max_length=1, choices=Sex.choices, default=None, blank=True, null=True)
+    sterilization = models.BooleanField(default=False)

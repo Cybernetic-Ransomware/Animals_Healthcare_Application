@@ -65,6 +65,32 @@ def notifications_for_mednote(mednote_uuid) -> QuerySet:
     return EmailNotification.objects.filter(related_note__in=feednotes).order_by("-last_modification")
 
 
+def medication_notes_for(animal) -> QuerySet[MedicalRecord]:
+    """Return MedicalRecords of type medicament_note for an animal.
+
+    Used by the Medications tab. Ordered newest first.
+    """
+    return (
+        MedicalRecord.objects.filter(animal=animal, type_of_event="medicament_note")
+        .prefetch_related("attachments")
+        .order_by("-date_creation")
+    )
+
+
+def other_records_for(animal) -> QuerySet[MedicalRecord]:
+    """Return MedicalRecords for an animal, excluding types shown on specialised tabs.
+
+    Excludes medical_visit (Vet), diet_note (Diet), and medicament_note (Medications).
+    Results are prefetch_related for attachments and ordered newest first.
+    """
+    return (
+        MedicalRecord.objects.filter(animal=animal)
+        .exclude(type_of_event__in=["medical_visit", "diet_note", "medicament_note"])
+        .prefetch_related("attachments")
+        .order_by("-date_creation")
+    )
+
+
 def is_note_author(profile, note: MedicalRecord) -> bool:
     """Return True if the profile is the author of the note."""
     return note.author == profile

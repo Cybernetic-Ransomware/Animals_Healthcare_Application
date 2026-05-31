@@ -1,0 +1,43 @@
+{% load static %}
+<section class="tab-panel">
+
+    <h3>Notes</h3>
+    <section class="timeline">
+        <div class="info">
+            <div class="records-actions">
+                <a role="button" class="secondary outline"
+                   href="{% url 'note_create' pk=animal.id %}"
+                   hx-get="{% url 'note_create' pk=animal.id %}"
+                   hx-target="#modal-body"
+                   hx-swap="innerHTML"
+                   data-modal-title="New note">Add a note</a>
+                <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}">View full timeline</a>
+            </div>
+        </div>
+        {% if other_records %}
+        <ol>
+            {% for record in other_records %}
+            <li>
+                <div>
+                    <time>{{ record.date_creation|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+                    <small>({{ record.type_of_event }})</small>
+                    <br>
+                    <a role="button" class="secondary outline"
+                       href="{% url 'note_edit' pk=record.id %}"
+                       hx-get="{% url 'note_edit' pk=record.id %}"
+                       hx-target="#modal-body"
+                       hx-swap="innerHTML"
+                       data-modal-title="Edit note">Edit</a>
+                    <a role="button" class="secondary outline" href="{% url 'note_delete' pk=record.id %}">Delete</a>
+                </div>
+            </li>
+            {% endfor %}
+            <li></li>
+        </ol>
+        {% else %}
+        <p>No notes recorded yet.</p>
+        {% endif %}
+    </section>
+
+</section>

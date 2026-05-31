@@ -22,6 +22,7 @@ class FeedingNote(models.Model):
     product_name = models.CharField(max_length=80)
     producer = models.CharField(max_length=120)
     dose_annotations = models.CharField(max_length=250)
+    purchase_source = models.CharField(max_length=250, null=True, blank=True, default=None)
 
     # create a view for the current diet and historical notes
     # create an app for the product catalog, build a registration of products, a purchases history and aggregation of costs

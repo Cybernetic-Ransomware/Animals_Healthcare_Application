@@ -1,0 +1,57 @@
+{% load static %}
+<section class="tab-panel">
+
+    <h3>Veterinary contact</h3>
+    <div class="section">
+        <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: first contact details</h4>
+        <div class="section-content">
+            <pre>{{ animal.first_contact_vet|default:"Not set." }}</pre>
+            <pre>{{ animal.first_contact_medical_place|default:"Not set." }}</pre>
+        </div>
+    </div>
+
+    {% if animal.next_visit_date %}
+    <p>Next scheduled visit: <strong>{{ animal.next_visit_date|date:"Y-m-d" }}</strong></p>
+    {% else %}
+    <p>No next visit scheduled.</p>
+    {% endif %}
+
+    {% if is_owner %}
+    <div class="grid">
+        <a role="button" class="secondary outline" href="{% url 'animal_first_contact' pk=animal.id %}">Manage vet contacts</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_next_visit' pk=animal.id %}">Set next visit date</a>
+    </div>
+    {% endif %}
+
+    <br>
+    <h3>Medical visit timeline</h3>
+    <section class="timeline">
+        <div class="info">
+            <div class="records-actions">
+                <a role="button" class="secondary outline"
+                   href="{% url 'note_create' pk=animal.id %}?type_of_event=medical_visit"
+                   hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=medical_visit"
+                   hx-target="#modal-body"
+                   hx-swap="innerHTML"
+                   data-modal-title="Add vet visit">Add vet visit</a>
+                <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=medical_visit">View all visits</a>
+            </div>
+        </div>
+        {% if vet_records %}
+        <ol>
+            {% for record in vet_records %}
+            <li>
+                <div>
+                    <time>{{ record.date_event_started|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+                </div>
+            </li>
+            {% endfor %}
+            <li></li>
+        </ol>
+        {% else %}
+        <p>No medical visits recorded yet.</p>
+        {% endif %}
+    </section>
+
+</section>

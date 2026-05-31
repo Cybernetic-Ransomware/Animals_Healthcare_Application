@@ -1,0 +1,15 @@
+{% extends "homepage/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content-section">
+    <h2>Edit animal details</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit">Save</button>
+    </form>
+    <br>
+    <a role="button" class="secondary outline" href="{% url 'animal_tab' pk=animal_id slug='settings' %}">Back to Settings</a>
+</div>
+{% endblock %}

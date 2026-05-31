@@ -73,6 +73,22 @@
     </div>
 </footer>
 
+<dialog id="ahc-modal">
+    <article>
+        <header>
+            <p><strong id="modal-title"></strong></p>
+            <button id="modal-close" aria-label="Close" rel="prev"></button>
+        </header>
+        <div id="modal-body"></div>
+    </article>
+</dialog>
+
 {% block extra_js %}{% endblock %}
+<script defer src="{% static 'js/vendor/htmx.min.js' %}"></script>
+<script defer src="{% static 'js/tabs.js' %}"></script>
+<script defer src="{% static 'js/hiding_note_fields_in_form.js' %}"></script>
+<script defer src="{% static 'js/tag_input.js' %}"></script>
+<script defer src="{% static 'js/animal_select.js' %}"></script>
+<script defer src="{% static 'js/modal.js' %}"></script>
 </body>
 </html>

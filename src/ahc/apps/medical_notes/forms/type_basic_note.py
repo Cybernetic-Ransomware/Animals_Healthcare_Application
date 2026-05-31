@@ -13,7 +13,15 @@ class MedicalRecordForm(forms.ModelForm):
         ("other_user_note", "Other"),
     )
 
+    MAX_ATTACHMENT_SIZE = 15 * 1024 * 1024
+    ALLOWED_ATTACHMENT_TYPES = {"application/pdf", "image/jpeg", "image/png"}
+
     type_of_event = forms.ChoiceField(choices=TYPES_OF_EVENTS, widget=forms.Select(attrs={"class": "custom-select"}))
+    attachment_file = forms.FileField(
+        required=False,
+        label="Attach file (optional)",
+        widget=forms.ClearableFileInput(attrs={"accept": "application/pdf,image/jpeg,image/png"}),
+    )
 
     class Meta:
         model = MedicalRecord
@@ -37,7 +45,7 @@ class MedicalRecordForm(forms.ModelForm):
             "participants": forms.TextInput(attrs={"required": False}),
             "place": forms.TextInput(attrs={"required": False}),
             "note_tags": forms.TextInput(attrs={"required": False}),
-            "additional_animals": forms.SelectMultiple(attrs={"required": False}),
+            "additional_animals": forms.CheckboxSelectMultiple(attrs={"required": False}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -55,6 +63,16 @@ class MedicalRecordForm(forms.ModelForm):
             self.fields["type_of_event"].initial = "fast_note"
 
         self.fields["additional_animals"].label = "Related animals"
+
+    def clean_attachment_file(self):
+        file = self.cleaned_data.get("attachment_file")
+        if not file:
+            return file
+        if file.size > self.MAX_ATTACHMENT_SIZE:
+            raise forms.ValidationError("Files above 15 MB are not allowed.")
+        if file.content_type not in self.ALLOWED_ATTACHMENT_TYPES:
+            raise forms.ValidationError("Only PDF, JPEG, and PNG files are allowed.")
+        return file
 
 
 class MedicalRecordEditForm(MedicalRecordForm):

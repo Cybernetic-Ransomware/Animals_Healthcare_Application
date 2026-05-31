@@ -316,3 +316,185 @@ class TestAnimalFieldUpdateServices:
         assert animal.first_contact_vet == "Dr Smith"
         assert animal.first_contact_medical_place == "City Clinic"
         animal.save.assert_called_once()
+
+
+@pytest.mark.unit
+class TestNewAnimalServices:
+    """remove_keeper / set_next_visit / set_dietary_restrictions: unit coverage."""
+
+    def test_remove_keeper_delegates_to_allowed_users(self):
+        from ahc.apps.animals.services import remove_keeper
+
+        animal = MagicMock()
+        remove_keeper(animal, 99)
+        animal.allowed_users.remove.assert_called_once_with(99)
+
+    def test_set_next_visit_assigns_date_and_saves(self):
+        from datetime import date as date_type
+
+        from ahc.apps.animals.services import set_next_visit
+
+        animal = MagicMock()
+        d = date_type(2026, 9, 1)
+        set_next_visit(animal, d)
+        assert animal.next_visit_date == d
+        animal.save.assert_called_once()
+
+    def test_set_dietary_restrictions_assigns_text_and_saves(self):
+        from ahc.apps.animals.services import set_dietary_restrictions
+
+        animal = MagicMock()
+        set_dietary_restrictions(animal, "No grapes, no onions")
+        assert animal.dietary_restrictions == "No grapes, no onions"
+        animal.save.assert_called_once()
+
+    def test_remove_keeper_does_not_affect_owner(self):
+        """Removing a keeper must not touch the owner field."""
+        from ahc.apps.animals.services import remove_keeper
+
+        animal = MagicMock()
+        original_owner = MagicMock()
+        animal.owner = original_owner
+        remove_keeper(animal, 42)
+        assert animal.owner is original_owner
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestOtherRecordsForSelector:
+    """other_records_for: excludes medical_visit and diet_note types."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="Buddy", owner=profile)
+
+    def test_excludes_medical_visit_and_diet_note(self, animal, user_profile):
+        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+        from ahc.apps.medical_notes.selectors import other_records_for
+
+        _, profile = user_profile
+        MedicalRecord.objects.create(
+            animal=animal, author=profile, short_description="Visit", type_of_event="medical_visit"
+        )
+        MedicalRecord.objects.create(animal=animal, author=profile, short_description="Diet", type_of_event="diet_note")
+        note = MedicalRecord.objects.create(
+            animal=animal, author=profile, short_description="Other", type_of_event="fast_note"
+        )
+
+        results = list(other_records_for(animal))
+        ids = [r.id for r in results]
+        assert note.id in ids
+        assert len(results) == 1
+
+    def test_returns_empty_when_only_special_types(self, animal, user_profile):
+        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+        from ahc.apps.medical_notes.selectors import other_records_for
+
+        _, profile = user_profile
+        MedicalRecord.objects.create(animal=animal, author=profile, short_description="V", type_of_event="medical_visit")
+        assert list(other_records_for(animal)) == []
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestAnimalTabView:
+    """AnimalTabView: htmx vs full-page response, access control."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="Luna", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_htmx_request_returns_fragment_without_base_title(self, animal, user_profile):
+        user, _ = user_profile
+        c = self._client_for(user)
+        url = f"/pet/{animal.id}/tab/mainpage/"
+        response = c.get(url, HTTP_HX_REQUEST="true")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "<title>" not in content
+
+    def test_non_htmx_request_returns_full_page_with_base_title(self, animal, user_profile):
+        user, _ = user_profile
+        c = self._client_for(user)
+        url = f"/pet/{animal.id}/tab/mainpage/"
+        response = c.get(url)
+        assert response.status_code == 200
+        assert "<title>" in response.content.decode()
+
+    def test_all_public_slugs_return_200_for_owner(self, animal, user_profile):
+        user, _ = user_profile
+        c = self._client_for(user)
+        for slug in ("mainpage", "vet", "diet", "notes", "ownership", "settings"):
+            url = f"/pet/{animal.id}/tab/{slug}/"
+            response = c.get(url, HTTP_HX_REQUEST="true")
+            assert response.status_code == 200, f"Expected 200 for slug={slug!r}, got {response.status_code}"
+
+    def test_owner_only_tabs_return_403_for_keeper(self, animal, second_user_profile):
+        other_user, other_profile = second_user_profile
+        animal.allowed_users.add(other_profile)
+        c = self._client_for(other_user)
+        for slug in ("ownership", "settings"):
+            url = f"/pet/{animal.id}/tab/{slug}/"
+            response = c.get(url, HTTP_HX_REQUEST="true")
+            assert response.status_code == 403, f"Expected 403 for keeper on slug={slug!r}, got {response.status_code}"
+
+    def test_non_accessible_user_gets_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        c = self._client_for(other_user)
+        url = f"/pet/{animal.id}/tab/mainpage/"
+        response = c.get(url)
+        assert response.status_code == 403
+
+    def test_unknown_slug_returns_404(self, animal, user_profile):
+        user, _ = user_profile
+        c = self._client_for(user)
+        url = f"/pet/{animal.id}/tab/nonexistent/"
+        response = c.get(url)
+        assert response.status_code == 404
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestRemoveKeeperView:
+    """RemoveKeeperView: owner POST removes keeper; non-owner gets 403."""
+
+    @pytest.fixture
+    def animal_with_keeper(self, db, user_profile, second_user_profile):
+        _, owner_profile = user_profile
+        _, keeper_profile = second_user_profile
+        a = Animal.objects.create(full_name="Rex", owner=owner_profile)
+        a.allowed_users.add(keeper_profile)
+        return a
+
+    def test_owner_post_removes_keeper_and_redirects(self, animal_with_keeper, user_profile, second_user_profile):
+        from django.test import Client
+
+        owner_user, _ = user_profile
+        _, keeper_profile = second_user_profile
+        c = Client()
+        c.force_login(owner_user)
+        url = f"/pet/{animal_with_keeper.id}/keepers/{keeper_profile.pk}/remove/"
+        response = c.post(url)
+        assert response.status_code == 302
+        animal_with_keeper.refresh_from_db()
+        assert not animal_with_keeper.allowed_users.filter(pk=keeper_profile.pk).exists()
+
+    def test_non_owner_post_returns_403(self, animal_with_keeper, second_user_profile):
+        from django.test import Client
+
+        keeper_user, _ = second_user_profile
+        c = Client()
+        c.force_login(keeper_user)
+        _, keeper_profile = second_user_profile
+        url = f"/pet/{animal_with_keeper.id}/keepers/{keeper_profile.pk}/remove/"
+        response = c.post(url)
+        assert response.status_code == 403

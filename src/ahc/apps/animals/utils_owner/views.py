@@ -1,7 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import DeleteView
+from django.views.generic import DeleteView, View
 from django.views.generic.edit import FormView
 
 from ahc.apps.animals.mixins.animal_owner_permissions import UserPassesOwnershipTestMixin
@@ -9,13 +9,20 @@ from ahc.apps.animals.models import Animal
 from ahc.apps.animals.services import (
     add_keeper,
     process_profile_image,
+    remove_keeper,
+    set_animal_details,
     set_birthday,
+    set_dietary_restrictions,
     set_first_contact,
+    set_next_visit,
     transfer_ownership,
 )
 from ahc.apps.animals.utils_owner.forms import (
+    ChangeAnimalDetailsForm,
     ChangeBirthdayForm,
+    ChangeDietaryRestrictionsForm,
     ChangeFirstContactForm,
+    ChangeNextVisitForm,
     ChangeOwnerForm,
     ImageUploadForm,
     ManageKeepersForm,
@@ -152,3 +159,78 @@ class ChangeFirstContactView(LoginRequiredMixin, UserPassesOwnershipTestMixin, F
 
     def get_success_url(self):
         return self.request.path
+
+
+class ChangeNextVisitView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
+    form_class = ChangeNextVisitForm
+    template_name = "animals/change_next_visit.html"
+
+    def get_context_data(self, **kwargs):
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        context["next_visit_date"] = animal.next_visit_date
+        return context
+
+    def form_valid(self, form):
+        set_next_visit(
+            get_object_or_404(Animal, pk=self.kwargs["pk"]),
+            next_visit_date=form.cleaned_data["next_visit_date"],
+        )
+        success_url = reverse("animal_tab", kwargs={"pk": self.kwargs["pk"], "slug": "vet"})
+        return redirect(success_url)
+
+
+class ChangeDietaryRestrictionsView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
+    form_class = ChangeDietaryRestrictionsForm
+    template_name = "animals/change_dietary_restrictions.html"
+
+    def get_context_data(self, **kwargs):
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        context["current_restrictions"] = animal.dietary_restrictions
+        return context
+
+    def form_valid(self, form):
+        set_dietary_restrictions(
+            get_object_or_404(Animal, pk=self.kwargs["pk"]),
+            restrictions=form.cleaned_data["dietary_restrictions"],
+        )
+        success_url = reverse("animal_tab", kwargs={"pk": self.kwargs["pk"], "slug": "diet"})
+        return redirect(success_url)
+
+
+class ChangeAnimalDetailsView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
+    form_class = ChangeAnimalDetailsForm
+    template_name = "animals/change_animal_details.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        return context
+
+    def form_valid(self, form):
+        set_animal_details(
+            get_object_or_404(Animal, pk=self.kwargs["pk"]),
+            species=form.cleaned_data["species"],
+            breed=form.cleaned_data["breed"],
+            sex=form.cleaned_data["sex"],
+            sterilization=form.cleaned_data["sterilization"],
+        )
+        success_url = reverse("animal_tab", kwargs={"pk": self.kwargs["pk"], "slug": "settings"})
+        return redirect(success_url)
+
+
+class RemoveKeeperView(LoginRequiredMixin, UserPassesOwnershipTestMixin, View):
+    """Remove a single keeper from the animal's allowed_users (owner-only, POST)."""
+
+    def post(self, request, pk, keeper_pk):
+        animal = get_object_or_404(Animal, pk=pk)
+        remove_keeper(animal, keeper_pk)
+        return redirect(reverse("animal_tab", kwargs={"pk": pk, "slug": "ownership"}))

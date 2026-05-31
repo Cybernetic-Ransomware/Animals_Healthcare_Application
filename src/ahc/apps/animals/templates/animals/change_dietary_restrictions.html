@@ -1,0 +1,25 @@
+{% extends "homepage/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content-section">
+    <h2>Dietary restrictions</h2>
+    {% if current_restrictions %}
+        <div class="section">
+            <h4 class="button secondary outline section-header" role="button" tabindex="0">Current restrictions</h4>
+            <div class="section-content">
+                <pre>{{ current_restrictions }}</pre>
+            </div>
+        </div>
+    {% else %}
+        <p>No dietary restrictions set yet.</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit">Save</button>
+    </form>
+    <br>
+    <a role="button" class="secondary outline" href="{% url 'animal_tab' pk=animal_id slug='diet' %}">Back to Diet</a>
+</div>
+{% endblock %}
