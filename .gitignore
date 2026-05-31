@@ -51,8 +51,9 @@ CLAUDE.md
 
 # Project-specific
 /static_collected/
-/static/media/profile_pics/animals/
+/static/media/animal_pic/
 /static/media/attachments/
+/static/media/profile_pics/
 
 # Kubernetes
 /tars/
