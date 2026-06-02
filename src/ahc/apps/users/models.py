@@ -14,6 +14,13 @@ class Profile(models.Model):
 
     allow_recennt_animals_list = models.BooleanField(default=True)
 
+    discord_user_id = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        help_text="Discord user snowflake ID for notification delivery. Leave blank to disable Discord reminders.",
+    )
+
     pinned_animals = models.ManyToManyField("animals.Animal", related_name="+")
 
     def __str__(self):
