@@ -9,13 +9,34 @@
     <h4>Keepers</h4>
     {% if keepers %}
     <ul class="keeper-list">
-        {% for keeper in keepers %}
+        {% for share in keepers %}
         <li class="keeper-list__item">
-            <span>{{ keeper }}</span>
-            <form method="post" action="{% url 'remove_keeper' pk=animal.id keeper_pk=keeper.pk %}">
-                {% csrf_token %}
-                <button type="submit" class="secondary outline">Remove</button>
-            </form>
+            <div class="keeper-list__info">
+                <span class="keeper-list__name">{{ share.carer }}</span>
+                <span class="keeper-list__expiry">
+                    {% if share.valid_until %}
+                        Expires: {{ share.valid_until }}
+                    {% else %}
+                        No expiry
+                    {% endif %}
+                </span>
+                <ul class="keeper-list__categories">
+                    {% if share.allow_basic %}<li>Basic info</li>{% endif %}
+                    {% if share.allow_vet_contact %}<li>Vet contact</li>{% endif %}
+                    {% if share.allow_diet %}<li>Diet</li>{% endif %}
+                    {% if share.allow_medications %}<li>Medications</li>{% endif %}
+                    {% if share.allow_history %}<li>History &amp; notes</li>{% endif %}
+                    {% if share.allow_biometrics %}<li>Biometrics</li>{% endif %}
+                </ul>
+            </div>
+            <div class="keeper-list__actions">
+                <a role="button" class="secondary outline"
+                   href="{% url 'edit_share' pk=animal.id keeper_pk=share.carer.pk %}">Edit access</a>
+                <form method="post" action="{% url 'remove_keeper' pk=animal.id keeper_pk=share.carer.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="secondary outline">Remove</button>
+                </form>
+            </div>
         </li>
         {% endfor %}
     </ul>

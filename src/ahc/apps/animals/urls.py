@@ -21,6 +21,7 @@ urlpatterns = [
     ),
     path("<uuid:pk>/details/", animal_owner_views.ChangeAnimalDetailsView.as_view(), name="animal_details"),
     path("<uuid:pk>/keepers/<int:keeper_pk>/remove/", animal_owner_views.RemoveKeeperView.as_view(), name="remove_keeper"),
+    path("<uuid:pk>/keepers/<int:keeper_pk>/access/", animal_owner_views.EditShareView.as_view(), name="edit_share"),
     path("animals/", animal_views.StableView.as_view(), name="animals_stable"),
     path("pinned-animals/", animal_views.ToPinAnimalsView.as_view(), name="pinned_animals"),
 ]

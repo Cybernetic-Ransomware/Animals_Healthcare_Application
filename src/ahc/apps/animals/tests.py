@@ -16,6 +16,7 @@ from ahc.apps.animals.services import (
     create_animal,
     pin_animal,
     process_profile_image,
+    remove_keeper,
     set_birthday,
     set_first_contact,
     transfer_ownership,
@@ -97,29 +98,29 @@ class TestIsAnimalOwnerSelector:
 
 @pytest.mark.unit
 class TestUserCanAccessAnimalSelector:
-    """user_can_access_animal: short-circuits on owner; queries allowed_users otherwise."""
+    """user_can_access_animal: short-circuits on owner; delegates to active_share_for otherwise."""
 
     def test_owner_can_access(self):
         profile = MagicMock()
         animal = MagicMock()
         animal.owner = profile
-        assert user_can_access_animal(profile, animal) is True
-        animal.allowed_users.filter.assert_not_called()
+        with patch("ahc.apps.animals.selectors.active_share_for") as mock_share:
+            assert user_can_access_animal(profile, animal) is True
+            mock_share.assert_not_called()
 
     def test_keeper_can_access(self):
         profile = MagicMock()
         animal = MagicMock()
         animal.owner = MagicMock()
-        animal.allowed_users.filter.return_value.exists.return_value = True
-        assert user_can_access_animal(profile, animal) is True
-        animal.allowed_users.filter.assert_called_once_with(pk=profile.pk)
+        with patch("ahc.apps.animals.selectors.active_share_for", return_value=MagicMock()):
+            assert user_can_access_animal(profile, animal) is True
 
     def test_stranger_cannot_access(self):
         profile = MagicMock()
         animal = MagicMock()
         animal.owner = MagicMock()
-        animal.allowed_users.filter.return_value.exists.return_value = False
-        assert user_can_access_animal(profile, animal) is False
+        with patch("ahc.apps.animals.selectors.active_share_for", return_value=None):
+            assert user_can_access_animal(profile, animal) is False
 
 
 @pytest.mark.unit
@@ -284,19 +285,20 @@ class TestTransferOwnershipService:
         new_owner = MagicMock()
         requesting = MagicMock()
 
-        transfer_ownership(animal, new_owner, set_keeper=True, requesting_profile=requesting)
-
-        animal.allowed_users.add.assert_called_once_with(requesting)
+        with patch("ahc.apps.animals.services.create_share") as mock_create_share:
+            transfer_ownership(animal, new_owner, set_keeper=True, requesting_profile=requesting)
+            mock_create_share.assert_called_once_with(animal, requesting.pk, scope=None, valid_until=None)
 
 
 @pytest.mark.unit
 class TestAddKeeperService:
-    """add_keeper: delegates to M2M.add with the provided keeper id."""
+    """add_keeper: delegates to create_share with the provided keeper id and default scope."""
 
     def test_adds_keeper_by_id(self):
         animal = MagicMock()
-        add_keeper(animal, 42)
-        animal.allowed_users.add.assert_called_once_with(42)
+        with patch("ahc.apps.animals.services.create_share") as mock_create_share:
+            add_keeper(animal, 42)
+            mock_create_share.assert_called_once_with(animal, 42, scope=None, valid_until=None)
 
 
 @pytest.mark.unit
@@ -322,12 +324,12 @@ class TestAnimalFieldUpdateServices:
 class TestNewAnimalServices:
     """remove_keeper / set_next_visit / set_dietary_restrictions: unit coverage."""
 
-    def test_remove_keeper_delegates_to_allowed_users(self):
-        from ahc.apps.animals.services import remove_keeper
-
+    def test_remove_keeper_delegates_to_animalshare(self):
         animal = MagicMock()
-        remove_keeper(animal, 99)
-        animal.allowed_users.remove.assert_called_once_with(99)
+        with patch("ahc.apps.animals.services.AnimalShare") as mock_model:
+            remove_keeper(animal, 99)
+            mock_model.objects.filter.assert_called_once_with(animal=animal, carer_id=99)
+            mock_model.objects.filter.return_value.delete.assert_called_once()
 
     def test_set_next_visit_assigns_date_and_saves(self):
         from datetime import date as date_type
@@ -350,12 +352,11 @@ class TestNewAnimalServices:
 
     def test_remove_keeper_does_not_affect_owner(self):
         """Removing a keeper must not touch the owner field."""
-        from ahc.apps.animals.services import remove_keeper
-
         animal = MagicMock()
         original_owner = MagicMock()
         animal.owner = original_owner
-        remove_keeper(animal, 42)
+        with patch("ahc.apps.animals.services.AnimalShare"):
+            remove_keeper(animal, 42)
         assert animal.owner is original_owner
 
 

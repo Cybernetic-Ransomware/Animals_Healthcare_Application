@@ -10,6 +10,7 @@ from django.urls import path
 from ahc.apps.users import views as user_views
 
 urlpatterns = [
+    path("share-defaults/", user_views.ShareDefaultsView.as_view(), name="share_defaults"),
     path("", auth_views.LoginView.as_view(template_name="users/login.html"), name="login"),
     path("login/", auth_views.LoginView.as_view(template_name="users/login.html"), name="login"),
     path("register/", user_views.UserRegisterView.as_view(), name="register"),

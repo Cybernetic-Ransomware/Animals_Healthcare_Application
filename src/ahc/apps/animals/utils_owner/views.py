@@ -5,9 +5,9 @@ from django.views.generic import DeleteView, View
 from django.views.generic.edit import FormView
 
 from ahc.apps.animals.mixins.animal_owner_permissions import UserPassesOwnershipTestMixin
-from ahc.apps.animals.models import Animal
+from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.animals.services import (
-    add_keeper,
+    create_share,
     process_profile_image,
     remove_keeper,
     set_animal_details,
@@ -16,6 +16,7 @@ from ahc.apps.animals.services import (
     set_first_contact,
     set_next_visit,
     transfer_ownership,
+    update_share,
 )
 from ahc.apps.animals.utils_owner.forms import (
     ChangeAnimalDetailsForm,
@@ -24,6 +25,7 @@ from ahc.apps.animals.utils_owner.forms import (
     ChangeFirstContactForm,
     ChangeNextVisitForm,
     ChangeOwnerForm,
+    EditShareForm,
     ImageUploadForm,
     ManageKeepersForm,
 )
@@ -99,7 +101,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormVi
         context = super().get_context_data(**kwargs)
         animal = Animal.objects.get(pk=self.kwargs["pk"])
         context["full_name"] = animal.full_name
-        context["allowed_users"] = animal.allowed_users.all()
+        context["shares"] = animal.shares.select_related("carer__user").all()
         context["animal_url"] = reverse("animal_profile", kwargs={"pk": self.get_form().instance.id})
         return context
 
@@ -109,7 +111,16 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormVi
         return kwargs
 
     def form_valid(self, form):
-        add_keeper(form.instance, form.cleaned_data["input_user"])
+        cd = form.cleaned_data
+        scope = {
+            "allow_basic": cd["allow_basic"],
+            "allow_vet_contact": cd["allow_vet_contact"],
+            "allow_diet": cd["allow_diet"],
+            "allow_medications": cd["allow_medications"],
+            "allow_history": cd["allow_history"],
+            "allow_biometrics": cd["allow_biometrics"],
+        }
+        create_share(form.instance, cd["input_user"], scope=scope, valid_until=cd.get("valid_until"))
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -228,9 +239,45 @@ class ChangeAnimalDetailsView(LoginRequiredMixin, UserPassesOwnershipTestMixin, 
 
 
 class RemoveKeeperView(LoginRequiredMixin, UserPassesOwnershipTestMixin, View):
-    """Remove a single keeper from the animal's allowed_users (owner-only, POST)."""
+    """Remove a single keeper from the animal's shares (owner-only, POST)."""
 
     def post(self, request, pk, keeper_pk):
         animal = get_object_or_404(Animal, pk=pk)
         remove_keeper(animal, keeper_pk)
         return redirect(reverse("animal_tab", kwargs={"pk": pk, "slug": "ownership"}))
+
+
+class EditShareView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
+    """Edit the access scope and expiry date of an existing AnimalShare (owner-only)."""
+
+    template_name = "animals/edit_share.html"
+    form_class = EditShareForm
+
+    def _get_share(self) -> AnimalShare:
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        return get_object_or_404(AnimalShare, animal=animal, carer_id=self.kwargs["keeper_pk"])
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self._get_share()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        share = self._get_share()
+        context["carer_name"] = share.carer.user.username
+        return context
+
+    def form_valid(self, form):
+        cd = form.cleaned_data
+        scope = {
+            "allow_basic": cd["allow_basic"],
+            "allow_vet_contact": cd["allow_vet_contact"],
+            "allow_diet": cd["allow_diet"],
+            "allow_medications": cd["allow_medications"],
+            "allow_history": cd["allow_history"],
+            "allow_biometrics": cd["allow_biometrics"],
+        }
+        update_share(form.instance, scope=scope, valid_until=cd.get("valid_until"))
+        return redirect(reverse("animal_tab", kwargs={"pk": self.kwargs["pk"], "slug": "ownership"}))

@@ -3,6 +3,8 @@
 
     <h3>Medications</h3>
 
+    {% if "medications" in allowed_categories %}
+
     <div class="records-actions">
         <a role="button" class="secondary outline"
            href="{% url 'note_create' pk=animal.id %}?type_of_event=medicament_note"
@@ -37,6 +39,10 @@
     </section>
     {% else %}
     <p>No medication notes recorded yet.</p>
+    {% endif %}
+
+    {% else %}
+    <p>You do not have access to this section.</p>
     {% endif %}
 
 </section>

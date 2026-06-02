@@ -1,6 +1,7 @@
 {% load static %}
 <section class="tab-panel">
 
+    {% if "history" in allowed_categories %}
     <h3>Notes</h3>
     <section class="timeline">
         <div class="info">
@@ -70,5 +71,31 @@
         <p>No notes recorded yet.</p>
         {% endif %}
     </section>
+    {% endif %}
+
+    {% if "biometrics" in allowed_categories %}
+    <h3>Biometrics</h3>
+    {% if biometric_records %}
+    <section class="timeline" style="grid-template-columns: 1fr;">
+        <ol>
+            {% for record in biometric_records %}
+            <li>
+                <div>
+                    <time>{{ record.date_creation|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+                </div>
+            </li>
+            {% endfor %}
+            <li></li>
+        </ol>
+    </section>
+    {% else %}
+    <p>No biometric records yet.</p>
+    {% endif %}
+    {% endif %}
+
+    {% if not "history" in allowed_categories and not "biometrics" in allowed_categories %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
 
 </section>

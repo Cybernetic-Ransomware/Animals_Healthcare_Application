@@ -3,6 +3,8 @@
 
     <h3>Diet</h3>
 
+    {% if "diet" in allowed_categories %}
+
     {% if animal.dietary_restrictions %}
     <div class="section">
         <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: dietary restrictions &amp; things to avoid</h4>
@@ -42,6 +44,10 @@
     </section>
     {% else %}
     <p>No diet notes recorded yet.</p>
+    {% endif %}
+
+    {% else %}
+    <p>You do not have access to this section.</p>
     {% endif %}
 
 </section>

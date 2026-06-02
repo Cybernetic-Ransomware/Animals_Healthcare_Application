@@ -3,7 +3,7 @@ from datetime import date
 from django import forms
 from PIL import Image
 
-from ahc.apps.animals.models import Animal
+from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.users.models import Profile
 
 
@@ -60,10 +60,36 @@ class ChangeOwnerForm(forms.Form):
 
 class ManageKeepersForm(forms.Form):
     input_user = forms.CharField(max_length=255, required=True, label="Full keeper profile name")
+    valid_until = forms.DateField(
+        required=False,
+        label="Access expires on (leave empty for indefinite)",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    allow_basic = forms.BooleanField(required=False, label="Basic info")
+    allow_vet_contact = forms.BooleanField(required=False, label="Vet contact")
+    allow_diet = forms.BooleanField(required=False, label="Diet")
+    allow_medications = forms.BooleanField(required=False, label="Medications")
+    allow_history = forms.BooleanField(required=False, label="History & notes")
+    allow_biometrics = forms.BooleanField(required=False, label="Biometrics")
+    allow_vaccinations = forms.BooleanField(required=False, label="Vaccinations")
 
     def __init__(self, *args, **kwargs):
         self.instance = kwargs.pop("instance", None)
         super().__init__(*args, **kwargs)
+        # Pre-fill category flags from the owner's share defaults.
+        from ahc.apps.animals.selectors import get_or_create_share_defaults
+
+        defaults = get_or_create_share_defaults(self.instance.owner)
+        for field in (
+            "allow_basic",
+            "allow_vet_contact",
+            "allow_diet",
+            "allow_medications",
+            "allow_history",
+            "allow_biometrics",
+            "allow_vaccinations",
+        ):
+            self.fields[field].initial = getattr(defaults, field)
 
     def clean_input_user(self):
         input_user = self.cleaned_data.get("input_user")
@@ -71,16 +97,40 @@ class ManageKeepersForm(forms.Form):
         if input_user == self.instance.owner.user.username:
             raise forms.ValidationError("As the owner you can not set yourself as a keeper.")
 
-        if input_user in self.instance.allowed_users.all():
+        if self.instance.shares.filter(carer__user__username=input_user).exists():
             raise forms.ValidationError("User is already on the list of keepers.")
 
         profile = Profile.objects.filter(user__username=input_user).first()
         if profile is None:
             raise forms.ValidationError("User does not exist.")
 
-        input_user_id = profile.pk
+        return profile.pk
 
-        return input_user_id
+
+class EditShareForm(forms.ModelForm):
+    class Meta:
+        model = AnimalShare
+        fields = [
+            "valid_until",
+            "allow_basic",
+            "allow_vet_contact",
+            "allow_diet",
+            "allow_medications",
+            "allow_history",
+            "allow_biometrics",
+            "allow_vaccinations",
+        ]
+        widgets = {"valid_until": forms.DateInput(attrs={"type": "date"})}
+        labels = {
+            "valid_until": "Access expires on (leave empty for indefinite)",
+            "allow_basic": "Basic info",
+            "allow_vet_contact": "Vet contact",
+            "allow_diet": "Diet",
+            "allow_medications": "Medications",
+            "allow_history": "History & notes",
+            "allow_biometrics": "Biometrics",
+            "allow_vaccinations": "Vaccinations",
+        }
 
 
 class ChangeBirthdayForm(forms.ModelForm):

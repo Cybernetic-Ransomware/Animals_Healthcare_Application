@@ -1,6 +1,7 @@
 {% load static %}
 <section class="tab-panel">
 
+    {% if "vet_contact" in allowed_categories %}
     <h3>Veterinary contact</h3>
     <div class="section">
         <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: first contact details</h4>
@@ -22,8 +23,10 @@
         <a role="button" class="secondary outline" href="{% url 'animal_next_visit' pk=animal.id %}">Set next visit date</a>
     </div>
     {% endif %}
-
     <br>
+    {% endif %}
+
+    {% if "history" in allowed_categories %}
     <h3>Medical visit timeline</h3>
     <section class="timeline">
         <div class="info">
@@ -84,5 +87,10 @@
         <p>No medical visits recorded yet.</p>
         {% endif %}
     </section>
+    {% endif %}
+
+    {% if not "vet_contact" in allowed_categories and not "history" in allowed_categories %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
 
 </section>

@@ -1,33 +1,27 @@
 {% extends "homepage/base.html" %}
 {% block content %}
-    <div class="content-section">
-        <form method="POST">
-            {% csrf_token %}
-            <fieldset>
-                <legend>Set a new keeper for {{ full_name }}:</legend>
-                <div>
-                    {{ form.input_user.label_tag }}
-                    {{ form.input_user }}
-                    {% for error in form.input_user.errors %}
-                        <small class="form-error">{{ error }}</small>
-                    {% endfor %}
-                </div>
-                <button type="submit">Save</button>
-            </fieldset>
-        </form>
-    </div>
-    {% if allowed_users %}
-        <div class="content-section">
-            <h4>Current Keepers:</h4>
-            <ul>
-                {% for user in allowed_users %}
-                    <li>{{ user }}</li>
-                {% endfor %}
-            </ul>
-        </div>
+    <h2>Add a keeper for {{ full_name }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        <fieldset>
+            <legend>New keeper</legend>
+            {% include "partials/form_fields.html" %}
+            <button type="submit">Add keeper</button>
+        </fieldset>
+    </form>
+
+    {% if shares %}
+    <h4>Current keepers</h4>
+    <ul>
+        {% for share in shares %}
+        <li>
+            {{ share.carer }}
+            {% if share.valid_until %} — expires {{ share.valid_until }}{% else %} — no expiry{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
     {% endif %}
+
     <br>
-    <small>
-        Return to <a href="{{ animal_url }}">Pet profile</a> or <a href="{% url 'animals_stable' %}">Stable</a>
-    </small>
+    <small>Return to <a href="{{ animal_url }}">Pet profile</a> or <a href="{% url 'animals_stable' %}">Stable</a></small>
 {% endblock %}

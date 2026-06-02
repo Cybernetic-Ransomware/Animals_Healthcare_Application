@@ -1,6 +1,7 @@
 {% load static %}
 <section class="tab-panel">
 
+    {% if "basic" in allowed_categories %}
     <div>
         <div class="section">
             <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: additional description</h4>
@@ -9,6 +10,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <br>
     <div class="grid">
