@@ -140,12 +140,44 @@ def medication_notes_for(animal) -> QuerySet[MedicalRecord]:
 def other_records_for(animal) -> QuerySet[MedicalRecord]:
     """Return MedicalRecords for an animal, excluding types shown on specialised tabs.
 
-    Excludes medical_visit (Vet), diet_note (Diet), and medicament_note (Medications).
+    Excludes medical_visit (Vet), diet_note (Diet), medicament_note (Medications),
+    and vaccination_note (Vaccinations).
     Results are prefetch_related for attachments and ordered newest first.
     """
     return (
         MedicalRecord.objects.filter(animal=animal)
-        .exclude(type_of_event__in=["medical_visit", "diet_note", "medicament_note"])
+        .exclude(type_of_event__in=["medical_visit", "diet_note", "medicament_note", "vaccination_note"])
+        .prefetch_related("attachments")
+        .order_by("-date_creation")
+    )
+
+
+def other_history_for(animal) -> QuerySet[MedicalRecord]:
+    """Return general (non-biometric) MedicalRecords for the Notes tab history section.
+
+    Covers fast_note and other_user_note; excludes biometric_record, medical_visit,
+    diet_note, medicament_note, and vaccination_note.
+    """
+    return (
+        MedicalRecord.objects.filter(animal=animal)
+        .exclude(
+            type_of_event__in=[
+                "medical_visit",
+                "diet_note",
+                "medicament_note",
+                "biometric_record",
+                "vaccination_note",
+            ]
+        )
+        .prefetch_related("attachments")
+        .order_by("-date_creation")
+    )
+
+
+def biometric_records_for(animal) -> QuerySet[MedicalRecord]:
+    """Return biometric_record MedicalRecords for the Notes tab biometrics section."""
+    return (
+        MedicalRecord.objects.filter(animal=animal, type_of_event="biometric_record")
         .prefetch_related("attachments")
         .order_by("-date_creation")
     )
@@ -164,3 +196,31 @@ def is_attachment_author(profile, attachment: MedicalRecordAttachment) -> bool:
 def can_access_note_animal(profile, note: MedicalRecord) -> bool:
     """Return True if the profile is owner or keeper of the animal linked to the note."""
     return user_can_access_animal(profile, note.animal)
+
+
+def vaccination_notes_for(animal) -> QuerySet:
+    """Return VaccinationNotes for an animal, ordered by valid_until (soonest first).
+
+    Records without a valid_until date are placed last.
+    """
+    from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
+
+    return (
+        VaccinationNote.objects.filter(related_note__animal=animal)
+        .select_related("related_note")
+        .order_by("valid_until", "reminder_date")
+    )
+
+
+def due_vaccination_reminders(on_date: date) -> QuerySet:
+    """Return VaccinationNotes whose reminder_date is today or overdue and not yet sent.
+
+    Used by the daily Celery Beat task to dispatch Discord notifications.
+    """
+    from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
+
+    return (
+        VaccinationNote.objects.filter(reminder_date__lte=on_date, reminder_sent=False)
+        .select_related("related_note__animal__owner__user")
+        .exclude(reminder_date=None)
+    )

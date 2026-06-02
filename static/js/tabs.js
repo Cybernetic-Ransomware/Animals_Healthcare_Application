@@ -44,5 +44,8 @@
         if (typeof initTimelineJump === "function") {
             initTimelineJump();
         }
+        if (typeof initVaccinationTable === "function") {
+            initVaccinationTable();
+        }
     });
 }());

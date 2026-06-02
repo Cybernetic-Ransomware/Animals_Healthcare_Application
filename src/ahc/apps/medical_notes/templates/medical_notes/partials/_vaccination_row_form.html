@@ -1,0 +1,47 @@
+{% if is_new %}
+<tr id="vaccination-row-new">
+{% else %}
+<tr id="vaccination-row-{{ vaccination.id }}">
+{% endif %}
+    {% csrf_token %}
+    <td>
+        {{ form.vaccine_name }}
+        {% if form.vaccine_name.errors %}<small class="error">{{ form.vaccine_name.errors|join:" " }}</small>{% endif %}
+    </td>
+    <td>
+        {{ form.last_vaccination_date }}
+        {% if form.last_vaccination_date.errors %}<small class="error">{{ form.last_vaccination_date.errors|join:" " }}</small>{% endif %}
+    </td>
+    <td>
+        {{ form.valid_until }}
+        {% if form.valid_until.errors %}<small class="error">{{ form.valid_until.errors|join:" " }}</small>{% endif %}
+    </td>
+    <td>
+        {{ form.suggested_clinic }}
+        {% if form.suggested_clinic.errors %}<small class="error">{{ form.suggested_clinic.errors|join:" " }}</small>{% endif %}
+    </td>
+    <td>
+        {{ form.reminder_date }}
+        {% if form.reminder_date.errors %}<small class="error">{{ form.reminder_date.errors|join:" " }}</small>{% endif %}
+    </td>
+    <td>
+        {% if is_new %}
+        <button
+            hx-post="{% url 'vaccination_add' pk=animal_id %}"
+            hx-include="closest tr"
+            hx-target="#vaccination-row-new"
+            hx-swap="outerHTML">Save</button>
+        {% else %}
+        <button
+            hx-post="{% url 'vaccination_save' vacc_id=vaccination.id %}"
+            hx-include="closest tr"
+            hx-target="#vaccination-row-{{ vaccination.id }}"
+            hx-swap="outerHTML">Save</button>
+        <a role="button" class="secondary outline"
+           hx-get="{% url 'vaccination_cancel' vacc_id=vaccination.id %}"
+           hx-target="#vaccination-row-{{ vaccination.id }}"
+           hx-swap="outerHTML"
+           href="#">Cancel</a>
+        {% endif %}
+    </td>
+</tr>

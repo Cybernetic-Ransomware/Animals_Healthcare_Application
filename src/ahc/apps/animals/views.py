@@ -17,6 +17,7 @@ from django.views.generic.edit import FormView
 from ahc.apps.animals.forms import AnimalRegisterForm, PinAnimalForm
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import (
+    allowed_categories_for,
     animals_visible_to,
     is_animal_owner,
     is_pinned,
@@ -32,9 +33,10 @@ class Tab:
     template: str
     owner_only: bool
     build: Callable[..., dict[str, Any]]
+    categories: frozenset[str] = frozenset()
 
 
-def _build_mainpage(request, animal: Animal) -> dict[str, Any]:
+def _build_mainpage(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
     return {}
 
 
@@ -56,39 +58,49 @@ def _timeline_boundary_from_month(month_param: str) -> datetime | None:
     return timezone.make_aware(datetime(first_of_next.year, first_of_next.month, first_of_next.day, 0, 0, 0), tz)
 
 
-def _build_vet(request, animal: Animal) -> dict[str, Any]:
-    from ahc.apps.medical_notes.selectors import available_months_for, timeline_for
+def _build_vet(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
+    ctx: dict[str, Any] = {}
+    if allowed is None or "vet_contact" in allowed:
+        ctx["show_vet_contact"] = True
 
-    qs = timeline_for(animal, type_of_event="medical_visit").order_by("-date_creation")
+    if allowed is None or "history" in allowed:
+        from ahc.apps.medical_notes.selectors import available_months_for, timeline_for
 
-    month_param = request.GET.get("month")
-    before_param = request.GET.get("before")
+        qs = timeline_for(animal, type_of_event="medical_visit").order_by("-date_creation")
 
-    if month_param and not before_param:
-        boundary = _timeline_boundary_from_month(month_param)
-        if boundary:
-            qs = qs.filter(date_creation__lt=boundary)
-    elif before_param:
-        before_dt = parse_datetime(before_param)
-        if before_dt:
-            qs = qs.filter(date_creation__lt=before_dt)
+        month_param = request.GET.get("month")
+        before_param = request.GET.get("before")
 
-    records = list(qs[: _TIMELINE_PER_PAGE + 1])
-    tl_has_more = len(records) > _TIMELINE_PER_PAGE
-    if tl_has_more:
-        records = records[:_TIMELINE_PER_PAGE]
+        if month_param and not before_param:
+            boundary = _timeline_boundary_from_month(month_param)
+            if boundary:
+                qs = qs.filter(date_creation__lt=boundary)
+        elif before_param:
+            before_dt = parse_datetime(before_param)
+            if before_dt:
+                qs = qs.filter(date_creation__lt=before_dt)
 
-    return {
-        "vet_records": records,
-        "tl_has_more": tl_has_more,
-        "tl_next_before": records[-1].date_creation.isoformat() if records else None,
-        "tl_slug": "vet",
-        "scroll_to_month": month_param or "",
-        "available_months": available_months_for(animal, type_of_event="medical_visit"),
-    }
+        records = list(qs[: _TIMELINE_PER_PAGE + 1])
+        tl_has_more = len(records) > _TIMELINE_PER_PAGE
+        if tl_has_more:
+            records = records[:_TIMELINE_PER_PAGE]
+
+        ctx.update(
+            {
+                "vet_records": records,
+                "tl_has_more": tl_has_more,
+                "tl_next_before": records[-1].date_creation.isoformat() if records else None,
+                "tl_slug": "vet",
+                "scroll_to_month": month_param or "",
+                "available_months": available_months_for(animal, type_of_event="medical_visit"),
+            }
+        )
+    return ctx
 
 
-def _build_diet(request, animal: Animal) -> dict[str, Any]:
+def _build_diet(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
+    if allowed is not None and "diet" not in allowed:
+        return {}
     from ahc.apps.medical_notes.selectors import timeline_for
 
     return {
@@ -96,69 +108,134 @@ def _build_diet(request, animal: Animal) -> dict[str, Any]:
     }
 
 
-def _build_medications(request, animal: Animal) -> dict[str, Any]:
+def _build_medications(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
+    if allowed is not None and "medications" not in allowed:
+        return {}
     from ahc.apps.medical_notes.selectors import medication_notes_for
 
     return {"medication_records": medication_notes_for(animal)}
 
 
-def _build_notes(request, animal: Animal) -> dict[str, Any]:
-    from ahc.apps.medical_notes.selectors import other_records_for
+def _build_notes(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
+    ctx: dict[str, Any] = {}
 
-    qs = other_records_for(animal)
+    if allowed is None or "history" in allowed:
+        from ahc.apps.medical_notes.selectors import other_history_for
 
-    month_param = request.GET.get("month")
-    before_param = request.GET.get("before")
+        qs = other_history_for(animal)
 
-    if month_param and not before_param:
-        boundary = _timeline_boundary_from_month(month_param)
-        if boundary:
-            qs = qs.filter(date_creation__lt=boundary)
-    elif before_param:
-        before_dt = parse_datetime(before_param)
-        if before_dt:
-            qs = qs.filter(date_creation__lt=before_dt)
+        month_param = request.GET.get("month")
+        before_param = request.GET.get("before")
 
-    records = list(qs[: _TIMELINE_PER_PAGE + 1])
-    tl_has_more = len(records) > _TIMELINE_PER_PAGE
-    if tl_has_more:
-        records = records[:_TIMELINE_PER_PAGE]
+        if month_param and not before_param:
+            boundary = _timeline_boundary_from_month(month_param)
+            if boundary:
+                qs = qs.filter(date_creation__lt=boundary)
+        elif before_param:
+            before_dt = parse_datetime(before_param)
+            if before_dt:
+                qs = qs.filter(date_creation__lt=before_dt)
 
-    available_months = list(
-        other_records_for(animal).datetimes(
-            "date_creation",
-            "month",
-            order="DESC",
-            tzinfo=timezone.get_current_timezone(),
+        records = list(qs[: _TIMELINE_PER_PAGE + 1])
+        tl_has_more = len(records) > _TIMELINE_PER_PAGE
+        if tl_has_more:
+            records = records[:_TIMELINE_PER_PAGE]
+
+        available_months = list(
+            other_history_for(animal).datetimes(
+                "date_creation",
+                "month",
+                order="DESC",
+                tzinfo=timezone.get_current_timezone(),
+            )
         )
-    )
 
-    return {
-        "other_records": records,
-        "tl_has_more": tl_has_more,
-        "tl_next_before": records[-1].date_creation.isoformat() if records else None,
-        "tl_slug": "notes",
-        "scroll_to_month": month_param or "",
-        "available_months": available_months,
-    }
+        ctx.update(
+            {
+                "other_records": records,
+                "tl_has_more": tl_has_more,
+                "tl_next_before": records[-1].date_creation.isoformat() if records else None,
+                "tl_slug": "notes",
+                "scroll_to_month": month_param or "",
+                "available_months": available_months,
+            }
+        )
+
+    if allowed is None or "biometrics" in allowed:
+        from ahc.apps.medical_notes.selectors import biometric_records_for
+
+        ctx["biometric_records"] = biometric_records_for(animal)
+
+    return ctx
 
 
-def _build_ownership(request, animal: Animal) -> dict[str, Any]:
-    return {"keepers": animal.allowed_users.all()}
+def _build_ownership(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
+    return {"keepers": animal.shares.select_related("carer__user").all()}
 
 
-def _build_settings(request, animal: Animal) -> dict[str, Any]:
+def _build_settings(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
     return {}
+
+
+def _build_vaccinations(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
+    if allowed is not None and "vaccinations" not in allowed:
+        return {}
+    from ahc.apps.medical_notes.selectors import vaccination_notes_for
+
+    return {"vaccination_records": vaccination_notes_for(animal)}
 
 
 TAB_REGISTRY: dict[str, Tab] = {
     tab.slug: tab
     for tab in [
-        Tab("mainpage", "Overview", "animals/tabs/_mainpage.html", False, _build_mainpage),
-        Tab("vet", "Vet & Visits", "animals/tabs/_vet.html", False, _build_vet),
-        Tab("diet", "Diet", "animals/tabs/_diet.html", False, _build_diet),
-        Tab("medications", "Medications", "animals/tabs/_medications.html", False, _build_medications),
-        Tab("notes", "Notes", "animals/tabs/_notes.html", False, _build_notes),
+        Tab(
+            "mainpage",
+            "Overview",
+            "animals/tabs/_mainpage.html",
+            False,
+            _build_mainpage,
+            frozenset({"basic"}),
+        ),
+        Tab(
+            "vet",
+            "Vet & Visits",
+            "animals/tabs/_vet.html",
+            False,
+            _build_vet,
+            frozenset({"vet_contact", "history"}),
+        ),
+        Tab(
+            "diet",
+            "Diet",
+            "animals/tabs/_diet.html",
+            False,
+            _build_diet,
+            frozenset({"diet"}),
+        ),
+        Tab(
+            "medications",
+            "Medications",
+            "animals/tabs/_medications.html",
+            False,
+            _build_medications,
+            frozenset({"medications"}),
+        ),
+        Tab(
+            "notes",
+            "Notes",
+            "animals/tabs/_notes.html",
+            False,
+            _build_notes,
+            frozenset({"history", "biometrics"}),
+        ),
+        Tab(
+            "vaccinations",
+            "Vaccinations",
+            "animals/tabs/_vaccinations.html",
+            False,
+            _build_vaccinations,
+            frozenset({"vaccinations"}),
+        ),
         Tab("ownership", "Ownership", "animals/tabs/_ownership.html", True, _build_ownership),
         Tab("settings", "Settings", "animals/tabs/_settings.html", True, _build_settings),
     ]
@@ -173,12 +250,21 @@ def _base_profile_context(request, animal: Animal) -> dict[str, Any]:
     """Shared context for profile.html shell and AnimalTabView."""
     profile = request.user.profile
     owner = is_animal_owner(profile, animal)
+    allowed = allowed_categories_for(profile, animal)
+
+    def _tab_visible(tab: Tab) -> bool:
+        if tab.owner_only:
+            return owner
+        if not tab.categories:
+            return True
+        return owner or bool(tab.categories & allowed)
+
     return {
         "now": timezone.now().date(),
         "is_owner": owner,
         "is_pinned": is_pinned(profile, animal),
-        # Non-owners do not see owner-only tabs in the nav bar.
-        "tabs": [t for t in TABS_LIST if not t.owner_only or owner],
+        "allowed_categories": allowed,
+        "tabs": [t for t in TABS_LIST if _tab_visible(t)],
     }
 
 
@@ -206,10 +292,11 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(_base_profile_context(self.request, self.object))
+        base = _base_profile_context(self.request, self.object)
+        context.update(base)
         context["active_tab"] = DEFAULT_TAB_SLUG
         context["active_partial"] = TAB_REGISTRY[DEFAULT_TAB_SLUG].template
-        context.update(TAB_REGISTRY[DEFAULT_TAB_SLUG].build(self.request, self.object))
+        context.update(TAB_REGISTRY[DEFAULT_TAB_SLUG].build(self.request, self.object, allowed=base["allowed_categories"]))
         return context
 
     def test_func(self):
@@ -237,11 +324,17 @@ class AnimalTabView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
     def test_func(self):
         animal = self.get_object()
-        if not user_can_access_animal(self.request.user.profile, animal):
+        profile = self.request.user.profile
+        if not user_can_access_animal(profile, animal):
             return False
         tab = TAB_REGISTRY.get(self.kwargs.get("slug", ""))
-        if tab and tab.owner_only:
-            return is_animal_owner(self.request.user.profile, animal)
+        if tab is None:
+            return True
+        if tab.owner_only:
+            return is_animal_owner(profile, animal)
+        if tab.categories and not is_animal_owner(profile, animal):
+            allowed = allowed_categories_for(profile, animal)
+            return bool(tab.categories & allowed)
         return True
 
     def get_template_names(self):
@@ -255,10 +348,11 @@ class AnimalTabView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         tab = self._get_tab()
-        context.update(_base_profile_context(self.request, self.object))
+        base = _base_profile_context(self.request, self.object)
+        context.update(base)
         context["active_tab"] = tab.slug
         context["active_partial"] = tab.template
-        context.update(tab.build(self.request, self.object))
+        context.update(tab.build(self.request, self.object, allowed=base["allowed_categories"]))
         return context
 
 
