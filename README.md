@@ -14,7 +14,11 @@ A Django monolith for managing pet health data — medical timelines, diet logs,
 
 ## Overview
 
-Pet owners and carers register animals, maintain detailed health records, and share selective access with other users. The system provides a unified timeline of medical events filtered by type and tag, diet and medication tracking, and automated reminders delivered via Discord.
+Pet owners and carers register animals and maintain detailed health records.
+
+Selective access can be shared with other users per data category (vet contact, diet, medications, vaccination history, biometrics).
+The core of the app is a unified medical timeline, filterable by note type and tag.
+Scheduled reminders for upcoming visits and vaccinations are delivered via Discord.
 
 ## Features
 
@@ -38,20 +42,7 @@ Pet owners and carers register animals, maintain detailed health records, and sh
 
 ## Environment Variables
 
-Copy `.env.template` to `.env` and fill in the values:
-
-| Variable | Required | Description |
-|---|---|---|
-| `SECRET_KEY` | yes | Django secret key |
-| `DATABASE_URL` | yes | PostgreSQL connection string |
-| `COUCH_DB_URL` | yes | CouchDB connection URL |
-| `COUCH_DB_NAME` | yes | CouchDB database name |
-| `CELERY_BROKER_URL` | yes | Redis broker URL |
-| `CELERY_BACKEND` | yes | Celery result backend URL |
-| `DISCORD_TOKEN` | no | Bot token for Discord notifications |
-| `EMAIL_HOST` | no | SMTP host for e-mail notifications |
-| `EMAIL_HOST_USER` | no | SMTP user |
-| `EMAIL_HOST_PASSWORD` | no | SMTP password |
+Copy `.env.template` to `.env` and fill in the values — all required variables and their descriptions are documented in the template file.
 
 ## Getting Started
 
@@ -70,54 +61,81 @@ The stack exposes: Django app on `:8000`, Flower (Celery monitor) on `:5555`.
 
 1. Clone the repository.
 2. Set up the `.env` file based on the provided template.
-3. Install dependencies:
+3. Install `uv` and sync dependencies:
    ```powershell
    pip install uv
    uv sync
    ```
-4. Install pre-commit hooks:
+4. Register pre-commit hooks:
    ```powershell
    uv run pre-commit install
    ```
-5. Start backing services (PostgreSQL, CouchDB, Redis, Celery):
+5. Start the dev server (starts backing services, applies migrations, runs Django):
    ```powershell
-   docker compose -f docker/docker-compose.yml up -d postgres_db couch_db redis queue celery_beat
+   just dev
    ```
-6. Run the Django dev server:
+   Or without `just`:
    ```powershell
+   docker compose --env-file .env -f docker/docker-compose.yml up -d --wait postgres_db redis couch_db
+   uv run python manage.py migrate
    uv run python manage.py runserver
    ```
 
-With `just` installed, steps 3–6 simplify to:
-```powershell
-just install
-just precommit
-just up
-```
+### Kubernetes Deploy (alternative)
 
-### Kubernetes Deploy
-
+An alternative to Docker Compose for production-like environments.
 See [`kubernetes/`](kubernetes/) for kustomization files and secret templates.
 Build and load images, then apply with `kubectl apply -k kubernetes/`.
 
 ## Testing
 
+#### Unit tests
 ```powershell
-# Run all tests
-just test
-
-# Unit tests only
 uv run pytest -m unit
+# or
+just test-unit
+```
 
-# Integration tests (requires Docker services running)
+#### Integration tests
+Requires Docker backing services running (`just infra`).
+```powershell
+uv run pytest -m integration
+# or
 just test-integration
+```
+
+#### All non-slow tests
+```powershell
+just test
 ```
 
 ## Linting
 
+#### Check
 ```powershell
-# Full suite: ruff format + check, ty, codespell, bandit
+uv run ruff check .
+uv run ty check
+uv run codespell
+uv run bandit -r src -c pyproject.toml -q
+# or
 just lint
+```
+
+#### Format (auto-fix)
+```powershell
+uv run ruff format .
+uv run ruff check --fix .
+# or
+just format
+```
+
+#### Pre-commit hooks
+Linting runs automatically on every `git commit` once hooks are installed (see Dev Instance step 4).
+To run manually against all files:
+```powershell
+uv run pre-commit run --all-files
+# or
+just precommit
 ```
 
 ## Screenshots
@@ -134,12 +152,19 @@ just lint
 
 Key decisions are documented as ADRs in [`doc/`](doc/):
 
-| ADR | Topic |
-|---|---|
-| [01](doc/01_adr_functionality.md) | Core functionality scope |
-| [08](doc/08_adr_databases.md) | PostgreSQL + CouchDB + Redis |
-| [09](doc/09_adr_user_data.md) | Data model — Animal fields and sharing |
-| [11](doc/11_adr_frontend_interactions.md) | htmx + native `<dialog>` |
+| ADR | Status | Topic |
+|---|---|---|
+| [01](doc/01_adr_functionality.md) | In progress | Core functionality scope |
+| [02](doc/02_adr_django.md) | Done | Web framework — Django |
+| [03](doc/03_adr_monolit.md) | Done | Architecture — monolith |
+| [04](doc/04_adr_monorepo.md) | Done | Repository structure — monorepo + GitHub Flow |
+| [05](doc/05_adr_matlibplot.md) | Proposed | Charts — Matplotlib → Chart.js |
+| [06](doc/06_adr_html_template.md) | Done | CSS framework — PicoCSS |
+| [07](doc/07_adr_drf.md) | Proposed | API framework — DRF |
+| [08](doc/08_adr_databases.md) | In progress | Databases — PostgreSQL + CouchDB + Redis |
+| [09](doc/09_adr_user_data.md) | In progress | Data model — Animal fields and sharing |
+| [10](doc/10_adr_notification_trigger.md) | In progress | Notifications — Celery Beat + Background Tasks |
+| [11](doc/11_adr_frontend_interactions.md) | Done | Frontend interactions — htmx + native `<dialog>` |
 
 ## Useful Links
 
