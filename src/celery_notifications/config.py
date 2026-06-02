@@ -26,10 +26,21 @@ def dispatch_discord_notes():
     send_discord_notes()
 
 
+@celery_obj.task(name="ahc.beat.dispatch_vaccination_reminders")
+def dispatch_vaccination_reminders():
+    from celery_notifications.cron import send_vaccination_reminders
+
+    send_vaccination_reminders()
+
+
 celery_obj.conf.beat_schedule = {
     "send-discord-notes-hourly": {
         "task": "ahc.beat.dispatch_discord_notes",
         "schedule": crontab(minute=6),
+    },
+    "send-vaccination-reminders-daily": {
+        "task": "ahc.beat.dispatch_vaccination_reminders",
+        "schedule": crontab(hour=8, minute=0),
     },
 }
 

@@ -1,5 +1,11 @@
-<a role="button"
-   class="contrast btn-with-bg"
-   style="background-image: url('{{ animal.profile_image.url }}');"
+<a class="animal-card"
    href="{% url 'animal_profile' pk=animal.id %}"
->{{ animal.full_name }}</a>
+   aria-label="Go to profile of {{ animal.full_name }}"
+>
+    <div class="animal-card__thumb">
+        {% if animal.profile_image %}
+        <img src="{{ animal.profile_image.url }}" alt="">
+        {% endif %}
+    </div>
+    <span class="animal-card__name">{{ animal.full_name }}</span>
+</a>

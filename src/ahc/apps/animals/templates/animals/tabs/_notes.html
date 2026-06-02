@@ -1,0 +1,101 @@
+{% load static %}
+<section class="tab-panel">
+
+    {% if "history" in allowed_categories %}
+    <h3>Notes</h3>
+    <section class="timeline">
+        <div class="info">
+            <div class="records-actions">
+                <a role="button" class="secondary outline"
+                   href="{% url 'note_create' pk=animal.id %}"
+                   hx-get="{% url 'note_create' pk=animal.id %}"
+                   hx-target="#modal-body"
+                   hx-swap="innerHTML"
+                   data-modal-title="New note">Add a note</a>
+                <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}">View full timeline</a>
+                {% if available_months %}
+                <select
+                    hx-get="{% url 'animal_tab' pk=animal.id slug='notes' %}"
+                    hx-target="#tab-panels"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    name="month"
+                    aria-label="Jump to month">
+                    <option value="">— Jump to month —</option>
+                    {% for month in available_months %}
+                    <option value="{{ month|date:'Y-m' }}" {% if scroll_to_month == month|date:"Y-m" %}selected{% endif %}>
+                        {{ month|date:"F Y" }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+            </div>
+        </div>
+        <span data-scroll-month="{{ scroll_to_month }}" hidden></span>
+        {% if other_records %}
+        <ol>
+            {% for record in other_records %}
+            {% ifchanged record.date_creation|date:"Y-m" %}
+            <li class="month-start" id="tlmonth-notes-{{ record.date_creation|date:'Y-m' }}" data-month="{{ record.date_creation|date:'M Y' }}"></li>
+            {% endifchanged %}
+            <li>
+                <div>
+                    <time>{{ record.date_creation|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+                    <small>({{ record.type_of_event }})</small>
+                    <br>
+                    <a role="button" class="secondary outline"
+                       href="{% url 'note_edit' pk=record.id %}"
+                       hx-get="{% url 'note_edit' pk=record.id %}"
+                       hx-target="#modal-body"
+                       hx-swap="innerHTML"
+                       data-modal-title="Edit note">Edit</a>
+                    <a role="button" class="secondary outline" href="{% url 'note_delete' pk=record.id %}">Delete</a>
+                </div>
+            </li>
+            {% endfor %}
+            {% if tl_has_more %}
+            <li class="timeline-load-more" id="timeline-more-notes">
+                <div>
+                    <a role="button" class="secondary outline"
+                       href="{% url 'animal_tab' pk=animal.id slug='notes' %}?before={{ tl_next_before }}&load_more=1"
+                       hx-get="{% url 'animal_tab' pk=animal.id slug='notes' %}?before={{ tl_next_before }}&load_more=1"
+                       hx-target="#timeline-more-notes"
+                       hx-swap="outerHTML">Load older</a>
+                </div>
+            </li>
+            {% endif %}
+            <li></li>
+        </ol>
+        {% else %}
+        <p>No notes recorded yet.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if "biometrics" in allowed_categories %}
+    <h3>Biometrics</h3>
+    {% if biometric_records %}
+    <section class="timeline" style="grid-template-columns: 1fr;">
+        <ol>
+            {% for record in biometric_records %}
+            <li>
+                <div>
+                    <time>{{ record.date_creation|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+                </div>
+            </li>
+            {% endfor %}
+            <li></li>
+        </ol>
+    </section>
+    {% else %}
+    <p>No biometric records yet.</p>
+    {% endif %}
+    {% endif %}
+
+    {% if not "history" in allowed_categories and not "biometrics" in allowed_categories %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
+
+</section>

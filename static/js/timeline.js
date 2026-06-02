@@ -1,25 +1,24 @@
-// VARIABLES
-const elH = document.querySelectorAll(".timeline li > div");
+// Timeline layout: equalise heights of list-item divs so the connector line aligns.
+// initTimeline() is called on window load and after htmx swaps.
 
-// START
-window.addEventListener("load", init);
-
-function init() {
-  setEqualHeights(elH);
-}
-
-// SET EQUAL HEIGHTS
-function setEqualHeights(el) {
-  let counter = 0;
-  for (let i = 0; i < el.length; i++) {
-    const singleHeight = el[i].offsetHeight;
-
-    if (counter < singleHeight) {
-      counter = singleHeight;
+function initTimeline() {
+    const elements = document.querySelectorAll(".timeline li > div");
+    if (elements.length > 0) {
+        setEqualHeights(elements);
     }
-  }
-
-  for (let i = 0; i < el.length; i++) {
-    el[i].style.height = `${counter}px`;
-  }
 }
+
+function setEqualHeights(el) {
+    let counter = 0;
+    for (let i = 0; i < el.length; i++) {
+        const singleHeight = el[i].offsetHeight;
+        if (counter < singleHeight) {
+            counter = singleHeight;
+        }
+    }
+    for (let i = 0; i < el.length; i++) {
+        el[i].style.height = counter + "px";
+    }
+}
+
+window.addEventListener("load", initTimeline);

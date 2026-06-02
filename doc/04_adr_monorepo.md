@@ -1,43 +1,35 @@
-## To choose a repository architecture
+## Repository structure — monorepo + GitHub Flow
 
-
-### Date: 
+### Date
 `2023-06-05`
-
 
 ### Status
 Done
 
-
 ### Context
-We need to choose an approach to building and maintaining the repositories and branches.\
-Considered approaches:
-- [x] Monorepo,
-- [ ] Polirepo,
----
-- [ ] GitFlow,
-- [x] GitHub Flow,
-- [ ] GitLab Flow,
-- [ ] Trunk-based development.
+A repository structure and branching strategy were needed for the project.
 
+Repository options: monorepo vs polyrepo.
+Branching options: GitFlow, GitHub Flow, GitLab Flow, trunk-based development.
 
 ### Decision
-The Monorepo approach will be used due to the small number of developers and the expected number of parallel branches.
+**Monorepo** — all code (Django app, Celery worker, Docker configs, Kubernetes manifests, docs) lives
+in one repository. With a single developer and a small surface area, a polyrepo would add overhead
+(cross-repo dependency tracking, versioned releases per service) with no benefit.
 
-The number of developers also affects the decision to manage branches and approach to deployment.
-GitHub-Flow was selected. In a small organization, a least detailed approach will suffice.
-
+**GitHub Flow** — `main` is always deployable; feature work happens on short-lived branches merged
+via pull request. GitFlow's `develop`/`release`/`hotfix` branching model would be overkill for
+a one-developer project.
 
 ### Consequences
-Possible future migrations will be easier in the direction from simpler to more complicated.
-
+- All changes to any part of the system are visible in one history and can be correlated across layers.
+- Migrations from simpler to more complex repository structures (polyrepo, GitFlow) are straightforward
+  if the team or scope grows.
+- The `main` branch is the production baseline; branch names follow Conventional Commits types
+  (`feat/`, `fix/`, `refactor/`, etc.).
 
 ### Keywords
--   GitHub,
--   repository,
--   monorepo,
--   branching.
-
+- GitHub, repository, monorepo, branching, GitHub Flow
 
 ### Links
 *[2023-06-14]*\

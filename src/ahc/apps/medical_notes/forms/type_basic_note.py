@@ -1,10 +1,6 @@
 from django import forms
 
-# from animals.models import Animal as AnimalProfile
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
-
-# from django.core.validators import MaxLengthValidator, MinLengthValidator
-# from django.db.models import Q
 
 
 class MedicalRecordForm(forms.ModelForm):
@@ -17,7 +13,15 @@ class MedicalRecordForm(forms.ModelForm):
         ("other_user_note", "Other"),
     )
 
+    MAX_ATTACHMENT_SIZE = 15 * 1024 * 1024
+    ALLOWED_ATTACHMENT_TYPES = {"application/pdf", "image/jpeg", "image/png"}
+
     type_of_event = forms.ChoiceField(choices=TYPES_OF_EVENTS, widget=forms.Select(attrs={"class": "custom-select"}))
+    attachment_file = forms.FileField(
+        required=False,
+        label="Attach file (optional)",
+        widget=forms.ClearableFileInput(attrs={"accept": "application/pdf,image/jpeg,image/png"}),
+    )
 
     class Meta:
         model = MedicalRecord
@@ -41,7 +45,7 @@ class MedicalRecordForm(forms.ModelForm):
             "participants": forms.TextInput(attrs={"required": False}),
             "place": forms.TextInput(attrs={"required": False}),
             "note_tags": forms.TextInput(attrs={"required": False}),
-            "additional_animals": forms.SelectMultiple(attrs={"required": False}),
+            "additional_animals": forms.CheckboxSelectMultiple(attrs={"required": False}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -60,6 +64,16 @@ class MedicalRecordForm(forms.ModelForm):
 
         self.fields["additional_animals"].label = "Related animals"
 
+    def clean_attachment_file(self):
+        file = self.cleaned_data.get("attachment_file")
+        if not file:
+            return file
+        if file.size > self.MAX_ATTACHMENT_SIZE:
+            raise forms.ValidationError("Files above 15 MB are not allowed.")
+        if file.content_type not in self.ALLOWED_ATTACHMENT_TYPES:
+            raise forms.ValidationError("Only PDF, JPEG, and PNG files are allowed.")
+        return file
+
 
 class MedicalRecordEditForm(MedicalRecordForm):
     def __init__(self, *args, **kwargs):
@@ -76,7 +90,7 @@ class MedicalRecordEditForm(MedicalRecordForm):
         cleaned_data = super().clean()
         additional_animals = cleaned_data.get("additional_animals")
 
-        if self.animal in additional_animals:
+        if additional_animals is not None and self.animal in additional_animals:
             raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
 
         return cleaned_data
@@ -102,11 +116,10 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        print(cleaned_data)
         animal = cleaned_data.get("animal")
         additional_animals = cleaned_data.get("additional_animals")
 
-        if animal in additional_animals:
+        if additional_animals is not None and animal in additional_animals:
             raise forms.ValidationError("The main Animal cannot be selected as an additional animal.")
 
         return cleaned_data
@@ -126,7 +139,6 @@ class UploadAppendixForm(forms.ModelForm):
         cleaned_data = super().clean()
         file = self.cleaned_data.get("file")
         medical_record_id = self.cleaned_data.get("medical_record_id")
-        print(f"{medical_record_id=}")
 
         if file and file.size > self.MAX_FILE_SIZE:
             raise forms.ValidationError("Files of size above 15MB are not allowed")

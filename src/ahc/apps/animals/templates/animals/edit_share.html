@@ -1,0 +1,10 @@
+{% extends "homepage/base.html" %}
+{% block content %}
+    <h2>Edit access for {{ carer_name }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit">Save</button>
+    </form>
+    <p><a href="{% url 'animal_tab' pk=animal_id slug='ownership' %}">Return to ownership</a></p>
+{% endblock %}

@@ -1,29 +1,23 @@
 {% extends "homepage/base.html" %}
-{% load crispy_forms_tags %}
 {% load static %}
+{% block extra_js %}
+    {% if form_name == 'BiometricRecordForm' %}
+        <script defer src="{% static 'js/hiding_note_fields_in_measurement_form.js' %}"></script>
+    {% endif %}
+{% endblock %}
 {% block content %}
 <div class="content-section">
-    <form method="POST">
-      {% if form_name == 'MedicalRecordForm' %}
-        <script src="{% static 'js/hiding_note_fields_in_form.js' %}"></script>
-      {% elif form_name == 'BiometricRecordForm' %}
-        <script src="{% static 'js/hiding_note_fields_in_measurement_form.js' %}"></script>
-      {% endif %}
+    <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
-        <fieldset class="form-group">
-            <legend class="border-bottom mb-4">Register a new note related with:</legend>
-            <br>
-            {{ form|crispy }}
+        <fieldset>
+            <legend>Register a new note related with:</legend>
+            {% include "partials/form_fields.html" %}
         </fieldset>
-        <div class="form-group">
-            <button class="btn btn-outline-info" type="submit">Submit!</button>
-        </div>
+        <button type="submit">Submit!</button>
     </form>
-    <div class="border-top pt-3">
-        <small class="text-muted">
-            <a class="ml-2" href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet
-                profile</a>
-        </small>
-    </div>
+    <br>
+    <small>
+        <a href="{% url 'animal_profile' pk=request.resolver_match.kwargs.pk %}">Return to the pet profile</a>
+    </small>
 </div>
 {% endblock %}

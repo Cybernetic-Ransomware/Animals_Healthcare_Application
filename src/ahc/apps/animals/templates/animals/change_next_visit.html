@@ -1,0 +1,20 @@
+{% extends "homepage/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content-section">
+    <h2>Set next vet visit</h2>
+    {% if next_visit_date %}
+        <p>Current next visit: <strong>{{ next_visit_date|date:"Y-m-d" }}</strong></p>
+    {% else %}
+        <p>No next visit date set.</p>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit">Save</button>
+    </form>
+    <br>
+    <a role="button" class="secondary outline" href="{% url 'animal_tab' pk=animal_id slug='vet' %}">Back to Vet &amp; Visits</a>
+</div>
+{% endblock %}

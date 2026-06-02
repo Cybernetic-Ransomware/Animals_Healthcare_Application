@@ -4,8 +4,8 @@ services:
   web:
     build:
       context: ..
-      dockerfile: docker/Dockerfile-web
-    image: ahc_app-web:latest
+      dockerfile: docker/Dockerfile-app
+    image: ahc-app:latest
     ports:
       - "8000:8000"
     volumes:
@@ -14,6 +14,8 @@ services:
       - ../.env
     environment:
       - PYTHONUNBUFFERED=1
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
     depends_on:
       postgres_db:
         condition: service_healthy
@@ -80,13 +82,15 @@ services:
   queue:
     build:
       context: ..
-      dockerfile: docker/Dockerfile-queue
+      dockerfile: docker/Dockerfile-app
     command: celery -A celery_notifications.config:celery_obj worker -l info
     env_file:
       - ../.env
     environment:
       - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
     depends_on:
       redis:
         condition: service_healthy
@@ -109,13 +113,15 @@ services:
   celery_beat:
     build:
       context: ..
-      dockerfile: docker/Dockerfile-queue
+      dockerfile: docker/Dockerfile-app
     command: celery -A celery_notifications.config:celery_obj beat -l info
     env_file:
       - ../.env
     environment:
       - DJANGO_SETTINGS_MODULE=ahc.settings
       - PYTHONUNBUFFERED=1
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
     depends_on:
       redis:
         condition: service_healthy

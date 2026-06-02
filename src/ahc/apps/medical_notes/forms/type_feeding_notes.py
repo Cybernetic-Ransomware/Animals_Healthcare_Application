@@ -15,6 +15,7 @@ class DietRecordForm(forms.ModelForm):
             "producer",
             "product_name",
             "dose_annotations",
+            "purchase_source",
         ]
         labels = {
             "real_start_date": "Actual start date of feeding",
@@ -23,6 +24,7 @@ class DietRecordForm(forms.ModelForm):
             "producer": "Producer",
             "product_name": "Product name",
             "dose_annotations": "Dosage details",
+            "purchase_source": "Where to buy",
         }
 
     category_choices = [("dry", "Dry"), ("wet", "Wet"), ("supplement", "Supplement")]
@@ -37,6 +39,7 @@ class DietRecordForm(forms.ModelForm):
     producer = forms.CharField(max_length=120, required=False)
     product_name = forms.CharField(max_length=80, required=True)
     dose_annotations = forms.CharField(max_length=250, required=False)
+    purchase_source = forms.CharField(max_length=250, required=False)
 
 
 class NotificationRecordForm(forms.ModelForm):

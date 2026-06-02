@@ -8,9 +8,10 @@ help:
 install:
     uv sync
 
-# Run all linters (ruff check, codespell, bandit)
+# Run all linters (ruff check, ty, codespell, bandit)
 lint:
     uv run ruff check .
+    uv run ty check
     uv run codespell
     uv run bandit -r . -c pyproject.toml -q
 
@@ -43,7 +44,7 @@ migrate:
 shell:
     uv run python manage.py shell
 
-# Start all Docker services
+# Start all Docker services (full stack, with rebuild)
 up:
     docker-compose --env-file .env -f docker/docker-compose.yml up -d --build
 
@@ -51,6 +52,28 @@ up:
 down:
     docker-compose --env-file .env -f docker/docker-compose.yml down
 
+# Start only infrastructure services (Postgres, Redis, CouchDB) — no app rebuild
+infra:
+    docker-compose --env-file .env -f docker/docker-compose.yml up -d postgres_db redis couch_db
+
+# Stop infrastructure services
+infra-down:
+    docker-compose --env-file .env -f docker/docker-compose.yml stop postgres_db redis couch_db
+
+# Local dev: wait for healthy infra, migrate, run Django with hot-reload
+dev:
+    docker-compose --env-file .env -f docker/docker-compose.yml up -d --wait postgres_db redis couch_db
+    uv run python manage.py migrate
+    uv run python manage.py runserver
+
 # Run pre-commit hooks on all files
 precommit:
     uv run pre-commit run --all-files
+
+# Commit with pre-commit checks and commitizen
+commit:
+    uv run pre-commit run && uv run cz commit
+
+# Bump version using commitizen
+bump:
+    uv run cz bump

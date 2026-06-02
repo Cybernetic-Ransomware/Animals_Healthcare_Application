@@ -1,146 +1,75 @@
 {% extends "homepage/base.html" %}
-{% load crispy_forms_tags %}
 {% load static %}
 {% load custom_timesince %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/expanding_sections.css' %}">
+    <link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+    <script defer src="{% static 'js/expanding_sections.js' %}"></script>
+    <script defer src="{% static 'js/timeline.js' %}"></script>
+    <script defer src="{% static 'js/pin_animal.js' %}"></script>
+    <script defer src="{% static 'js/vaccination_table.js' %}"></script>
+{% endblock %}
+
+{% block tab_nav %}
+<nav class="tab-nav" aria-label="Animal sections">
+    <div class="container">
+        <ul role="tablist">
+            {% for tab in tabs %}
+            <li>
+                <a role="tab"
+                   href="{% url 'animal_tab' pk=animal.id slug=tab.slug %}"
+                   hx-get="{% url 'animal_tab' pk=animal.id slug=tab.slug %}"
+                   hx-target="#tab-panels"
+                   hx-swap="innerHTML"
+                   hx-push-url="true"
+                   data-tab="{{ tab.slug }}"
+                   class="{% if tab.slug == active_tab %}active{% endif %}">{{ tab.label }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
 {% block content %}
-    <div class="content-section">
-        <div class="media">
+<div class="content-section">
 
-            <div class="media-body">
-                <div class="grid">
-                    <a href="{% url 'upload_image' pk=animal.id %}">
-                        <img class="rounded-circle account-img" src="{% static animal.profile_image.url %}"
-                             alt="Animal's profile picture"
-                             title="Change a picture">
-                    </a>
-                    <div class="content-section">
-                        <h2 class="account-heading">{{ animal.full_name }}</h2>
+    <div class="animal-profile-hero">
+        <a class="animal-profile-hero__img" href="{% url 'upload_image' pk=animal.id %}">
+            <img src="{{ animal.profile_image.url }}"
+                 alt="Animal's profile picture"
+                 title="Change a picture">
+        </a>
+        <div class="animal-profile-hero__info">
+            <h2>{{ animal.full_name }}</h2>
 
-                        {% if animal.birthdate %}
-                            <p class="text-secondary">Age: {{ animal.birthdate|years_and_months_since:now }}</p>
-                            <p class="text-secondary">Next birthday:
-                                {{ animal.birthdate|date:"d-m" }}-{{ now|date:"Y"}}</p>
-                            <br>
-                        {% endif %}
+            {% if animal.species or animal.breed %}
+                <p>{{ animal.species }}{% if animal.species and animal.breed %} / {% endif %}{{ animal.breed }}</p>
+            {% endif %}
+            {% if animal.sex %}
+                <p>Sex: {{ animal.get_sex_display }}</p>
+            {% endif %}
+            <p>Sterilized: <input type="checkbox" disabled {% if animal.sterilization %}checked{% endif %} aria-readonly="true"></p>
 
-                        <p class="text-secondary">Owner: {{ animal.owner }}</p>
-                        <br>
-                        {% if animal.short_description %}
-                            <p class="text-secondary">{{ animal.short_description }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+            {% if animal.birthdate %}
+                <p>Age: {{ animal.birthdate|years_and_months_since:now }}</p>
+                <p>Next birthday: {{ animal.birthdate|date:"d-m" }}-{{ now|date:"Y" }}</p>
+            {% endif %}
+
+            <p>Owner: {{ animal.owner }}</p>
+            {% if animal.short_description %}
+                <p>{{ animal.short_description }}</p>
+            {% endif %}
         </div>
-        <div class="media-body">
-            <link rel="stylesheet" type="text/css" href="{% static 'css/expanding_sections.css' %}">
-            <script src="{% static 'js/expanding_sections.js' %}"></script>
-            <br>
-            <div class="section">
-                <h4 class="button secondary outline section-header">Expand: additional description</h4>
-                <div class="text-secondary section-content">
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                        incididunt ut labore et dolore magna aliqua.</p>
-                </div>
-            </div>
-            <div class="section">
-                <h4 class="button secondary outline section-header">Expand: first contact details</h4>
-                <div class="text-secondary section-content">
-                    <pre><p>{{ animal.first_contact_vet }}</p></pre>
-                    <pre><p>{{ animal.first_contact_medical_place }}</p></pre>
-                </div>
-            </div>
-        </div>
-        <br>
-        <br>
-        <h3>Last records:</h3>
-        <div class="media-body">
-            <link rel="stylesheet" type="text/css" href="{% static 'css/timeline.css' %}">
-            <script src="{% static 'js/timeline.js' %}"></script>
-
-            <section class="timeline">
-
-                <div class="info">
-                    <div>
-                        <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}?type_of_event=medical_visit">Plan a new visit</a>
-                        <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}">Add a new note</a>
-                        <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}">View the full timeline</a>
-                    </div>
-                </div>
-
-                <ol>
-                    {% for record in recent_records reversed %}
-                    <li>
-                        <div>
-                            <time>{{ record.date_creation|date:"Y-m-d" }}</time>
-                            <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
-                        </div>
-                    </li>
-                    {% endfor %}
-                    <li></li>
-                </ol>
-            </section>
-        </div>
-        <br>
-        <div class="media-body">
-            <h3>Manage details:</h3>
-
-            <br>
-            <h4>Common options:</h4>
-            <div class="grid">
-                <a role="button" class="secondary outline" id="biometric-record-button" href="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record" >Add biometric record</a>
-                <a role="button" class="secondary outline" href="#">Manage notifications</a>
-                <a
-                    role="button"
-                    class="secondary outline"
-                    id="togglePinnedButton"
-                    href="{% url 'pinned_animals' %}"
-                    data-animal-id="{{ animal.id }}"
-                    data-action="{% if is_pinned %}remove{% else %}add{% endif %}"
-                >
-                {% if not is_pinned %}
-                        Add to Pinned
-                    {% else %}
-                        Remove from Pinned
-                    {% endif %}
-                </a>
-                <script src="{% static 'js/pin_animal.js' %}"></script>
-            </div>
-        </div>
-        {% if is_owner %}
-            <div class="media-body">
-                <br>
-                <h4>Owner options</h4>
-                <h6>Records</h6>
-                <div class="grid">
-                    <a role="button" class="secondary outline" href="#">Edit biometric records</a>
-                    <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=diet_note">Manage diets</a>
-                    <a role="button" class="secondary outline" href="#">Manage medicines</a>
-                </div>
-                <br>
-                <h6>Profile</h6>
-                <div class="grid">
-                    <a role="button" class="secondary outline" href="{% url 'animal_birthday' pk=animal.id %}">Change
-                        the birthdate</a>
-                    <a role="button" class="secondary outline" href="{% url 'upload_image' pk=animal.id %}">Change the
-                        profile picture</a>
-                    <a role="button" class="secondary outline" href="{% url 'animal_first_contact' pk=animal.id %}">Manage
-                        vet first contacts</a>
-                </div>
-                <br>
-                <h6>Ownership</h6>
-                <div class="grid">
-                    <a role="button" class="secondary outline" href="{% url 'animal_ownership' pk=animal.id %}">Change
-                        the owner</a>
-                    <a role="button" class="secondary outline" href="{% url 'manage_keepers' pk=animal.id %}">Manage
-                        keepers</a>
-                    <a role="button" class="secondary outline" href="{% url 'animal_delete' pk=animal.id %}">Remove the
-                        Animal from the
-                        files</a>
-                </div>
-            </div>
-        {% endif %}
-
     </div>
 
+    <div id="tab-panels">
+        {% include active_partial %}
+    </div>
+
+</div>
 {% endblock %}

@@ -147,6 +147,50 @@ def send_discord_notes():
     send_discord_notifications.apply_async(kwargs={"user_id": user_id, "user_message": user_message}, countdown=delay)
 
 
+@log_exceptions_and_notifications
+def send_vaccination_reminders() -> None:
+    """Send Discord reminders for vaccinations whose reminder_date is today or overdue.
+
+    Marks each record as reminder_sent=True after queuing so that the same
+    reminder is not dispatched again on the next daily run.
+
+    Animals whose owners have no discord_user_id are silently skipped
+    (a warning is logged).  Actual Discord delivery remains stubbed until
+    DISCORD_TOKEN is configured in the environment.
+    """
+    from datetime import date
+
+    from ahc.apps.medical_notes.selectors import due_vaccination_reminders
+
+    today = date.today()
+    due = due_vaccination_reminders(today)
+
+    for vaccination in due:
+        animal = vaccination.related_note.animal
+        owner = animal.owner
+
+        if not owner or not owner.discord_user_id:
+            logger.warning(
+                "Vaccination reminder skipped — owner has no discord_user_id (animal=%s, vaccine=%s)",
+                animal.id,
+                vaccination.vaccine_name,
+            )
+            continue
+
+        valid_str = vaccination.valid_until.strftime("%Y-%m-%d") if vaccination.valid_until else "unknown"
+        user_message = (
+            f"Vaccination reminder: {animal.full_name} is due for '{vaccination.vaccine_name}' (valid until {valid_str})."
+        )
+
+        send_discord_notifications.apply_async(
+            kwargs={"user_id": int(owner.discord_user_id), "user_message": user_message},
+            countdown=0,
+        )
+
+        vaccination.reminder_sent = True
+        vaccination.save(update_fields=["reminder_sent"])
+
+
 @task
 def log_notification_count() -> int:
     """Django Background Tasks example. Use for simple in-process tasks.

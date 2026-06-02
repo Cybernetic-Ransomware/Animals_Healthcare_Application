@@ -1,52 +1,37 @@
-## To choose a main web framework for project
+## Main web framework — Django selected
 
-
-### Date: 
+### Date
 `2023-06-05`
-
 
 ### Status
 Done
 
-
 ### Context
-We need to choose a main web framework for the project to create the core of the application.\
-Considered technologies:
-- [x] Django,
-- [ ] Flask,
-- [ ] Dash Plotly.
+A main web framework was needed to build the core of the application.
 
+Alternatives considered:
+- **Django** — full-featured, batteries-included; ORM, admin, auth, templating out of the box.
+- **Flask** — microframework; would require assembling more components manually.
+- **Dash Plotly** — derivative of Flask focused on interactive dashboards; dashboard functionality was deferred (see ADR-05).
 
 ### Decision
-Django was selected. The developer has the most recent experience and the desire to systematize knowledge.
-
-Flask, as a microframework, could extend the time to the first working prototype.
-
-Dash is a derivative framework for Flask with extensive features for generating interactive dashboards.
-This functionality has been postponed to a later stage of the application development.
-
+Django was selected. The developer had the most recent hands-on experience with it and wanted to
+deepen that knowledge systematically. Flask would have extended time-to-first-prototype with no
+offsetting benefit. Dash was out of scope until interactive dashboards are prioritised.
 
 ### Consequences
-An expected short time to prepare the first working prototype.
-With good community support, plugins supporting specific functionalities should be available (ORM, logging, api, etc.).
-
+- Short time to a working prototype due to Django's built-in ORM, admin, and auth.
+- Strong community and plugin ecosystem (DRF, Celery integration, etc.).
+- The monolithic architecture (ADR-03) aligns naturally with Django's app model.
 
 ### Keywords
--   Django,
--   Flask,
--   Dash Plotly,
--   web framework.
-
+- Django, Flask, Dash Plotly, web framework
 
 ### Links
 *[2023-06-05]*\
-Homepages:
-
-	https://www.djangoproject.com/
-
-    https://flask.palletsprojects.com
-
-    https://dash.plotly.com/
+https://www.djangoproject.com/\
+https://flask.palletsprojects.com\
+https://dash.plotly.com/
 
 *[2021-11-26]*\
 [List of 7 Best Python Frameworks to Consider For Your Web Project](https://www.monocubed.com/blog/top-python-frameworks/)

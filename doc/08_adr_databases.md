@@ -1,64 +1,52 @@
-## To choose DBMS
+## Database stack — PostgreSQL + CouchDB + Redis
 
-
-### Date: 
+### Date
 `2023-06-05`
-
 
 ### Status
 In-building
 
-
 ### Context
-We need to choose a database for a specific task within the application.\
-Considered DBMS:
-- [x] PostgreSQL,
-- [ ] MS SQL,
-- [ ] MySQL,
-- [ ] SQLite,
-- [ ] MongoDB,
-- [x] Redis    --to integrate,
-- [ ] Firebird,
-- [x] CouchDB.
+Three distinct data storage needs were identified:
+1. Relational data (users, animals, medical notes) — needs transactions and Django ORM support.
+2. File/attachment storage (medical PDFs) — binary blobs do not belong in a relational DB.
+3. Async task brokering (Celery) — needs a fast in-memory queue.
 
+Candidates evaluated per role:
+- Relational: PostgreSQL, MS SQL, MySQL, SQLite.
+- Document/file: CouchDB, MongoDB.
+- Broker: Redis.
 
 ### Decision
-Tree databases have been selected for routing testing.
+Three databases were selected, each with a dedicated role:
 
-PostgreSQL - quick database creation and configuration with a good SQL interface. It has many use cases with Django.
+| Database          | Version     | Port  | Role                                                  |
+|-------------------|-------------|-------|-------------------------------------------------------|
+| **PostgreSQL**    | 18          | 5433  | Primary relational store — all Django models          |
+| **CouchDB**       | 3.3.3       | 5982  | Attachment/file storage only (medical PDFs, images)   |
+| **Redis**         | 7           | 6379  | Celery broker + task result backend                   |
 
-CouchDB - native support for files as attachments. Non-relational database, intended for file storage only.
+SQLite is used **only** for the test database (activated in `settings.py` when `"test"` in `sys.argv`).
 
-Redis - default broker for Celery queue.
-
+Django database routing is required: the default router sends all ORM queries to PostgreSQL;
+CouchDB is accessed directly via its HTTP API (not through Django's ORM).
 
 ### Consequences
-In basic form database routing is required.
-The implementation should be quick, as the second database will be used only for storing attachment files.
-
+- CouchDB is intentionally narrow in scope — file storage only. No relational queries, no Django models.
+  Any new file storage feature must use the CouchDB HTTP client, not the Django ORM.
+- Redis must be running for Celery workers to start; the application is degraded (no async tasks,
+  no notifications) if Redis is unavailable.
+- Test runs use SQLite (no Docker required); integration tests that need PostgreSQL-specific behaviour
+  must be marked `@pytest.mark.integration` and run against the real stack.
 
 ### Keywords
--   DBMS,
--   database.
-
+- DBMS, database, PostgreSQL, CouchDB, Redis, Celery, routing
 
 ### Links
 *[2023-06-14]*\
-Homepages:
-
-	https://www.postgresql.org/
-
-    https://www.mysql.com/
-
-    https://www.sqlite.org/index.html
-
-    https://www.mongodb.com/
-
-    https://redis.io/
-
-    https://firebirdsql.org/
-
-    https://couchdb.apache.org/
+https://www.postgresql.org/\
+https://redis.io/\
+https://couchdb.apache.org/
 
 *[2023-01-24]*\
 [How to use PostgreSQL with Django](https://www.enterprisedb.com/postgres-tutorials/how-use-postgresql-django)

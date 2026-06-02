@@ -1,51 +1,55 @@
-## To set a tech-stack for notifications
-
+## Notification delivery — Celery Beat + Django Background Tasks
 
 ### Date
-`2023-12-19`
-
+`2023-12-19` (updated `2026-05-31`)
 
 ### Status
 In-building
 
-
 ### Context
-We need to choose a technology for sending set by users notifications.
-The basic channel for sending notifications include:
-- e-mail,
-- sms,
-- chatbot (Discord or Messenger).
+The application needs to send time-based notifications to users (e.g. upcoming vet visits).
+Key constraints:
+- Avoid overwhelming the database with frequent polling.
+- Support at least one external channel (Discord is the primary target).
+- Work within the existing Django monolith (ADR-03) without adding a separate service.
 
-Main risks: overwhelming a database by frequent requests.
-It is important to use intervals and delays to queue the broker.
-
-Options:
-- Celery Beat,
-- django-crontab,
-- django-cron.
-
+Options evaluated:
+- **django-crontab** — OS-level cron wrapper; simple but couples scheduling to the server's cron daemon.
+  No retry logic, no visibility into task state.
+- **Celery Beat** — distributed periodic task scheduler; integrates with the Celery worker (Redis broker)
+  already used for async tasks. Supports retry, monitoring via Flower, and dynamic schedule updates.
+- **Django Background Tasks API** (`ImmediateBackend`) — lightweight in-process runner;
+  no separate worker process needed; suitable for short, non-critical tasks.
 
 ### Decision
-Django-crontab
+**django-crontab was chosen initially but has since been removed.**
+The current stack uses two complementary mechanisms:
 
+1. **Celery Beat** (periodic tasks via `celery_notifications/cron.py`) — handles scheduled checks
+   (e.g. scan for upcoming vet visits and enqueue notification tasks). Runs as a separate
+   `celery_beat` Docker service with Redis 7 as the broker.
+
+2. **Django Background Tasks API** (`ImmediateBackend`) — used for lightweight in-process tasks
+   that do not need a separate worker. Configured in `settings.py`.
+
+Notification channel: **Discord** via `discord.py`. Additional channels (e-mail, SMS) are deferred.
 
 ### Consequences
-
-1. **Integration with Django:** django-crontab is a Django extension, making it a natural choice for seamlessly scheduling tasks in a Django-based application. This integration facilitates code maintenance and management.
-
-2. **Ease of Use:** django-crontab is easy to configure and use. Leveraging the same mechanisms as Django, it imposes minimal overhead on the development.
-
-3. **Precise Task Scheduling:** django-crontab allows for precise task scheduling, crucial for handling notifications. Specific 1h time intervals on parametrized minute and easy to count delays can be configured, enabling effective broker queuing and minimizing the risk of database overload.
-
-4. **Flexibility:** django-crontab offers flexibility in configuring cron tasks. This enables tailoring settings to the specific requirements of the project and adapting to potential future changes.
-
+- The `homepage.CronJob` model is an **orphan** — it was populated by django-crontab and nothing
+  currently writes to it. Follow-up required: migrate it or drop the table (tracked in CLAUDE.md
+  under Known Refactoring Targets).
+- Celery Beat requires two running processes: the Celery worker (`queue` service) and the Beat
+  scheduler (`celery_beat` service). Both are defined in `docker/docker-compose.yml`.
+- Task visibility is available via **Celery Flower** (port 5555).
+- Adding a new notification type means: (a) write a task function in `celery_notifications/cron.py`,
+  (b) register it in the Celery Beat schedule in `celery_notifications/config.py`.
 
 ### Keywords
--   Celery,
--   Cronjobs,
--   queue,
--   broker,
--   subscriptions,.
-
+- Celery, Celery Beat, notifications, Discord, cron, queue, broker, background tasks
 
 ### Links
+*[2026-05-31]*\
+https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html
+
+*[2023-12-19]*\
+https://docs.djangoproject.com/en/stable/topics/db/multi-db/ (database routing reference)

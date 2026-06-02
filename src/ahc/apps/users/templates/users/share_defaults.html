@@ -1,0 +1,18 @@
+{% extends "homepage/base.html" %}
+{% block content %}
+    <h2>Default sharing settings</h2>
+    <p>These settings are applied automatically when you add a new keeper to one of your animals.
+       You can still override them per-share when adding or editing a keeper.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit">Save defaults</button>
+    </form>
+
+    {% if messages %}
+    {% for message in messages %}
+    <p>{{ message }}</p>
+    {% endfor %}
+    {% endif %}
+{% endblock %}

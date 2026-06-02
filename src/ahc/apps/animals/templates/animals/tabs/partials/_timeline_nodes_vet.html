@@ -1,0 +1,22 @@
+{% for record in vet_records %}
+{% ifchanged record.date_creation|date:"Y-m" %}
+<li class="month-start" id="tlmonth-vet-{{ record.date_creation|date:'Y-m' }}" data-month="{{ record.date_creation|date:'M Y' }}"></li>
+{% endifchanged %}
+<li>
+    <div>
+        <time>{{ record.date_event_started|date:"Y-m-d" }}</time>
+        <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+    </div>
+</li>
+{% endfor %}
+{% if tl_has_more %}
+<li class="timeline-load-more" id="timeline-more-vet">
+    <div>
+        <a role="button" class="secondary outline"
+           href="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before }}&load_more=1"
+           hx-get="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before }}&load_more=1"
+           hx-target="#timeline-more-vet"
+           hx-swap="outerHTML">Load older</a>
+    </div>
+</li>
+{% endif %}

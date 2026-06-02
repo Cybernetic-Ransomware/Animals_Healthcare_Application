@@ -1,0 +1,32 @@
+{% load static %}
+<section class="tab-panel">
+
+    {% if "basic" in allowed_categories %}
+    <div>
+        <div class="section">
+            <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: additional description</h4>
+            <div class="section-content">
+                {{ animal.long_description|default:"No additional description." }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <br>
+    <div class="grid">
+        <a role="button" class="secondary outline"
+           href="{% url 'note_create' pk=animal.id %}?type_of_event=fast_note"
+           hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=fast_note"
+           hx-target="#modal-body"
+           hx-swap="innerHTML"
+           data-modal-title="Quick note">Add a quick note</a>
+        <a role="button" class="secondary outline"
+           id="togglePinnedButton"
+           href="{% url 'pinned_animals' %}"
+           data-animal-id="{{ animal.id }}"
+           data-action="{% if is_pinned %}remove{% else %}add{% endif %}">
+            {% if is_pinned %}Remove from Pinned{% else %}Add to Pinned{% endif %}
+        </a>
+    </div>
+
+</section>

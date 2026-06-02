@@ -4,14 +4,13 @@
 
 {% block content %}
 
-    <div class="container-fluid" style="text-align: center">
-      <h2>Welcome to your pet organizer</h2>
-    <br>
+    <div class="container welcome-heading">
+        <h2>Welcome to your pet organizer</h2>
     </div>
 
     {% if user.is_authenticated %}
 
-        <div class="container-fluid">
+        <div class="container">
             <h4>Operations:</h4>
 
             <div class="grid">
@@ -22,12 +21,12 @@
         </div>
 
         {% if pinned_animals %}
-            <div class="container-fluid">
+            <div class="container">
             <br>
                 <h4>Pinned up:</h4>
 
                 <div class="grid">
-                    {% for animal in recent_animals %}
+                    {% for animal in pinned_animals %}
                         {% include "partials/animal_card.html" %}
                     {% endfor %}
                 </div>
@@ -37,7 +36,7 @@
         {% endif %}
 
         {% if recent_animals %}
-            <div class="container-fluid">
+            <div class="container">
             <br>
                 <h4>Recent added:</h4>
 

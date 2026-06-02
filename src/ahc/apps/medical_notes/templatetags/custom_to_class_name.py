@@ -1,14 +1,16 @@
 from django import template
 
+from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNotification
+
 register = template.Library()
 
 
 @register.filter
-def to_file_name(value):
+def to_class_name(value):
     if value is None:
-        raise template.TemplateSyntaxError("Value cannot be None")
+        return ""
 
-    if not isinstance(value, str):
-        return value
+    if not isinstance(value, FeedingNotification):
+        return ""
 
-    return value.split("/")[-1]
+    return value.__class__.__name__

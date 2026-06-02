@@ -3,6 +3,7 @@ from django.urls import path
 from ahc.apps.medical_notes.views import type_basic_note as notes_views
 from ahc.apps.medical_notes.views import type_feeding_notes as feeding_views
 from ahc.apps.medical_notes.views import type_measurement_notes as measurement_views
+from ahc.apps.medical_notes.views import type_vaccination_notes as vaccination_views
 
 urlpatterns = [
     path("<uuid:pk>/create/", notes_views.CreateNoteFormView.as_view(), name="note_create"),
@@ -28,5 +29,18 @@ urlpatterns = [
         "<str:id>/<str:name>/attachment_download/",
         notes_views.DownloadAttachmentView.as_view(),
         name="attachment_download",
+    ),
+    path("<uuid:pk>/vaccination/add/", vaccination_views.VaccinationAddView.as_view(), name="vaccination_add"),
+    path("<uuid:vacc_id>/vaccination/edit/", vaccination_views.VaccinationEditView.as_view(), name="vaccination_edit"),
+    path("<uuid:vacc_id>/vaccination/save/", vaccination_views.VaccinationSaveView.as_view(), name="vaccination_save"),
+    path(
+        "<uuid:vacc_id>/vaccination/cancel/",
+        vaccination_views.VaccinationCancelView.as_view(),
+        name="vaccination_cancel",
+    ),
+    path(
+        "<uuid:vacc_id>/vaccination/delete/",
+        vaccination_views.VaccinationDeleteView.as_view(),
+        name="vaccination_delete",
     ),
 ]

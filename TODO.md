@@ -54,3 +54,30 @@ risk of changing form validation error messages.
 `animals/views.py` and `medical_notes/views/` contain business logic.
 Extraction to a service layer is already started. Keep signal decisions (§1)
 in sync with this work to avoid duplicating logic.
+
+## 6. Replace `[[tool.ty.overrides]]` with a typed request
+
+`pyproject.toml` suppresses `unresolved-attribute` across all view/mixin/signal/form
+modules to silence Django ORM false positives (mainly `request.user.profile`).
+The proper fix is a custom request type in `src/ahc/types.py`:
+
+```python
+# src/ahc/types.py
+from typing import TYPE_CHECKING
+from django.contrib.auth.models import User
+from django.http import HttpRequest
+
+if TYPE_CHECKING:
+    from ahc.apps.users.models import Profile
+
+class _AHCUser(User):
+    profile: "Profile"
+
+class AuthenticatedRequest(HttpRequest):
+    user: _AHCUser  # type: ignore[assignment]
+```
+
+Then annotate each view class: `request: AuthenticatedRequest`.
+Once all views are covered, remove the `[[tool.ty.overrides]]` block from
+`pyproject.toml`. **Do this as part of the fat-views refactor (§5)** — each
+view touched during extraction gets the annotation added.

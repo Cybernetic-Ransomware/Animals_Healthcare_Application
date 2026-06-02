@@ -1,0 +1,96 @@
+{% load static %}
+<section class="tab-panel">
+
+    {% if "vet_contact" in allowed_categories %}
+    <h3>Veterinary contact</h3>
+    <div class="section">
+        <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: first contact details</h4>
+        <div class="section-content">
+            <pre>{{ animal.first_contact_vet|default:"Not set." }}</pre>
+            <pre>{{ animal.first_contact_medical_place|default:"Not set." }}</pre>
+        </div>
+    </div>
+
+    {% if animal.next_visit_date %}
+    <p>Next scheduled visit: <strong>{{ animal.next_visit_date|date:"Y-m-d" }}</strong></p>
+    {% else %}
+    <p>No next visit scheduled.</p>
+    {% endif %}
+
+    {% if is_owner %}
+    <div class="grid">
+        <a role="button" class="secondary outline" href="{% url 'animal_first_contact' pk=animal.id %}">Manage vet contacts</a>
+        <a role="button" class="secondary outline" href="{% url 'animal_next_visit' pk=animal.id %}">Set next visit date</a>
+    </div>
+    {% endif %}
+    <br>
+    {% endif %}
+
+    {% if "history" in allowed_categories %}
+    <h3>Medical visit timeline</h3>
+    <section class="timeline">
+        <div class="info">
+            <div class="records-actions">
+                <a role="button" class="secondary outline"
+                   href="{% url 'note_create' pk=animal.id %}?type_of_event=medical_visit"
+                   hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=medical_visit"
+                   hx-target="#modal-body"
+                   hx-swap="innerHTML"
+                   data-modal-title="Add vet visit">Add vet visit</a>
+                <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=medical_visit">View all visits</a>
+                {% if available_months %}
+                <select
+                    hx-get="{% url 'animal_tab' pk=animal.id slug='vet' %}"
+                    hx-target="#tab-panels"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    name="month"
+                    aria-label="Jump to month">
+                    <option value="">— Jump to month —</option>
+                    {% for month in available_months %}
+                    <option value="{{ month|date:'Y-m' }}" {% if scroll_to_month == month|date:"Y-m" %}selected{% endif %}>
+                        {{ month|date:"F Y" }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+            </div>
+        </div>
+        <span data-scroll-month="{{ scroll_to_month }}" hidden></span>
+        {% if vet_records %}
+        <ol>
+            {% for record in vet_records %}
+            {% ifchanged record.date_creation|date:"Y-m" %}
+            <li class="month-start" id="tlmonth-vet-{{ record.date_creation|date:'Y-m' }}" data-month="{{ record.date_creation|date:'M Y' }}"></li>
+            {% endifchanged %}
+            <li>
+                <div>
+                    <time>{{ record.date_event_started|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+                </div>
+            </li>
+            {% endfor %}
+            {% if tl_has_more %}
+            <li class="timeline-load-more" id="timeline-more-vet">
+                <div>
+                    <a role="button" class="secondary outline"
+                       href="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before }}&load_more=1"
+                       hx-get="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before }}&load_more=1"
+                       hx-target="#timeline-more-vet"
+                       hx-swap="outerHTML">Load older</a>
+                </div>
+            </li>
+            {% endif %}
+            <li></li>
+        </ol>
+        {% else %}
+        <p>No medical visits recorded yet.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if not "vet_contact" in allowed_categories and not "history" in allowed_categories %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
+
+</section>

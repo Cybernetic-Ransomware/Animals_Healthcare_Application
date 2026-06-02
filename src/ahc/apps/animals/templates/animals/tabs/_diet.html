@@ -1,0 +1,53 @@
+{% load static %}
+<section class="tab-panel">
+
+    <h3>Diet</h3>
+
+    {% if "diet" in allowed_categories %}
+
+    {% if animal.dietary_restrictions %}
+    <div class="section">
+        <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: dietary restrictions &amp; things to avoid</h4>
+        <div class="section-content">
+            <pre>{{ animal.dietary_restrictions }}</pre>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid">
+        <a role="button" class="secondary outline"
+           href="{% url 'note_create' pk=animal.id %}?type_of_event=diet_note"
+           hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=diet_note"
+           hx-target="#modal-body"
+           hx-swap="innerHTML"
+           data-modal-title="Diet note">Add diet note</a>
+        <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=diet_note">Manage all diets</a>
+        {% if is_owner %}
+        <a role="button" class="secondary outline" href="{% url 'animal_dietary_restrictions' pk=animal.id %}">Edit dietary restrictions</a>
+        {% endif %}
+    </div>
+
+    <br>
+    {% if diet_records %}
+    <section class="timeline" style="grid-template-columns: 1fr;">
+        <ol>
+            {% for record in diet_records %}
+            <li>
+                <div>
+                    <time>{{ record.date_event_started|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
+                </div>
+            </li>
+            {% endfor %}
+            <li></li>
+        </ol>
+    </section>
+    {% else %}
+    <p>No diet notes recorded yet.</p>
+    {% endif %}
+
+    {% else %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
+
+</section>

@@ -1,0 +1,48 @@
+{% load static %}
+<section class="tab-panel">
+
+    <h3>Medications</h3>
+
+    {% if "medications" in allowed_categories %}
+
+    <div class="records-actions">
+        <a role="button" class="secondary outline"
+           href="{% url 'note_create' pk=animal.id %}?type_of_event=medicament_note"
+           hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=medicament_note"
+           hx-target="#modal-body"
+           hx-swap="innerHTML"
+           data-modal-title="Add medication note">Add medication note</a>
+        <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}?type_of_event=medicament_note">View all medications</a>
+    </div>
+
+    <br>
+    {% if medication_records %}
+    <section class="timeline" style="grid-template-columns: 1fr;">
+        <ol>
+            {% for record in medication_records %}
+            <li>
+                <div>
+                    <time>{{ record.date_event_started|date:"Y-m-d" }}</time>
+                    <a href="{% url 'note_edit' pk=record.id %}"
+                       hx-get="{% url 'note_edit' pk=record.id %}"
+                       hx-target="#modal-body"
+                       hx-swap="innerHTML"
+                       data-modal-title="Edit medication note">{{ record.short_description }}</a>
+                    {% if record.date_event_ended %}
+                    <small>– {{ record.date_event_ended|date:"Y-m-d" }}</small>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+            <li></li>
+        </ol>
+    </section>
+    {% else %}
+    <p>No medication notes recorded yet.</p>
+    {% endif %}
+
+    {% else %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
+
+</section>

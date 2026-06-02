@@ -1,0 +1,20 @@
+<tr id="vaccination-row-{{ vaccination.id }}">
+    <td>{{ vaccination.vaccine_name }}</td>
+    <td>{{ vaccination.last_vaccination_date|date:"Y-m-d"|default:"—" }}</td>
+    <td>{{ vaccination.valid_until|date:"Y-m-d"|default:"—" }}</td>
+    <td>{{ vaccination.suggested_clinic|default:"—" }}</td>
+    <td>{{ vaccination.reminder_date|date:"Y-m-d"|default:"—" }}</td>
+    <td>
+        <a role="button" class="secondary outline"
+           hx-get="{% url 'vaccination_edit' vacc_id=vaccination.id %}"
+           hx-target="#vaccination-row-{{ vaccination.id }}"
+           hx-swap="outerHTML"
+           href="{% url 'vaccination_edit' vacc_id=vaccination.id %}">Edit</a>
+        <a role="button" class="secondary outline"
+           hx-post="{% url 'vaccination_delete' vacc_id=vaccination.id %}"
+           hx-target="#vaccination-row-{{ vaccination.id }}"
+           hx-swap="outerHTML"
+           hx-confirm="Delete this vaccination record?"
+           href="#">Delete</a>
+    </td>
+</tr>

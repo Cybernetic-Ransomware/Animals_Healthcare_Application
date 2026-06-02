@@ -1,0 +1,40 @@
+{% load static %}
+<section class="tab-panel">
+
+    <h3>Vaccinations</h3>
+
+    {% if "vaccinations" in allowed_categories %}
+
+    <div style="overflow-x: auto;">
+        <table id="vaccination-table">
+            <thead>
+                <tr>
+                    <th data-sort="text" data-label="Vaccine name">Vaccine name</th>
+                    <th data-sort="date" data-label="Last vaccinated">Last vaccinated</th>
+                    <th data-sort="date" data-label="Valid until" data-default-sort="asc">Valid until</th>
+                    <th data-sort="text" data-label="Suggested clinic">Suggested clinic</th>
+                    <th data-sort="date" data-label="Reminder date">Reminder date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="vaccination-rows">
+                {% for vaccination in vaccination_records %}
+                    {% include "medical_notes/partials/_vaccination_row.html" %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="records-actions">
+        <a role="button" class="secondary outline"
+           hx-get="{% url 'vaccination_add' pk=animal.id %}"
+           hx-target="#vaccination-rows"
+           hx-swap="beforeend"
+           href="{% url 'vaccination_add' pk=animal.id %}">Add vaccination</a>
+    </div>
+
+    {% else %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
+
+</section>
