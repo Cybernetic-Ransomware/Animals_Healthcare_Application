@@ -1,164 +1,150 @@
 # Animals Healthcare Application
 
-## <strong> A healthcare data management application for pet owners and carers. </strong>
+![Python](https://img.shields.io/badge/python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-6.0-092E20?style=for-the-badge&logo=django&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+![CouchDB](https://img.shields.io/badge/CouchDB-3.3-E42528?style=for-the-badge&logo=apachecouchdb&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Ruff](https://img.shields.io/badge/Ruff-FCC21B?style=for-the-badge&logo=ruff&logoColor=black)
+![Pytest](https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
+![UV](https://img.shields.io/badge/UV-DE5FE9?style=for-the-badge&logo=python&logoColor=white)
 
+A Django monolith for managing pet health data — medical timelines, diet logs, biometric records, and scheduled notifications.
 
-#### The application provides an extensive notebook that offers:
-- A clear timeline filtered by tags and note types.
-- Manage your pet's profile, ownership and authorization.
-- Share notes between users and animals.
-- Registration of biometric measurement data.
-- Managing a diet plan with the option of setting reminder notifications via e-mail or Discord.
-- Archiving notes from visits to medical facilities.
+## Overview
 
----
-### Functionality:
-[ADR](doc/01_adr_functionality.md)
+Pet owners and carers register animals, maintain detailed health records, and share selective access with other users. The system provides a unified timeline of medical events filtered by type and tag, diet and medication tracking, and automated reminders delivered via Discord.
 
----
-### Screenshots
->Click on the image to view full-size
+## Features
 
-<div align="center">
-  <table>
-    <tr>
-      <td align="center"><p>Animal profile</p><img src="static/media/readme_examples/Animal profile.png" height="250px"></td>
-      <td align="center"><p>Full timeline of notes</p><img src="static/media/readme_examples/Full timeline of notes.png" height="250px"></td>
-    </tr>
-    <tr>
-      <td align="center"><p>Diet note details</p><img src="static/media/readme_examples/Diet note details.png" height="250px"></td>
-      <td align="center"><p>User registration</p><img src="static/media/readme_examples/User registration.png" height="250px"></td>
-    </tr>
-  </table>
-</div>
+- Animal profiles with configurable per-category sharing between owners and carers.
+- Medical timeline filtered by note type (visit, diet, medication, vaccination, biometric) and tag.
+- Inline-editable vaccination records with date-based Discord reminders.
+- Biometric tracking (weight, height, custom measurements) with historical charts planned.
+- Diet plan management with recurring e-mail / Discord notification schedules.
+- Attachment storage for medical documents via CouchDB.
+- Async task processing (Celery Beat + Redis) for scheduled notifications.
 
+## Requirements
 
----
-### Plans for further development:
-
-- Interactive charts for biometric records
-- A book of medical facilities and medical personnel
-- Databases for medicines and food products
-- An SMS gateway, and Messenger chatbots for notifications
-- A fixed light-themed frontend, currently blocked in the base.html <html> tag
-
----
-### Requirements:
 - Python 3.14
-- [uv](https://docs.astral.sh/uv/) (package manager)
-- [just](https://just.systems/) (task runner, optional)
-- Docker & Docker Compose
-- PostgreSQL 15 (instance for volumes)
-- Apache CouchDB 3.3.3 (instance for volumes)
-- [Packages](pyproject.toml)
-- [pico-1.5.10](https://github.com/picocss/pico/archive/refs/tags/v1.5.10.zip)
+- [uv](https://docs.astral.sh/uv/) — package manager
+- [just](https://just.systems/) — task runner (optional)
+- Docker Desktop / Docker + Compose
+- PostgreSQL 18 (managed via Docker)
+- Apache CouchDB 3.3.3 (managed via Docker)
+- Redis 7 (managed via Docker)
 
----
-### Deploy steps:
-1. Download repository.
-2. Set .env file based on template.
-3. Install Docker Desktop.
-4. Run containers:
-    ```
-    docker-compose up -d --build
-    ```
+## Environment Variables
 
----
-### Dev-instance steps:
-1. Download repository.
-2. Set .env file based on the template.
-3. Install Python 3.14, Docker Desktop, PostgreSQL and CouchDB as in _Requirements_.
-4. Install uv and sync dependencies:
-    ```
-    pip install uv
-    uv sync
-    ```
-5. Install pre-commit hooks:
-    ```
-    uv run pre-commit install
-    ```
-6. Run containers:
-    ```
-    docker-compose up -d --build
-    ```
+Copy `.env.template` to `.env` and fill in the values:
 
-With `just` installed, steps 4–6 simplify to:
-```
+| Variable | Required | Description |
+|---|---|---|
+| `SECRET_KEY` | yes | Django secret key |
+| `DATABASE_URL` | yes | PostgreSQL connection string |
+| `COUCH_DB_URL` | yes | CouchDB connection URL |
+| `COUCH_DB_NAME` | yes | CouchDB database name |
+| `CELERY_BROKER_URL` | yes | Redis broker URL |
+| `CELERY_BACKEND` | yes | Celery result backend URL |
+| `DISCORD_TOKEN` | no | Bot token for Discord notifications |
+| `EMAIL_HOST` | no | SMTP host for e-mail notifications |
+| `EMAIL_HOST_USER` | no | SMTP user |
+| `EMAIL_HOST_PASSWORD` | no | SMTP password |
+
+## Getting Started
+
+### Docker Deploy
+
+1. Clone the repository.
+2. Set up the `.env` file based on the provided template.
+3. Start all services:
+   ```powershell
+   docker compose -f docker/docker-compose.yml up -d --build
+   ```
+
+The stack exposes: Django app on `:8000`, Flower (Celery monitor) on `:5555`.
+
+### Dev Instance
+
+1. Clone the repository.
+2. Set up the `.env` file based on the provided template.
+3. Install dependencies:
+   ```powershell
+   pip install uv
+   uv sync
+   ```
+4. Install pre-commit hooks:
+   ```powershell
+   uv run pre-commit install
+   ```
+5. Start backing services (PostgreSQL, CouchDB, Redis, Celery):
+   ```powershell
+   docker compose -f docker/docker-compose.yml up -d postgres_db couch_db redis queue celery_beat
+   ```
+6. Run the Django dev server:
+   ```powershell
+   uv run python manage.py runserver
+   ```
+
+With `just` installed, steps 3–6 simplify to:
+```powershell
 just install
 just precommit
-just docker-up
+just up
 ```
 
----
-### Kubernetes Deploy steps (alternative deploy):
-1. Download repository.
-2. Set secret.yaml files based on templates.
-   - Configure the secret.yaml files based on the templates provided in the kubernetes directory (5 files).
-3. Install Docker Desktop.
-4. Build Docker images:
-   - Build the Docker images for web, CouchDB, PostgreSQL, and Celery services,
-   - Example commands:
-      ```
-      docker-compose build
-      docker image save -o ahc-app.tar ahc-app:latest
-      docker image save -o ahc_app-couch_db.tar ahc_app-couch_db:latest
-      docker image save -o postgres.tar postgres:18-alpine
-      ```
+### Kubernetes Deploy
 
-5. Push Docker images to a registry:
-   - Push the Docker images to a container registry,
-   - Example using Minikube:
-      ```
-      minikube image load ahc-app.tar
-      minikube image load ahc_app-couch_db.tar
-      minikube image load postgres.tar   # postgres:18-alpine
-      ```
+See [`kubernetes/`](kubernetes/) for kustomization files and secret templates.
+Build and load images, then apply with `kubectl apply -k kubernetes/`.
 
-6. Deploy to Kubernetes using kustom files:
-   - Deploy the application to Kubernetes using the kustomization files,
-   - Example command:
-      ```
-      kubectl apply -k kubernetes/
-      ```
+## Testing
 
-7. Verify deployment:
-   - Verify the deployment using a tool like K8s Lens,
-   - Alternatively, check the status with the following command:
-      ```
-      kubectl get pods,svc,deploy,ing
-      ```
-
-
----
-### Test running:
-```bash
-# pytest (recommended)
-uv run pytest -m integration
-
-# or with just
+```powershell
+# Run all tests
 just test
-just test-integration
 
-# Django runner (legacy, still supported)
-uv run python manage.py test
+# Unit tests only
+uv run pytest -m unit
+
+# Integration tests (requires Docker services running)
+just test-integration
 ```
 
----
-### Sources:
+## Linting
 
-* Styles:
-  * https://picocss.com/
-  * https://uicookies.com/horizontal-timeline/
-* Graphics:
-  * https://www.flaticon.com/authors/futuer
-  * https://www.flaticon.com/authors/pixel-perfect
-  * https://www.flaticon.com/authors/riajulislam
-  * https://www.midjourney.com/
-  * https://pixabay.com/
-* Knowledge:
-  * https://www.devs-mentoring.pl/
+```powershell
+# Full suite: ruff format + check, ty, codespell, bandit
+just lint
+```
 
+## Screenshots
 
-To all the people upper mentioned and not only there,
-thank You for your work and positive influence on my motivation!
-Keep still doing your best!
+> Click on an image to view full-size.
+
+| Animal profile | Full timeline of notes |
+|:---:|:---:|
+| ![Animal profile](static/media/readme_examples/Animal%20profile.png) | ![Full timeline of notes](static/media/readme_examples/Full%20timeline%20of%20notes.png) |
+| **Diet note details** | **User registration** |
+| ![Diet note details](static/media/readme_examples/Diet%20note%20details.png) | ![User registration](static/media/readme_examples/User%20registration.png) |
+
+## Architecture Decisions
+
+Key decisions are documented as ADRs in [`doc/`](doc/):
+
+| ADR | Topic |
+|---|---|
+| [01](doc/01_adr_functionality.md) | Core functionality scope |
+| [08](doc/08_adr_databases.md) | PostgreSQL + CouchDB + Redis |
+| [09](doc/09_adr_user_data.md) | Data model — Animal fields and sharing |
+| [11](doc/11_adr_frontend_interactions.md) | htmx + native `<dialog>` |
+
+## Useful Links
+
+- [PicoCSS](https://picocss.com/) — CSS framework
+- [htmx](https://htmx.org/) — frontend interactions
+- [Celery](https://docs.celeryq.dev/) — async task queue
+- [uv](https://docs.astral.sh/uv/) — package manager
+- [devs-mentoring.pl](https://www.devs-mentoring.pl/) — mentoring programme
