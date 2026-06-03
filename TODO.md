@@ -45,35 +45,61 @@ guaranteed present when Django calls them).
 - `users/signals.py` handlers untested (currently dead anyway, see §1).
 - Fat views refactor (in progress) is the natural trigger for adding view tests.
 
-## 5. Fat views — in progress
+## 5. Fat views — DONE
 
-`animals/views.py` and `medical_notes/views/` contain business logic.
-Extraction to a service layer is already started. Keep signal decisions (§1)
-in sync with this work to avoid duplicating logic.
+Remaining business logic extracted to services/selectors. All `medical_notes/views/`
+are now thin.
+
+Changes:
+- `services/feeding.py` — new: `create_feeding_note`
+- `selectors.py` — new: `is_author_of_any_note`
+- `utils.py` — new: `build_timeline_base_query` (presentation helper, DB-free)
+- `views/type_feeding_notes.py` — `DietRecordCreateView.form_valid` delegates to service;
+  `EditDietRecordView` broken `form_valid` removed, correct `get_success_url` added
+  (fixes latent 404 bug — pk was misused as EmailNotification id)
+- `views/type_basic_note.py` — `EditRelatedAnimalsView` uses `is_author_of_any_note`;
+  `FullTimelineOfNotes` uses `build_timeline_base_query`
+- `src/ahc/types.py` — new: `AuthenticatedRequest` (under `TYPE_CHECKING` to avoid
+  Django model metaclass registration)
+- `request: AuthenticatedRequest` added to all touched view classes (partial §6)
+
+Regression tests added for all modified view flows (see §4 — coverage now exists
+for `DietRecordCreateView`, `EditDietRecordView`, `FeedingNoteListView`).
 
 ## 6. Replace `[[tool.ty.overrides]]` with a typed request
 
 `pyproject.toml` suppresses `unresolved-attribute` across all view/mixin/signal/form
 modules to silence Django ORM false positives (mainly `request.user.profile`).
-The proper fix is a custom request type in `src/ahc/types.py`:
+The custom request type already exists at `src/ahc/types.py`. Both classes live
+under `TYPE_CHECKING` to prevent Django's model metaclass from registering
+`_AHCUser` as a real model at import time (runtime `RuntimeError` otherwise):
 
 ```python
-# src/ahc/types.py
+# src/ahc/types.py  — CORRECT pattern
+from __future__ import annotations
 from typing import TYPE_CHECKING
-from django.contrib.auth.models import User
-from django.http import HttpRequest
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+    from django.http import HttpRequest
     from ahc.apps.users.models import Profile
 
-class _AHCUser(User):
-    profile: "Profile"
+    class _AHCUser(User):
+        profile: Profile
 
-class AuthenticatedRequest(HttpRequest):
-    user: _AHCUser  # type: ignore[assignment]
+    class AuthenticatedRequest(HttpRequest):
+        user: _AHCUser  # type: ignore[assignment]
 ```
 
-Then annotate each view class: `request: AuthenticatedRequest`.
-Once all views are covered, remove the `[[tool.ty.overrides]]` block from
-`pyproject.toml`. **Do this as part of the fat-views refactor (§5)** — each
-view touched during extraction gets the annotation added.
+To use in a view, two things are required:
+1. `from __future__ import annotations` at the top of the view file (makes all
+   class-body annotations lazy — Python never evaluates them at import time).
+2. Import under `TYPE_CHECKING`:
+   ```python
+   if TYPE_CHECKING:
+       from ahc.types import AuthenticatedRequest
+   ```
+3. Annotate the view class: `request: AuthenticatedRequest`
+
+Once all views across all apps carry this annotation, remove the
+`[[tool.ty.overrides]]` block from `pyproject.toml`.
