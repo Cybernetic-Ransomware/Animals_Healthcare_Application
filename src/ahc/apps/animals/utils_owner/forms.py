@@ -4,7 +4,7 @@ from django import forms
 from PIL import Image
 
 from ahc.apps.animals.models import Animal, AnimalShare
-from ahc.apps.users.models import Profile
+from ahc.apps.animals.selectors import profile_by_username
 
 
 class ImageUploadForm(forms.ModelForm):
@@ -45,17 +45,16 @@ class ChangeOwnerForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_new_owner(self):
-        new_owner = self.cleaned_data.get("new_owner")
+        new_owner = self.cleaned_data["new_owner"]
 
         if new_owner == self.instance.owner.user.username:
             raise forms.ValidationError("You are already the owner.")
 
-        if not Profile.objects.filter(user__username=new_owner).exists():
+        profile = profile_by_username(new_owner)
+        if profile is None:
             raise forms.ValidationError("User does not exist.")
 
-        new_owner_profile = Profile.objects.get(user__username=new_owner)
-
-        return new_owner_profile
+        return profile
 
 
 class ManageKeepersForm(forms.Form):
@@ -92,7 +91,7 @@ class ManageKeepersForm(forms.Form):
             self.fields[field].initial = getattr(defaults, field)
 
     def clean_input_user(self):
-        input_user = self.cleaned_data.get("input_user")
+        input_user = self.cleaned_data["input_user"]
 
         if input_user == self.instance.owner.user.username:
             raise forms.ValidationError("As the owner you can not set yourself as a keeper.")
@@ -100,7 +99,7 @@ class ManageKeepersForm(forms.Form):
         if self.instance.shares.filter(carer__user__username=input_user).exists():
             raise forms.ValidationError("User is already on the list of keepers.")
 
-        profile = Profile.objects.filter(user__username=input_user).first()
+        profile = profile_by_username(input_user)
         if profile is None:
             raise forms.ValidationError("User does not exist.")
 

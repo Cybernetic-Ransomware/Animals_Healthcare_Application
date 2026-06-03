@@ -32,13 +32,12 @@ Fixed in the same PR as §1. `clean_orphaned_diet_records` now mirrors the
 `clean_orphaned_metric_records` pattern: finds orphaned `diet_note` shells
 (MedicalRecord with no attached FeedingNote) and deletes them.
 
-## 3. Form validation with DB queries in `utils_owner/forms.py`
+## 3. Form validation with DB queries in `utils_owner/forms.py` — DONE
 
-`ChangeOwnerForm.clean_new_owner()` and `ManageKeepersForm.clean_input_user()`
-issue `Profile.objects.filter(...)` / `Profile.objects.get(...)` queries inside
-`clean_*` methods. This is acceptable for now but can be extracted to selectors
-(query layer) in a later refactor. **Do not move in the same PR as signal work** —
-risk of changing form validation error messages.
+Extracted to `profile_by_username(username: str)` selector in `animals/selectors.py`.
+Both `clean_new_owner` and `clean_input_user` now use it. Changed `cleaned_data.get()`
+to `cleaned_data[field]` (correct pattern for `clean_<field>` methods — key is
+guaranteed present when Django calls them).
 
 ## 4. Test coverage gaps
 

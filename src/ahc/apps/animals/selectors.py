@@ -78,3 +78,10 @@ def recent_records_for(animal: Animal, limit: int = 5) -> QuerySet:
     from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 
     return MedicalRecord.objects.filter(animal=animal).order_by("-date_creation")[:limit]
+
+
+def profile_by_username(username: str):
+    """Return the Profile for the given username, or None if not found."""
+    from ahc.apps.users.models import Profile
+
+    return Profile.objects.filter(user__username=username).first()
