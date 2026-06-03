@@ -1,39 +1,36 @@
 # Remaining work — next sessions
 
-## 1. Dead signals (HIGH — silent production bug)
+## 1. Dead signals — DONE
 
-All `apps.py` have `ready(): pass` — signal handlers are never registered with
-Django's dispatch system. As a result, the following logic **does not run in
-production**:
+All handlers registered in `ready()`. Status per handler:
 
-| Handler | File | Effect when dead |
-|---------|------|-----------------|
-| `remove_old_pictures_after_change` | `animals/signals.py` | Orphaned animal images accumulate |
-| `remove_old_pictures_after_animal_delete` | `animals/signals.py` | Profile image not removed on delete |
-| `remove_old_pictures_after_user_delete` | `animals/signals.py` | Same, on user delete |
-| `update_allowed_users` | `animals/signals.py` | Owner can remain in allowed_users |
-| `validate_one_to_one_fields` | `medical_notes/signals/` | Invalid BiometricRecords can be saved |
-| `clean_orphaned_metric_records` | `medical_notes/signals/` | Orphaned BiometricRecord rows accumulate |
-| `clean_orphaned_diet_records` | `medical_notes/signals/` | Orphaned FeedingNote rows accumulate |
-| `create_profile` / `save_profile` | `users/signals.py` | Profile not created on User.create |
-| `create_basic_privilege` / `create_background` | `users/signals.py` | Privilege/Background not set on Profile.save |
+| Handler                              | File                         | Outcome                                      |
+|--------------------------------------|------------------------------|----------------------------------------------|
+| `remove_old_pictures_after_change`   | `animals/signals.py`         | Connected as-is                              |
+| `remove_old_pictures_after_animal_delete` | `animals/signals.py`    | Connected as-is                              |
+| `remove_old_pictures_after_user_delete` | `animals/signals.py`      | Connected as-is                              |
+| `update_allowed_users`               | `animals/signals.py`         | Connected as-is                              |
+| `validate_one_to_one_fields`         | `medical_notes/signals/`     | Connected as-is                              |
+| `clean_orphaned_metric_records`      | `medical_notes/signals/`     | Fixed (None guard on `related_note`), connected |
+| `clean_orphaned_diet_records`        | `medical_notes/signals/`     | Fixed (rewrote logic, see §2), connected     |
+| `create_profile` / `save_profile`    | `users/signals.py`           | Connected (`save_profile` guarded with `hasattr`) |
+| `create_basic_privilege` / `create_background` | `users/signals.py` | **Deleted** — see note below               |
 
-**Decision required:** register each handler in `ready()` OR consciously delete it.
-**Warning:** do NOT move signal logic into services "in passing" without a deliberate
-decision — it would change current production behaviour (currently: nothing runs).
+`create_basic_privilege` / `create_background`: `Privilege` and `ProfileBackground`
+raise `NotImplementedError` in `__init__`, making them permanently uninstantiable via
+the ORM (any queryset that returns a row crashes). `Profile.privilege_tier` and
+`profile_background` are nullable (`default=None`), so a Profile without them is valid.
+Reconnect only after `homepage/models.py` is redesigned (see the `TODO` comments there).
 
-## 2. FeedingNote missing `author` field (BUG)
+Note: `remove_old_pictures_after_change` and `remove_old_pictures_after_user_delete`
+perform a full media-dir scan on every `Animal`/`Profile` save — O(table). Candidate
+for a management command in a later PR.
 
-`medical_notes/signals/type_feeding_notes.py` references `instance.related_note.author`
-but `FeedingNote` has no `author` field — it only has `related_note` (FK to `MedicalRecord`),
-and `MedicalRecord` has `author`. The signal traversal chain is:
+## 2. FeedingNote missing `author` field — DONE
 
-```
-FeedingNote → related_note (MedicalRecord) → author (Profile)
-```
-
-Check whether this traversal is actually correct or whether it is a latent
-`AttributeError` waiting to surface when the signal is finally connected.
+Fixed in the same PR as §1. `clean_orphaned_diet_records` now mirrors the
+`clean_orphaned_metric_records` pattern: finds orphaned `diet_note` shells
+(MedicalRecord with no attached FeedingNote) and deletes them.
 
 ## 3. Form validation with DB queries in `utils_owner/forms.py`
 

@@ -6,4 +6,4 @@ class AnimalsConfig(AppConfig):
     name = "ahc.apps.animals"
 
     def ready(self):
-        pass
+        from . import signals  # noqa: F401

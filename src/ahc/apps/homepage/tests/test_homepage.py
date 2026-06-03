@@ -1,4 +1,5 @@
 from html.parser import HTMLParser
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import User
@@ -23,7 +24,11 @@ class HrefParser(HTMLParser):
 @pytest.mark.django_db
 class TestHomepage(TestCase):
     def setUp(self) -> None:
-        my_user = User.objects.create(username="test_user_placeholder")
+        mock_img = MagicMock()
+        mock_img.height = 100
+        mock_img.width = 100
+        with patch("ahc.apps.users.models.Image.open", return_value=mock_img):
+            my_user = User.objects.create(username="test_user_placeholder")
         self.my_animal_title = AnimalTitle.objects.create(title="test_animal_placeholder", owner=my_user)
 
     def tearDown(self) -> None:

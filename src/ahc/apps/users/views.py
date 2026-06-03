@@ -17,7 +17,6 @@ class UserRegisterView(CreateView):
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, f"Account has been created for {form.cleaned_data['username']}!")
-        Profile.objects.create(user=self.object)
         return response
 
 
