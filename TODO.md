@@ -39,13 +39,19 @@ Both `clean_new_owner` and `clean_input_user` now use it. Changed `cleaned_data.
 to `cleaned_data[field]` (correct pattern for `clean_<field>` methods — key is
 guaranteed present when Django calls them).
 
-## 4. Test coverage gaps
+## 4. Test coverage gaps — DONE
 
 - `medical_notes/views/` feeding views covered (§5).
 - `users/signals.py` `create_profile`/`save_profile` connected (§1); `create_basic_privilege`/
   `create_background` restored (§A); unit tests for all four in `users/tests.py`.
-- Still missing: `animals/views.py` (4/5 classes), `animals/utils_owner/views.py` (10/11),
-  `users/views.py` (registration/profile/share_defaults). See plan file for priority order.
+- `animals/views.py`: `CreateAnimalView`, `AnimalProfileDetailView`, `StableView`,
+  `ToPinAnimalsView` — integration tests added (`animals/tests.py`).
+- `animals/utils_owner/views.py`: `AnimalDeleteView`, `ChangeBirthdayView`,
+  `ChangeFirstContactView`, `ChangeNextVisitView`, `ChangeDietaryRestrictionsView`,
+  `ChangeAnimalDetailsView`, `ManageKeepersView`, `ChangeOwnerView`, `EditShareView` —
+  integration tests added (`animals/tests.py`).
+- `users/views.py`: `UserRegisterView`, `UserProfileView`, `ShareDefaultsView` —
+  integration tests added (`users/tests.py`).
 
 ## 5. Fat views — DONE
 

@@ -499,3 +499,492 @@ class TestRemoveKeeperView:
         url = f"/pet/{animal_with_keeper.id}/keepers/{keeper_profile.pk}/remove/"
         response = c.post(url)
         assert response.status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestCreateAnimalView:
+    """CreateAnimalView: form rendering, animal creation, and authentication gate."""
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_unauthenticated_redirects_to_login(self):
+        from django.test import Client
+
+        response = Client().get("/pet/create/")
+        assert response.status_code == 302
+
+    def test_get_renders_form(self, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get("/pet/create/")
+        assert response.status_code == 200
+
+    def test_valid_post_creates_animal_and_redirects_to_profile(self, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post("/pet/create/", {"full_name": "GoldenFish"})
+        assert response.status_code == 302
+        assert Animal.objects.filter(full_name="GoldenFish").exists()
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestAnimalProfileDetailView:
+    """AnimalProfileDetailView: full-page shell rendering and access control."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="ProfileTest", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_unauthenticated_redirects_to_login(self, animal):
+        from django.test import Client
+
+        response = Client().get(f"/pet/{animal.id}/")
+        assert response.status_code == 302
+
+    def test_owner_gets_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/")
+        assert response.status_code == 200
+
+    def test_stranger_gets_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/")
+        assert response.status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestStableView:
+    """StableView: animal list page for authenticated users."""
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_unauthenticated_redirects_to_login(self):
+        from django.test import Client
+
+        response = Client().get("/pet/animals/")
+        assert response.status_code == 302
+
+    def test_owner_sees_own_animal_in_context(self, user_profile):
+        user, profile = user_profile
+        animal = Animal.objects.create(full_name="StableAnimal", owner=profile)
+        response = self._client_for(user).get("/pet/animals/")
+        assert response.status_code == 200
+        assert animal in response.context["animals"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestToPinAnimalsView:
+    """ToPinAnimalsView: JSON pin/unpin endpoint with access control."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="PinMe", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_post_pin_returns_success_json(self, animal, user_profile):
+        import json
+
+        user, _ = user_profile
+        response = self._client_for(user).post("/pet/pinned-animals/", {"animal_id": str(animal.id), "action": "add"})
+        assert response.status_code == 200
+        assert json.loads(response.content)["status"] == "success"
+
+    def test_post_unpin_returns_success_json(self, animal, user_profile):
+        import json
+
+        user, profile = user_profile
+        profile.pinned_animals.add(animal)
+        response = self._client_for(user).post("/pet/pinned-animals/", {"animal_id": str(animal.id), "action": "remove"})
+        assert response.status_code == 200
+        assert json.loads(response.content)["status"] == "success"
+
+    def test_pin_with_no_access_returns_403_json(self, animal, second_user_profile):
+        import json
+
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).post("/pet/pinned-animals/", {"animal_id": str(animal.id), "action": "add"})
+        assert response.status_code == 403
+        assert json.loads(response.content)["status"] == "forbidden"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestAnimalDeleteView:
+    """AnimalDeleteView: confirmation page and owner-only delete."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="ToDelete", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/delete/")
+        assert response.status_code == 200
+
+    def test_owner_post_deletes_animal_and_redirects(self, animal, user_profile):
+        user, _ = user_profile
+        pk = animal.id
+        response = self._client_for(user).post(f"/pet/{pk}/delete/")
+        assert response.status_code == 302
+        assert not Animal.objects.filter(pk=pk).exists()
+
+    def test_non_owner_post_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).post(f"/pet/{animal.id}/delete/")
+        assert response.status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestChangeBirthdayView:
+    """ChangeBirthdayView: birthdate update behind owner-only gate."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="BdayAnimal", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/btd/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/btd/")
+        assert response.status_code == 403
+
+    def test_valid_post_saves_birthdate_and_redirects(self, animal, user_profile):
+        from datetime import date
+
+        user, _ = user_profile
+        response = self._client_for(user).post(f"/pet/{animal.id}/btd/", {"birthdate": "2020-03-15"})
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.birthdate == date(2020, 3, 15)
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestChangeFirstContactView:
+    """ChangeFirstContactView: vet/place text fields update behind owner-only gate."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="FirstContactAnimal", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/cnt/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/cnt/")
+        assert response.status_code == 403
+
+    def test_valid_post_saves_vet_and_place(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/cnt/",
+            {"first_contact_vet": "Dr. Smith", "first_contact_medical_place": "City Clinic"},
+        )
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.first_contact_vet == "Dr. Smith"
+        assert animal.first_contact_medical_place == "City Clinic"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestChangeNextVisitView:
+    """ChangeNextVisitView: next_visit_date update with vet-tab redirect."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="NextVisitAnimal", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/next-visit/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/next-visit/")
+        assert response.status_code == 403
+
+    def test_valid_post_saves_date_and_redirects_to_vet_tab(self, animal, user_profile):
+        from datetime import date
+
+        user, _ = user_profile
+        response = self._client_for(user).post(f"/pet/{animal.id}/next-visit/", {"next_visit_date": "2026-09-01"})
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.next_visit_date == date(2026, 9, 1)
+        assert f"/pet/{animal.id}/tab/vet/" in response["Location"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestChangeDietaryRestrictionsView:
+    """ChangeDietaryRestrictionsView: dietary_restrictions update with diet-tab redirect."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="DietAnimal", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/dietary-restrictions/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/dietary-restrictions/")
+        assert response.status_code == 403
+
+    def test_valid_post_saves_restrictions_and_redirects_to_diet_tab(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/dietary-restrictions/", {"dietary_restrictions": "No grapes, no onions"}
+        )
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.dietary_restrictions == "No grapes, no onions"
+        assert f"/pet/{animal.id}/tab/diet/" in response["Location"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestChangeAnimalDetailsView:
+    """ChangeAnimalDetailsView: species/breed/sex/sterilization update with settings-tab redirect."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="DetailsAnimal", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/details/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/details/")
+        assert response.status_code == 403
+
+    def test_valid_post_saves_details_and_redirects_to_settings_tab(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/details/",
+            {"species": "cat", "breed": "Maine Coon", "sex": "f", "sterilization": "on"},
+        )
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.species == "cat"
+        assert animal.breed == "Maine Coon"
+        assert animal.sex == "f"
+        assert animal.sterilization is True
+        assert f"/pet/{animal.id}/tab/settings/" in response["Location"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestManageKeepersView:
+    """ManageKeepersView: share creation behind owner-only gate."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="KeeperAnimal", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/manage_keepers/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/manage_keepers/")
+        assert response.status_code == 403
+
+    def test_valid_post_creates_share_for_new_keeper(self, animal, user_profile, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        user, _ = user_profile
+        _, keeper_profile = second_user_profile
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/manage_keepers/",
+            {"input_user": keeper_profile.user.username, "allow_basic": "on"},
+        )
+        assert response.status_code == 302
+        assert AnimalShare.objects.filter(animal=animal, carer=keeper_profile).exists()
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestChangeOwnerView:
+    """ChangeOwnerView: ownership transfer behind owner-only gate."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="OwnerAnimal", owner=profile)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/owner/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/owner/")
+        assert response.status_code == 403
+
+    def test_valid_post_transfers_ownership(self, animal, user_profile, second_user_profile):
+        user, _ = user_profile
+        _, new_owner_profile = second_user_profile
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/owner/",
+            {"new_owner": new_owner_profile.user.username, "set_keeper": ""},
+        )
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.owner == new_owner_profile
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestEditShareView:
+    """EditShareView: access scope edit behind owner-only gate."""
+
+    @pytest.fixture
+    def animal_with_share(self, db, user_profile, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, owner_profile = user_profile
+        _, carer_profile = second_user_profile
+        animal = Animal.objects.create(full_name="ShareAnimal", owner=owner_profile)
+        share = AnimalShare.objects.create(animal=animal, carer=carer_profile)
+        return animal, share, carer_profile
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal_with_share, user_profile):
+        user, _ = user_profile
+        animal, _, carer_profile = animal_with_share
+        response = self._client_for(user).get(f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/")
+        assert response.status_code == 200
+
+    def test_non_owner_get_returns_403(self, animal_with_share, second_user_profile):
+        other_user, _ = second_user_profile
+        animal, _, carer_profile = animal_with_share
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/")
+        assert response.status_code == 403
+
+    def test_valid_post_updates_share_scope_and_redirects(self, animal_with_share, user_profile):
+        user, _ = user_profile
+        animal, share, carer_profile = animal_with_share
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/",
+            {"allow_basic": "on", "allow_diet": "on"},
+        )
+        assert response.status_code == 302
+        share.refresh_from_db()
+        assert share.allow_basic is True
+        assert share.allow_diet is True
+        assert f"/pet/{animal.id}/tab/ownership/" in response["Location"]
