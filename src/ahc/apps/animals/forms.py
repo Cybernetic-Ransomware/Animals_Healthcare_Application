@@ -24,7 +24,10 @@ class AnimalRegisterForm(forms.ModelForm):
     def clean_full_name(self):
         full_name = self.cleaned_data.get("full_name")
 
-        if Animal.objects.filter(Q(full_name=full_name) & (Q(owner=self.user) | Q(allowed_users=self.user))).exists():
+        # Only check living animals so a deceased pet's name can be reused for a new one.
+        if Animal.objects.filter(
+            Q(full_name=full_name) & (Q(owner=self.user) | Q(allowed_users=self.user)) & Q(date_of_death__isnull=True)
+        ).exists():
             raise forms.ValidationError("An animal with that name is already in your care.")
 
         return full_name

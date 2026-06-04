@@ -39,6 +39,7 @@ from ahc.apps.medical_notes.services.notes import create_note, next_route_for, u
 from ahc.apps.medical_notes.utils import build_timeline_base_query
 from ahc.apps.medical_notes.views.mixins.user_animal_permisions import (
     AnimalDirectAccessRequiredMixin,
+    AnimalDirectModifyMixin,
     AttachmentAuthorRequiredMixin,
     NoteAuthorRequiredMixin,
 )
@@ -47,7 +48,7 @@ if TYPE_CHECKING:
     from ahc.types import AuthenticatedRequest
 
 
-class CreateNoteFormView(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, FormView):
+class CreateNoteFormView(LoginRequiredMixin, AnimalDirectModifyMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = MedicalRecordForm
     request: AuthenticatedRequest
@@ -59,7 +60,11 @@ class CreateNoteFormView(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, Fo
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["animal_choices"] = animal_choices_for(self.request.user.profile, exclude_id=self.kwargs.get("pk"))
+        profile = self.request.user.profile
+        primary_id = self.kwargs.get("pk")
+        kwargs["animal_choices"] = animal_choices_for(profile, exclude_id=primary_id)
+        kwargs["profile"] = profile
+        kwargs["exclude_id"] = primary_id
         kwargs["type_of_event_param"] = self.request.GET.get("type_of_event")
         return kwargs
 
@@ -202,7 +207,9 @@ class EditNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs["animal_choices"] = animal_choices_for(self.request.user.profile)
+        profile = self.request.user.profile
+        kwargs["animal_choices"] = animal_choices_for(profile)
+        kwargs["profile"] = profile
 
         note = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
         kwargs["animal"] = get_object_or_404(AnimalProfile, id=note.animal.id)

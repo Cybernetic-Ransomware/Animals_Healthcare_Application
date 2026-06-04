@@ -23,7 +23,10 @@
     <details>
         <summary>Danger zone</summary>
         <br>
-        <a role="button" class="secondary outline" href="{% url 'animal_delete' pk=animal.id %}">Remove this animal from the files</a>
+        <div class="grid">
+            <a role="button" class="secondary outline" href="{% url 'animal_deceased' pk=animal.id %}">Archive animal as deceased</a>
+            <a role="button" class="secondary outline" href="{% url 'animal_delete' pk=animal.id %}">Remove this animal from the files</a>
+        </div>
     </details>
 
 </section>

@@ -1,5 +1,6 @@
 from django import forms
 
+from ahc.apps.animals.selectors import animals_visible_to
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 
 
@@ -50,12 +51,21 @@ class MedicalRecordForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         animal_choices = kwargs.pop("animal_choices", None)
+        profile = kwargs.pop("profile", None)
+        exclude_id = kwargs.pop("exclude_id", None)
         type_of_event_param = kwargs.pop("type_of_event_param", None)
         super().__init__(*args, **kwargs)
-        # self.Meta.fields.append('TYPES_OF_EVENTS')
 
         if animal_choices:
             self.fields["additional_animals"].widget.choices = animal_choices
+
+        # Restrict the validation queryset so a posted UUID of a deceased or inaccessible
+        # animal fails form validation, not just widget display.
+        if profile is not None:
+            qs = animals_visible_to(profile)
+            if exclude_id is not None:
+                qs = qs.exclude(id=exclude_id)
+            self.fields["additional_animals"].queryset = qs
 
         if type_of_event_param in set(event[0] for event in self.TYPES_OF_EVENTS):
             self.fields["type_of_event"].initial = type_of_event_param
@@ -105,11 +115,19 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         kwargs.pop("animal")
         animal_choices = kwargs.pop("animal_choices", None)
         is_author = kwargs.pop("is_author", None)
+        profile = kwargs.pop("profile", None)
         super().__init__(*args, **kwargs)
 
         if animal_choices:
             self.fields["animal"].widget.choices = animal_choices
             self.fields["additional_animals"].widget.choices = animal_choices
+
+        # Restrict validation querysets so a posted UUID of a deceased or inaccessible
+        # animal fails form validation, not just widget display.
+        if profile is not None:
+            qs = animals_visible_to(profile)
+            self.fields["animal"].queryset = qs
+            self.fields["additional_animals"].queryset = qs
 
         if not is_author:
             del self.fields["animal"]
