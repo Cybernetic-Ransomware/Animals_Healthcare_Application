@@ -27,6 +27,7 @@ dependencies = [
     "defusedxml",
     "aiohttp>=3.14.0",
     "gunicorn>=26.0.0",
+    "whitenoise>=6.12.0",
 ]
 
 [dependency-groups]
