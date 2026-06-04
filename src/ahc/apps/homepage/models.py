@@ -2,30 +2,19 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
 
-from ahc.apps.homepage.utils import ImageGenerator
-
 
 class Privilege(models.Model):
     title = models.CharField(max_length=30)
     privilege_to_delete_animal = models.BooleanField(default=False)
 
-    # TODO: reconsider usage to simplify privileges test mixins
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        raise NotImplementedError
-
 
 class ProfileBackground(models.Model):
     title = models.CharField(max_length=30)
     content = models.ImageField(
-        default=ImageGenerator.default_profile_image,
+        default="",
+        blank=True,
         upload_to="static/media/background",
     )
-
-    # TODO: reconsider usage
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        raise NotImplementedError
 
 
 # TODO: reconsider usage, currently Animal Profile is enough but can be used to manipulate images

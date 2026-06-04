@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -29,6 +33,9 @@ from ahc.apps.animals.utils_owner.forms import (
     ImageUploadForm,
     ManageKeepersForm,
 )
+
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
 
 
 class AnimalDeleteView(LoginRequiredMixin, UserPassesOwnershipTestMixin, DeleteView):
@@ -67,6 +74,7 @@ class ImageUploadView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView
 class ChangeOwnerView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
     template_name = "animals/change_owner.html"
     form_class = ChangeOwnerForm
+    request: AuthenticatedRequest
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -101,7 +109,7 @@ class ManageKeepersView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormVi
         context = super().get_context_data(**kwargs)
         animal = Animal.objects.get(pk=self.kwargs["pk"])
         context["full_name"] = animal.full_name
-        context["shares"] = animal.shares.select_related("carer__user").all()
+        context["shares"] = animal.shares.select_related("carer__user").all()  # type: ignore
         context["animal_url"] = reverse("animal_profile", kwargs={"pk": self.get_form().instance.id})
         return context
 

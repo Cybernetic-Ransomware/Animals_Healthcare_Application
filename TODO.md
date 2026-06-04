@@ -41,9 +41,11 @@ guaranteed present when Django calls them).
 
 ## 4. Test coverage gaps
 
-- Views (`animals/views.py`, `medical_notes/views/`) have zero test coverage.
-- `users/signals.py` handlers untested (currently dead anyway, see §1).
-- Fat views refactor (in progress) is the natural trigger for adding view tests.
+- `medical_notes/views/` feeding views covered (§5).
+- `users/signals.py` `create_profile`/`save_profile` connected (§1); `create_basic_privilege`/
+  `create_background` restored (§A); unit tests for all four in `users/tests.py`.
+- Still missing: `animals/views.py` (4/5 classes), `animals/utils_owner/views.py` (10/11),
+  `users/views.py` (registration/profile/share_defaults). See plan file for priority order.
 
 ## 5. Fat views — DONE
 
@@ -101,5 +103,10 @@ To use in a view, two things are required:
    ```
 3. Annotate the view class: `request: AuthenticatedRequest`
 
-Once all views across all apps carry this annotation, remove the
-`[[tool.ty.overrides]]` block from `pyproject.toml`.
+**Current state (after §A+§C):** all view classes with `LoginRequiredMixin` now carry
+`request: AuthenticatedRequest`. The `[[tool.ty.overrides]]` block was narrowed — the
+`views.py` / `views/**` patterns were removed. Remaining in the block: `signals/**`,
+`forms/**`, `mixins/**` (Django CBV `self.kwargs` false-positives), and `homepage/views.py`
+(unauthenticated-user context). Remove those patterns once their respective false-positives
+are resolved by other means (e.g. typed `kwargs` stub for CBV, ORM stubs for reverse
+relations).

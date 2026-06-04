@@ -248,6 +248,7 @@ class EditRelatedAnimalsView(EditNoteView):
     form_class = MedicalRecordEditRelatedAnimalsForm
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
+    request: AuthenticatedRequest
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -287,6 +288,8 @@ class DeleteNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, DeleteView):
 
 class DownloadAttachmentView(LoginRequiredMixin, UserPassesTestMixin, View):
     """Download attachment by CouchDB reference id (URL kwarg: id, not pk)."""
+
+    request: AuthenticatedRequest
 
     def test_func(self):
         attachment = get_object_or_404(MedicalRecordAttachment, couch_id=self.kwargs.get("id"))

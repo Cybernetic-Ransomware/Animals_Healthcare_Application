@@ -74,6 +74,7 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = FeedingNote
     template_name = "medical_notes/feeding_notes_list.html"
     context_object_name = "feeding_notes"
+    request: AuthenticatedRequest
 
     def get_queryset(self):
         medical_record = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
@@ -94,6 +95,7 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = NotificationRecordForm
     success_url = "/"
+    request: AuthenticatedRequest
 
     def get_object(self):
         return get_object_or_404(FeedingNote, id=self.kwargs.get("pk"))

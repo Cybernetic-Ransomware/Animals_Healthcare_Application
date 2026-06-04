@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
@@ -7,6 +11,9 @@ from django.views.generic.edit import FormView
 
 from ahc.apps.users.forms import ProfileUpdateForm, ShareDefaultsForm, UserRegisterForm, UserUpdateForm
 from ahc.apps.users.models import Profile
+
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
 
 
 class UserRegisterView(CreateView):
@@ -22,6 +29,7 @@ class UserRegisterView(CreateView):
 
 class UserProfileView(LoginRequiredMixin, UpdateView):
     model = Profile
+    request: AuthenticatedRequest
     form_class = UserUpdateForm
     template_name = "users/profile.html"
     success_url = reverse_lazy("profile")
@@ -45,6 +53,7 @@ class ShareDefaultsView(LoginRequiredMixin, FormView):
 
     template_name = "users/share_defaults.html"
     form_class = ShareDefaultsForm
+    request: AuthenticatedRequest
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

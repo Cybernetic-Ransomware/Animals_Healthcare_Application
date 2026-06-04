@@ -7,6 +7,8 @@ accessed without the HX-Request header (progressive-enhancement fallback).
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -15,6 +17,9 @@ from django.views import View
 
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import allowed_categories_for, is_animal_owner, user_can_access_animal
+
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
 from ahc.apps.medical_notes.forms.type_vaccination_notes import VaccinationNoteForm
 from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
 from ahc.apps.medical_notes.services.vaccinations import (
@@ -41,16 +46,20 @@ def _vaccinations_tab_url(animal_id) -> str:
 class VaccinationAnimalAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Access check for views where pk in URL is an Animal UUID."""
 
+    request: AuthenticatedRequest
+
     def test_func(self) -> bool:
-        animal = get_object_or_404(Animal, id=self.kwargs["pk"])
+        animal = get_object_or_404(Animal, id=self.kwargs["pk"])  # type: ignore
         return _has_vaccination_access(self.request.user.profile, animal)
 
 
 class VaccinationRecordAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Access check for views where vacc_id in URL is a VaccinationNote UUID."""
 
+    request: AuthenticatedRequest
+
     def _get_vaccination(self) -> VaccinationNote:
-        return get_object_or_404(VaccinationNote, id=self.kwargs["vacc_id"])
+        return get_object_or_404(VaccinationNote, id=self.kwargs["vacc_id"])  # type: ignore
 
     def test_func(self) -> bool:
         vaccination = self._get_vaccination()
