@@ -54,6 +54,14 @@ class Animal(models.Model):
     sex = models.CharField(max_length=1, choices=Sex.choices, default=None, blank=True, null=True)
     sterilization = models.BooleanField(default=False)
 
+    date_of_death = models.DateField(default=None, blank=True, null=True)
+    memorial_note = models.CharField(max_length=2500, default=None, blank=True, null=True)
+
+    @property
+    def is_deceased(self) -> bool:
+        """Return True if a date of death has been recorded for this animal."""
+        return self.date_of_death is not None
+
 
 class AnimalShare(models.Model):
     """Through model for Animal.allowed_users — stores per-share access scope and expiry."""

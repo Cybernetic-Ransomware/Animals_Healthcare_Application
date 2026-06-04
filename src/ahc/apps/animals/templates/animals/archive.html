@@ -8,20 +8,20 @@
     {% if user.is_authenticated %}
 
     <div>
+        <h3>In memoriam</h3>
         {% if animals %}
-            <h3>All pets:</h3>
             <div class="stable_grid">
                 {% for animal in animals %}
                     {% include "partials/animal_card.html" %}
                 {% endfor %}
             </div>
+        {% else %}
+            <p>No archived animals.</p>
         {% endif %}
     </div>
 
-    <h4>Operations:</h4>
     <div class="grid">
-        <a role="button" class="secondary outline" href="{% url 'animal_create' %}">Add animal</a>
-        <a role="button" class="secondary outline" href="{% url 'animals_archive' %}">In memoriam archive</a>
+        <a role="button" class="secondary outline" href="{% url 'animals_stable' %}">Back to all pets</a>
     </div>
 
     {% endif %}

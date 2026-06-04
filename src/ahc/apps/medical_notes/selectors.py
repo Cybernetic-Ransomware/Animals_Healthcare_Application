@@ -13,7 +13,7 @@ from django.db.models import DateTimeField as _DateTimeField
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from ahc.apps.animals.selectors import animals_visible_to, user_can_access_animal
+from ahc.apps.animals.selectors import animals_visible_to, user_can_modify_animal
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 
 
@@ -194,8 +194,12 @@ def is_attachment_author(profile, attachment: MedicalRecordAttachment) -> bool:
 
 
 def can_access_note_animal(profile, note: MedicalRecord) -> bool:
-    """Return True if the profile is owner or keeper of the animal linked to the note."""
-    return user_can_access_animal(profile, note.animal)
+    """Return True if the profile may write to the animal linked to the note.
+
+    Uses user_can_modify_animal so that deceased animals are always blocked — neither
+    the owner nor any carer may add or edit notes on a deceased animal.
+    """
+    return user_can_modify_animal(profile, note.animal)
 
 
 def vaccination_notes_for(animal) -> QuerySet:
@@ -226,6 +230,7 @@ def due_vaccination_reminders(on_date: date) -> QuerySet:
 
     return (
         VaccinationNote.objects.filter(reminder_date__lte=on_date, reminder_sent=False)
+        .filter(related_note__animal__date_of_death__isnull=True)
         .select_related("related_note__animal__owner__user")
         .exclude(reminder_date=None)
     )

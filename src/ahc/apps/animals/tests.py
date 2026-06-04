@@ -6,10 +6,13 @@ import pytest
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import (
     animals_visible_to,
+    deceased_animals_for,
     is_animal_owner,
     is_pinned,
     recent_records_for,
     user_can_access_animal,
+    user_can_modify_animal,
+    user_can_view_animal,
 )
 from ahc.apps.animals.services import (
     add_keeper,
@@ -18,9 +21,12 @@ from ahc.apps.animals.services import (
     process_profile_image,
     remove_keeper,
     set_birthday,
+    set_deceased,
     set_first_contact,
+    set_memorial_note,
     transfer_ownership,
     unpin_animal,
+    unset_deceased,
 )
 from ahc.apps.animals.signals import update_allowed_users
 
@@ -112,6 +118,7 @@ class TestUserCanAccessAnimalSelector:
         profile = MagicMock()
         animal = MagicMock()
         animal.owner = MagicMock()
+        animal.date_of_death = None  # living animal — carer access applies
         with patch("ahc.apps.animals.selectors.active_share_for", return_value=MagicMock()):
             assert user_can_access_animal(profile, animal) is True
 
@@ -119,6 +126,7 @@ class TestUserCanAccessAnimalSelector:
         profile = MagicMock()
         animal = MagicMock()
         animal.owner = MagicMock()
+        animal.date_of_death = None  # living animal — no share
         with patch("ahc.apps.animals.selectors.active_share_for", return_value=None):
             assert user_can_access_animal(profile, animal) is False
 
@@ -988,3 +996,284 @@ class TestEditShareView:
         assert share.allow_basic is True
         assert share.allow_diet is True
         assert f"/pet/{animal.id}/tab/ownership/" in response["Location"]
+
+
+@pytest.mark.unit
+class TestIsDeceasedProperty:
+    """Animal.is_deceased: reflects date_of_death presence."""
+
+    def test_false_when_no_date_of_death(self):
+        animal = Animal(full_name="Live")
+        assert animal.is_deceased is False
+
+    def test_true_when_date_of_death_set(self):
+        animal = Animal(full_name="Gone", date_of_death=date(2024, 1, 1))
+        assert animal.is_deceased is True
+
+
+@pytest.mark.unit
+class TestDeceasedPredicates:
+    """user_can_view_animal / user_can_modify_animal behaviour on deceased animals."""
+
+    def _make_animal(self, owner, deceased=False):
+        animal = MagicMock(spec=Animal)
+        animal.owner = owner
+        animal.date_of_death = date(2024, 1, 1) if deceased else None
+        return animal
+
+    def test_owner_can_view_living_animal(self):
+        profile = MagicMock()
+        animal = self._make_animal(owner=profile, deceased=False)
+        assert user_can_view_animal(profile, animal) is True
+
+    def test_owner_can_view_deceased_animal(self):
+        profile = MagicMock()
+        animal = self._make_animal(owner=profile, deceased=True)
+        assert user_can_view_animal(profile, animal) is True
+
+    def test_owner_cannot_modify_deceased_animal(self):
+        profile = MagicMock()
+        animal = self._make_animal(owner=profile, deceased=True)
+        assert user_can_modify_animal(profile, animal) is False
+
+    def test_owner_can_modify_living_animal(self):
+        profile = MagicMock()
+        animal = self._make_animal(owner=profile, deceased=False)
+        assert user_can_modify_animal(profile, animal) is True
+
+    def test_carer_cannot_view_deceased_animal(self):
+        profile = MagicMock()
+        owner = MagicMock()
+        animal = self._make_animal(owner=owner, deceased=True)
+        assert user_can_view_animal(profile, animal) is False
+
+    def test_carer_cannot_modify_deceased_animal(self):
+        profile = MagicMock()
+        owner = MagicMock()
+        animal = self._make_animal(owner=owner, deceased=True)
+        assert user_can_modify_animal(profile, animal) is False
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestDeceasedSelectors:
+    """animals_visible_to / deceased_animals_for on deceased animals."""
+
+    @pytest.fixture
+    def deceased_animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
+
+    def test_animals_visible_to_excludes_deceased_for_owner(self, deceased_animal, user_profile):
+        _, profile = user_profile
+        assert deceased_animal not in animals_visible_to(profile)
+
+    def test_animals_visible_to_excludes_deceased_for_carer(self, deceased_animal, second_user_profile, user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=deceased_animal, carer=carer_profile)
+        assert deceased_animal not in animals_visible_to(carer_profile)
+
+    def test_deceased_animals_for_returns_owners_deceased(self, deceased_animal, user_profile):
+        _, profile = user_profile
+        assert deceased_animal in deceased_animals_for(profile)
+
+    def test_deceased_animals_for_excludes_carers_deceased(self, deceased_animal, second_user_profile):
+        _, other_profile = second_user_profile
+        assert deceased_animal not in deceased_animals_for(other_profile)
+
+    def test_deceased_animals_for_excludes_living(self, animal, user_profile):
+        _, profile = user_profile
+        assert animal not in deceased_animals_for(profile)
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestDeceasedServices:
+    """set_deceased / set_memorial_note / unset_deceased services."""
+
+    def test_set_deceased_records_date_and_note(self, animal):
+        set_deceased(animal, date_of_death=date(2024, 5, 1), memorial_note="Rest in peace")
+        animal.refresh_from_db()
+        assert animal.date_of_death == date(2024, 5, 1)
+        assert animal.memorial_note == "Rest in peace"
+        assert animal.is_deceased is True
+
+    def test_set_deceased_does_not_delete_shares(self, animal, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        share = AnimalShare.objects.create(animal=animal, carer=carer_profile)
+        set_deceased(animal, date_of_death=date(2024, 5, 1), memorial_note=None)
+        assert AnimalShare.objects.filter(pk=share.pk).exists()
+
+    def test_unset_deceased_clears_date_and_restores_visibility(self, animal, user_profile, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer_profile)
+        set_deceased(animal, date_of_death=date(2024, 5, 1), memorial_note="Farewell")
+        assert animal not in animals_visible_to(carer_profile)
+
+        unset_deceased(animal)
+        animal.refresh_from_db()
+        assert animal.date_of_death is None
+        assert animal.memorial_note == "Farewell"  # preserved after un-archive
+        assert animal in animals_visible_to(carer_profile)
+
+    def test_set_memorial_note_updates_note_only(self, animal):
+        set_deceased(animal, date_of_death=date(2024, 5, 1), memorial_note="Original")
+        set_memorial_note(animal, memorial_note="Updated")
+        animal.refresh_from_db()
+        assert animal.memorial_note == "Updated"
+        assert animal.date_of_death == date(2024, 5, 1)
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestMarkDeceasedView:
+    """MarkDeceasedView: owner can archive; carer cannot."""
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_get_returns_200(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{animal.id}/deceased/")
+        assert response.status_code == 200
+
+    def test_carer_get_returns_403(self, animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get(f"/pet/{animal.id}/deceased/")
+        assert response.status_code == 403
+
+    def test_owner_post_archives_and_redirects(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/deceased/",
+            {"date_of_death": "2024-04-01", "memorial_note": "Goodbye"},
+        )
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.date_of_death == date(2024, 4, 1)
+        assert animal.memorial_note == "Goodbye"
+
+    def test_future_date_rejected(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(
+            f"/pet/{animal.id}/deceased/",
+            {"date_of_death": "2099-12-31"},
+        )
+        assert response.status_code == 200  # form re-render with error
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestUnarchiveAnimalView:
+    """UnarchiveAnimalView: owner can un-archive; carer cannot."""
+
+    @pytest.fixture
+    def deceased_animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_post_restores_animal(self, deceased_animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(f"/pet/{deceased_animal.id}/unarchive/")
+        assert response.status_code == 302
+        deceased_animal.refresh_from_db()
+        assert deceased_animal.date_of_death is None
+
+    def test_carer_post_returns_403(self, deceased_animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).post(f"/pet/{deceased_animal.id}/unarchive/")
+        assert response.status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestAnimalProfileViewDeceased:
+    """AnimalProfileDetailView / AnimalTabView gate on deceased animals."""
+
+    @pytest.fixture
+    def deceased_animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_owner_can_view_deceased_profile(self, deceased_animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{deceased_animal.id}/")
+        assert response.status_code == 200
+
+    def test_carer_blocked_on_deceased_profile(self, deceased_animal, second_user_profile, user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        other_user, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=deceased_animal, carer=carer_profile)
+        response = self._client_for(other_user).get(f"/pet/{deceased_animal.id}/")
+        assert response.status_code == 403
+
+    def test_owner_blocked_from_settings_tab_on_deceased(self, deceased_animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get(f"/pet/{deceased_animal.id}/tab/settings/")
+        assert response.status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestStableAndArchiveViews:
+    """StableView excludes deceased; ArchiveView shows only owner's deceased."""
+
+    @pytest.fixture
+    def deceased_animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_stable_view_excludes_deceased(self, animal, deceased_animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get("/pet/animals/")
+        assert response.status_code == 200
+        assert animal in response.context["animals"]
+        assert deceased_animal not in response.context["animals"]
+
+    def test_archive_view_includes_deceased(self, deceased_animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get("/pet/archive/")
+        assert response.status_code == 200
+        assert deceased_animal in response.context["animals"]
+
+    def test_archive_view_excludes_living(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).get("/pet/archive/")
+        assert animal not in response.context["animals"]
+
+    def test_archive_view_excludes_other_owners_deceased(self, deceased_animal, second_user_profile):
+        other_user, _ = second_user_profile
+        response = self._client_for(other_user).get("/pet/archive/")
+        assert deceased_animal not in response.context["animals"]

@@ -130,3 +130,32 @@ def set_animal_details(
 def remove_keeper(animal: Animal, keeper_id) -> None:
     """Remove a keeper from the animal's shares by Profile PK."""
     AnimalShare.objects.filter(animal=animal, carer_id=keeper_id).delete()
+
+
+def set_deceased(animal: Animal, date_of_death: date, memorial_note: str | None) -> None:
+    """Record an animal as deceased.
+
+    AnimalShare rows are intentionally left intact (soft withdrawal).  The deceased
+    gate in the selectors makes all shares inert while date_of_death is set, and
+    un-archiving with unset_deceased instantly restores the prior access configuration.
+    """
+    animal.date_of_death = date_of_death
+    animal.memorial_note = memorial_note
+    animal.save()
+
+
+def set_memorial_note(animal: Animal, memorial_note: str | None) -> None:
+    """Update the memorial note on a deceased animal without changing the death date."""
+    animal.memorial_note = memorial_note
+    animal.save()
+
+
+def unset_deceased(animal: Animal) -> None:
+    """Reverse an archiving action — the animal becomes living again.
+
+    The memorial_note is preserved so that re-archiving retains historical context.
+    Existing AnimalShare rows are immediately effective again because the deceased gate
+    only checks date_of_death__isnull.
+    """
+    animal.date_of_death = None
+    animal.save()

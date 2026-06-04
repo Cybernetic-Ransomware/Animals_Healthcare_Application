@@ -22,6 +22,10 @@ urlpatterns = [
     path("<uuid:pk>/details/", animal_owner_views.ChangeAnimalDetailsView.as_view(), name="animal_details"),
     path("<uuid:pk>/keepers/<int:keeper_pk>/remove/", animal_owner_views.RemoveKeeperView.as_view(), name="remove_keeper"),
     path("<uuid:pk>/keepers/<int:keeper_pk>/access/", animal_owner_views.EditShareView.as_view(), name="edit_share"),
+    path("<uuid:pk>/deceased/", animal_owner_views.MarkDeceasedView.as_view(), name="animal_deceased"),
+    path("<uuid:pk>/memorial/", animal_owner_views.EditMemorialNoteView.as_view(), name="animal_memorial"),
+    path("<uuid:pk>/unarchive/", animal_owner_views.UnarchiveAnimalView.as_view(), name="animal_unarchive"),
     path("animals/", animal_views.StableView.as_view(), name="animals_stable"),
+    path("archive/", animal_views.ArchiveView.as_view(), name="animals_archive"),
     path("pinned-animals/", animal_views.ToPinAnimalsView.as_view(), name="pinned_animals"),
 ]

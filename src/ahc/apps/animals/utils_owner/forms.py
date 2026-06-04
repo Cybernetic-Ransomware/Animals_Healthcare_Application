@@ -176,3 +176,30 @@ class ChangeAnimalDetailsForm(forms.ModelForm):
     class Meta:
         model = Animal
         fields = ["species", "breed", "sex", "sterilization"]
+
+
+class MarkDeceasedForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ["date_of_death", "memorial_note"]
+        widgets = {
+            "date_of_death": forms.DateInput(attrs={"type": "date"}),
+            "memorial_note": forms.Textarea(attrs={"rows": 6, "cols": 2}),
+        }
+
+    def clean_date_of_death(self):
+        dod = self.cleaned_data.get("date_of_death")
+        if dod is None:
+            raise forms.ValidationError("Date of death is required to archive an animal.")
+        if dod > date.today():
+            raise forms.ValidationError("Date of death cannot be set in the future.")
+        return dod
+
+
+class EditMemorialNoteForm(forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = ["memorial_note"]
+        widgets = {
+            "memorial_note": forms.Textarea(attrs={"rows": 8, "cols": 2}),
+        }
