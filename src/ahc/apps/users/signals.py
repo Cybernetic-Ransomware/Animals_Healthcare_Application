@@ -27,6 +27,10 @@ def create_profile(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=User)
-def save_profile(sender, instance, **kwargs):
+def save_profile(sender, instance, created, update_fields=None, **kwargs):
+    if created:
+        return
+    if update_fields is not None and set(update_fields) <= {"last_login", "date_joined"}:
+        return
     if hasattr(instance, "profile"):
         instance.profile.save()
