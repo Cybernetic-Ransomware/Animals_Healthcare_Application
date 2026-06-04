@@ -1,83 +1,118 @@
 # Remaining work — next sessions
 
-## 1. Dead signals (HIGH — silent production bug)
+## 1. Dead signals — DONE
 
-All `apps.py` have `ready(): pass` — signal handlers are never registered with
-Django's dispatch system. As a result, the following logic **does not run in
-production**:
+All handlers registered in `ready()`. Status per handler:
 
-| Handler | File | Effect when dead |
-|---------|------|-----------------|
-| `remove_old_pictures_after_change` | `animals/signals.py` | Orphaned animal images accumulate |
-| `remove_old_pictures_after_animal_delete` | `animals/signals.py` | Profile image not removed on delete |
-| `remove_old_pictures_after_user_delete` | `animals/signals.py` | Same, on user delete |
-| `update_allowed_users` | `animals/signals.py` | Owner can remain in allowed_users |
-| `validate_one_to_one_fields` | `medical_notes/signals/` | Invalid BiometricRecords can be saved |
-| `clean_orphaned_metric_records` | `medical_notes/signals/` | Orphaned BiometricRecord rows accumulate |
-| `clean_orphaned_diet_records` | `medical_notes/signals/` | Orphaned FeedingNote rows accumulate |
-| `create_profile` / `save_profile` | `users/signals.py` | Profile not created on User.create |
-| `create_basic_privilege` / `create_background` | `users/signals.py` | Privilege/Background not set on Profile.save |
+| Handler                              | File                         | Outcome                                      |
+|--------------------------------------|------------------------------|----------------------------------------------|
+| `remove_old_pictures_after_change`   | `animals/signals.py`         | Connected as-is                              |
+| `remove_old_pictures_after_animal_delete` | `animals/signals.py`    | Connected as-is                              |
+| `remove_old_pictures_after_user_delete` | `animals/signals.py`      | Connected as-is                              |
+| `update_allowed_users`               | `animals/signals.py`         | Connected as-is                              |
+| `validate_one_to_one_fields`         | `medical_notes/signals/`     | Connected as-is                              |
+| `clean_orphaned_metric_records`      | `medical_notes/signals/`     | Fixed (None guard on `related_note`), connected |
+| `clean_orphaned_diet_records`        | `medical_notes/signals/`     | Fixed (rewrote logic, see §2), connected     |
+| `create_profile` / `save_profile`    | `users/signals.py`           | Connected (`save_profile` guarded with `hasattr`) |
+| `create_basic_privilege` / `create_background` | `users/signals.py` | **Deleted** — see note below               |
 
-**Decision required:** register each handler in `ready()` OR consciously delete it.
-**Warning:** do NOT move signal logic into services "in passing" without a deliberate
-decision — it would change current production behaviour (currently: nothing runs).
+`create_basic_privilege` / `create_background`: `Privilege` and `ProfileBackground`
+raise `NotImplementedError` in `__init__`, making them permanently uninstantiable via
+the ORM (any queryset that returns a row crashes). `Profile.privilege_tier` and
+`profile_background` are nullable (`default=None`), so a Profile without them is valid.
+Reconnect only after `homepage/models.py` is redesigned (see the `TODO` comments there).
 
-## 2. FeedingNote missing `author` field (BUG)
+Note: `remove_old_pictures_after_change` and `remove_old_pictures_after_user_delete`
+perform a full media-dir scan on every `Animal`/`Profile` save — O(table). Candidate
+for a management command in a later PR.
 
-`medical_notes/signals/type_feeding_notes.py` references `instance.related_note.author`
-but `FeedingNote` has no `author` field — it only has `related_note` (FK to `MedicalRecord`),
-and `MedicalRecord` has `author`. The signal traversal chain is:
+## 2. FeedingNote missing `author` field — DONE
 
-```
-FeedingNote → related_note (MedicalRecord) → author (Profile)
-```
+Fixed in the same PR as §1. `clean_orphaned_diet_records` now mirrors the
+`clean_orphaned_metric_records` pattern: finds orphaned `diet_note` shells
+(MedicalRecord with no attached FeedingNote) and deletes them.
 
-Check whether this traversal is actually correct or whether it is a latent
-`AttributeError` waiting to surface when the signal is finally connected.
+## 3. Form validation with DB queries in `utils_owner/forms.py` — DONE
 
-## 3. Form validation with DB queries in `utils_owner/forms.py`
+Extracted to `profile_by_username(username: str)` selector in `animals/selectors.py`.
+Both `clean_new_owner` and `clean_input_user` now use it. Changed `cleaned_data.get()`
+to `cleaned_data[field]` (correct pattern for `clean_<field>` methods — key is
+guaranteed present when Django calls them).
 
-`ChangeOwnerForm.clean_new_owner()` and `ManageKeepersForm.clean_input_user()`
-issue `Profile.objects.filter(...)` / `Profile.objects.get(...)` queries inside
-`clean_*` methods. This is acceptable for now but can be extracted to selectors
-(query layer) in a later refactor. **Do not move in the same PR as signal work** —
-risk of changing form validation error messages.
+## 4. Test coverage gaps — DONE
 
-## 4. Test coverage gaps
+- `medical_notes/views/` feeding views covered (§5).
+- `users/signals.py` `create_profile`/`save_profile` connected (§1); `create_basic_privilege`/
+  `create_background` restored (§A); unit tests for all four in `users/tests.py`.
+- `animals/views.py`: `CreateAnimalView`, `AnimalProfileDetailView`, `StableView`,
+  `ToPinAnimalsView` — integration tests added (`animals/tests.py`).
+- `animals/utils_owner/views.py`: `AnimalDeleteView`, `ChangeBirthdayView`,
+  `ChangeFirstContactView`, `ChangeNextVisitView`, `ChangeDietaryRestrictionsView`,
+  `ChangeAnimalDetailsView`, `ManageKeepersView`, `ChangeOwnerView`, `EditShareView` —
+  integration tests added (`animals/tests.py`).
+- `users/views.py`: `UserRegisterView`, `UserProfileView`, `ShareDefaultsView` —
+  integration tests added (`users/tests.py`).
 
-- Views (`animals/views.py`, `medical_notes/views/`) have zero test coverage.
-- `users/signals.py` handlers untested (currently dead anyway, see §1).
-- Fat views refactor (in progress) is the natural trigger for adding view tests.
+## 5. Fat views — DONE
 
-## 5. Fat views — in progress
+Remaining business logic extracted to services/selectors. All `medical_notes/views/`
+are now thin.
 
-`animals/views.py` and `medical_notes/views/` contain business logic.
-Extraction to a service layer is already started. Keep signal decisions (§1)
-in sync with this work to avoid duplicating logic.
+Changes:
+- `services/feeding.py` — new: `create_feeding_note`
+- `selectors.py` — new: `is_author_of_any_note`
+- `utils.py` — new: `build_timeline_base_query` (presentation helper, DB-free)
+- `views/type_feeding_notes.py` — `DietRecordCreateView.form_valid` delegates to service;
+  `EditDietRecordView` broken `form_valid` removed, correct `get_success_url` added
+  (fixes latent 404 bug — pk was misused as EmailNotification id)
+- `views/type_basic_note.py` — `EditRelatedAnimalsView` uses `is_author_of_any_note`;
+  `FullTimelineOfNotes` uses `build_timeline_base_query`
+- `src/ahc/types.py` — new: `AuthenticatedRequest` (under `TYPE_CHECKING` to avoid
+  Django model metaclass registration)
+- `request: AuthenticatedRequest` added to all touched view classes (partial §6)
+
+Regression tests added for all modified view flows (see §4 — coverage now exists
+for `DietRecordCreateView`, `EditDietRecordView`, `FeedingNoteListView`).
 
 ## 6. Replace `[[tool.ty.overrides]]` with a typed request
 
 `pyproject.toml` suppresses `unresolved-attribute` across all view/mixin/signal/form
 modules to silence Django ORM false positives (mainly `request.user.profile`).
-The proper fix is a custom request type in `src/ahc/types.py`:
+The custom request type already exists at `src/ahc/types.py`. Both classes live
+under `TYPE_CHECKING` to prevent Django's model metaclass from registering
+`_AHCUser` as a real model at import time (runtime `RuntimeError` otherwise):
 
 ```python
-# src/ahc/types.py
+# src/ahc/types.py  — CORRECT pattern
+from __future__ import annotations
 from typing import TYPE_CHECKING
-from django.contrib.auth.models import User
-from django.http import HttpRequest
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+    from django.http import HttpRequest
     from ahc.apps.users.models import Profile
 
-class _AHCUser(User):
-    profile: "Profile"
+    class _AHCUser(User):
+        profile: Profile
 
-class AuthenticatedRequest(HttpRequest):
-    user: _AHCUser  # type: ignore[assignment]
+    class AuthenticatedRequest(HttpRequest):
+        user: _AHCUser  # type: ignore[assignment]
 ```
 
-Then annotate each view class: `request: AuthenticatedRequest`.
-Once all views are covered, remove the `[[tool.ty.overrides]]` block from
-`pyproject.toml`. **Do this as part of the fat-views refactor (§5)** — each
-view touched during extraction gets the annotation added.
+To use in a view, two things are required:
+1. `from __future__ import annotations` at the top of the view file (makes all
+   class-body annotations lazy — Python never evaluates them at import time).
+2. Import under `TYPE_CHECKING`:
+   ```python
+   if TYPE_CHECKING:
+       from ahc.types import AuthenticatedRequest
+   ```
+3. Annotate the view class: `request: AuthenticatedRequest`
+
+**Current state (after §A+§C):** all view classes with `LoginRequiredMixin` now carry
+`request: AuthenticatedRequest`. The `[[tool.ty.overrides]]` block was narrowed — the
+`views.py` / `views/**` patterns were removed. Remaining in the block: `signals/**`,
+`forms/**`, `mixins/**` (Django CBV `self.kwargs` false-positives), and `homepage/views.py`
+(unauthenticated-user context). Remove those patterns once their respective false-positives
+are resolved by other means (e.g. typed `kwargs` stub for CBV, ORM stubs for reverse
+relations).

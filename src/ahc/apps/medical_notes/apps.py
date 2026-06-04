@@ -6,4 +6,4 @@ class MedicalNotesConfig(AppConfig):
     name = "ahc.apps.medical_notes"
 
     def ready(self):
-        pass
+        from . import signals  # noqa: F401

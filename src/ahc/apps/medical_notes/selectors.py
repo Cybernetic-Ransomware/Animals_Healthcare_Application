@@ -212,6 +212,11 @@ def vaccination_notes_for(animal) -> QuerySet:
     )
 
 
+def is_author_of_any_note(profile) -> bool:
+    """Return True if the profile has authored at least one MedicalRecord."""
+    return MedicalRecord.objects.filter(author=profile).exists()
+
+
 def due_vaccination_reminders(on_date: date) -> QuerySet:
     """Return VaccinationNotes whose reminder_date is today or overdue and not yet sent.
 

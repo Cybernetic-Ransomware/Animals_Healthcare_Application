@@ -6,4 +6,4 @@ class UsersConfig(AppConfig):
     name = "ahc.apps.users"
 
     def ready(self):
-        pass
+        from . import signals  # noqa: F401

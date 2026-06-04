@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import Http404, JsonResponse
@@ -24,6 +24,9 @@ from ahc.apps.animals.selectors import (
     user_can_access_animal,
 )
 from ahc.apps.animals.services import create_animal, pin_animal, unpin_animal
+
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
 
 
 @dataclass
@@ -170,7 +173,7 @@ def _build_notes(request, animal: Animal, allowed: set[str] | None = None) -> di
 
 
 def _build_ownership(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
-    return {"keepers": animal.shares.select_related("carer__user").all()}
+    return {"keepers": animal.shares.select_related("carer__user").all()}  # type: ignore
 
 
 def _build_settings(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
@@ -272,6 +275,7 @@ class CreateAnimalView(LoginRequiredMixin, FormView):
     template_name = "animals/create.html"
     form_class = AnimalRegisterForm
     success_url = "/animals/"
+    request: AuthenticatedRequest
 
     def form_valid(self, form):
         new_animal = create_animal(self.request.user.profile, form)
@@ -287,6 +291,7 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
     """
 
     model = Animal
+    request: AuthenticatedRequest
     template_name = "animals/profile.html"
     context_object_name = "animal"
 
@@ -314,6 +319,7 @@ class AnimalTabView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
     model = Animal
     context_object_name = "animal"
+    request: AuthenticatedRequest
 
     def _get_tab(self) -> Tab:
         slug = self.kwargs.get("slug", "")
@@ -358,6 +364,7 @@ class AnimalTabView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
 class StableView(LoginRequiredMixin, TemplateView):
     template_name = "animals/all_animals_stable.html"
+    request: AuthenticatedRequest
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -366,6 +373,8 @@ class StableView(LoginRequiredMixin, TemplateView):
 
 
 class ToPinAnimalsView(LoginRequiredMixin, View):
+    request: AuthenticatedRequest
+
     def post(self, request, *args, **kwargs):
         form = PinAnimalForm(request.POST)
         profile = request.user.profile

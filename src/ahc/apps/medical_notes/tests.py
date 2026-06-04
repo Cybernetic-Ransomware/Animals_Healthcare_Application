@@ -1,9 +1,11 @@
+from datetime import date as _date
 from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 from ahc.apps.medical_notes.models.type_measurement_notes import (
     BiometricHeightRecords,
@@ -12,6 +14,7 @@ from ahc.apps.medical_notes.models.type_measurement_notes import (
 from ahc.apps.medical_notes.selectors import (
     can_access_note_animal,
     is_attachment_author,
+    is_author_of_any_note,
     is_note_author,
 )
 from ahc.apps.medical_notes.services.attachments import (
@@ -23,6 +26,7 @@ from ahc.apps.medical_notes.services.attachments import (
 from ahc.apps.medical_notes.services.notes import create_note, next_route_for, update_note
 from ahc.apps.medical_notes.services.notifications import create_email_notification
 from ahc.apps.medical_notes.signals.type_measurement_notes import validate_one_to_one_fields
+from ahc.apps.medical_notes.utils import build_timeline_base_query
 
 
 def _make_instance(weight=None, height=None, custom=None):
@@ -633,5 +637,188 @@ class TestVaccinationNoteIntegration:
             reminder_sent=True,
         )
 
-        due = list(due_vaccination_reminders(date(2026, 6, 1)))
+        due = list(due_vaccination_reminders(_date(2026, 6, 1)))
         assert due == []
+
+
+# ---------------------------------------------------------------------------
+# utils.py — build_timeline_base_query
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+class TestBuildTimelineBaseQuery:
+    """build_timeline_base_query: pure query-string assembly."""
+
+    def test_both_params(self):
+        result = build_timeline_base_query("diet_note", "rabies")
+        assert result == "type_of_event=diet_note&tag_name=rabies"
+
+    def test_only_type_of_event(self):
+        assert build_timeline_base_query("diet_note", "") == "type_of_event=diet_note"
+
+    def test_only_tag_name(self):
+        assert build_timeline_base_query("", "rabies") == "tag_name=rabies"
+
+    def test_both_empty(self):
+        assert build_timeline_base_query("", "") == ""
+
+
+# ---------------------------------------------------------------------------
+# selectors — is_author_of_any_note
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def diet_note_shell(db, user_profile):
+    """A MedicalRecord of type diet_note owned by user_profile."""
+    from ahc.apps.animals.models import Animal
+    from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+
+    _, profile = user_profile
+    animal = Animal.objects.create(full_name="Diet Tester", owner=profile)
+    return MedicalRecord.objects.create(
+        animal=animal,
+        author=profile,
+        short_description="Diet shell",
+        type_of_event="diet_note",
+    )
+
+
+@pytest.fixture
+def existing_feeding_note(db, diet_note_shell):
+    """A persisted FeedingNote linked to diet_note_shell."""
+    from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
+
+    return FeedingNote.objects.create(
+        related_note=diet_note_shell,
+        real_start_date=_date(2026, 1, 1),
+        category="dry",
+        product_name="Original Food",
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestIsAuthorOfAnyNote:
+    def test_true_when_profile_has_authored_a_note(self, diet_note_shell, user_profile):
+        _, profile = user_profile
+        assert is_author_of_any_note(profile) is True
+
+    def test_false_for_profile_with_no_notes(self, db, second_user_profile):
+        _, other_profile = second_user_profile
+        assert is_author_of_any_note(other_profile) is False
+
+
+# ---------------------------------------------------------------------------
+# View regression tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestDietRecordCreateView:
+    """DietRecordCreateView (feeding_create): POST creates FeedingNote and redirects."""
+
+    def test_valid_post_creates_feeding_note(self, client, user_profile, diet_note_shell):
+        from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
+
+        user, _ = user_profile
+        client.force_login(user)
+        url = reverse("feeding_create", kwargs={"pk": diet_note_shell.id})
+        data = {
+            "real_start_date": "2026-01-01",
+            "category": "dry",
+            "product_name": "New Food",
+            "real_end_date": "",
+            "producer": "",
+            "dose_annotations": "",
+            "purchase_source": "",
+        }
+        response = client.post(url, data)
+        assert response.status_code == 302
+        assert FeedingNote.objects.filter(related_note=diet_note_shell).count() == 1
+
+    def test_redirects_to_diet_list(self, client, user_profile, diet_note_shell):
+        user, _ = user_profile
+        client.force_login(user)
+        url = reverse("feeding_create", kwargs={"pk": diet_note_shell.id})
+        data = {
+            "real_start_date": "2026-01-01",
+            "category": "dry",
+            "product_name": "New Food",
+        }
+        response = client.post(url, data)
+        expected_redirect = reverse("note_related_diets", kwargs={"pk": str(diet_note_shell.id)})
+        assert response["Location"] == expected_redirect
+
+    def test_unauthenticated_redirects_to_login(self, client, diet_note_shell):
+        url = reverse("feeding_create", kwargs={"pk": diet_note_shell.id})
+        response = client.post(url, {})
+        assert response.status_code == 302
+        assert "/login" in response["Location"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestEditDietRecordView:
+    """EditDietRecordView (feeding_edit): POST updates FeedingNote and redirects to diet list.
+
+    This test asserts the CORRECTED behaviour. Against the original code the view
+    returned 404 because form_valid tried to fetch an EmailNotification using the
+    FeedingNote pk — a type/identity mismatch.
+    """
+
+    def test_valid_post_updates_feeding_note(self, client, user_profile, existing_feeding_note):
+        user, _ = user_profile
+        client.force_login(user)
+        url = reverse("feeding_edit", kwargs={"pk": existing_feeding_note.pk})
+        data = {
+            "real_start_date": "2026-03-01",
+            "category": "wet",
+            "product_name": "Updated Food",
+            "real_end_date": "",
+            "producer": "",
+            "dose_annotations": "",
+            "purchase_source": "",
+        }
+        response = client.post(url, data)
+        assert response.status_code == 302
+        existing_feeding_note.refresh_from_db()
+        assert existing_feeding_note.product_name == "Updated Food"
+
+    def test_redirects_to_diet_list_of_parent_note(self, client, user_profile, existing_feeding_note):
+        user, _ = user_profile
+        client.force_login(user)
+        url = reverse("feeding_edit", kwargs={"pk": existing_feeding_note.pk})
+        data = {
+            "real_start_date": "2026-03-01",
+            "category": "wet",
+            "product_name": "Updated Food",
+        }
+        response = client.post(url, data)
+        expected_redirect = reverse(
+            "note_related_diets",
+            kwargs={"pk": str(existing_feeding_note.related_note.id)},
+        )
+        assert response["Location"] == expected_redirect
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestFeedingNoteListViewAccess:
+    """FeedingNoteListView (note_related_diets): permission mixin enforced after refactor."""
+
+    def test_owner_can_access(self, client, user_profile, diet_note_shell):
+        user, _ = user_profile
+        client.force_login(user)
+        url = reverse("note_related_diets", kwargs={"pk": diet_note_shell.id})
+        response = client.get(url)
+        assert response.status_code == 200
+
+    def test_stranger_is_denied(self, client, second_user_profile, diet_note_shell):
+        stranger, _ = second_user_profile
+        client.force_login(stranger)
+        url = reverse("note_related_diets", kwargs={"pk": diet_note_shell.id})
+        response = client.get(url)
+        assert response.status_code == 403

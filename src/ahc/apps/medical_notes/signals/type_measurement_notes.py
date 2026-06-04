@@ -5,7 +5,6 @@ from django.dispatch import receiver
 
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-from ahc.apps.users.models import Profile as UserProfile
 
 
 @receiver(pre_save, sender=BiometricRecord)
@@ -25,7 +24,10 @@ def validate_one_to_one_fields(sender, instance, **kwargs):
 
 @receiver(post_save, sender=BiometricRecord)
 def clean_orphaned_metric_records(sender, instance, **kwargs):
-    user_profile = UserProfile.objects.get(id=instance.related_note.author.id)
+    related = instance.related_note
+    if related is None or related.author is None:
+        return
+    user_profile = related.author
     medical_records = MedicalRecord.objects.filter(author=user_profile, type_of_event="biometric_record")
 
     for record in medical_records:

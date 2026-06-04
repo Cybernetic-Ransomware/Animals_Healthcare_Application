@@ -11,6 +11,10 @@ Two access-level patterns exist:
 - AttachmentAuthorRequiredMixin — pk is a MedicalRecordAttachment UUID.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.shortcuts import get_object_or_404
 
@@ -23,9 +27,14 @@ from ahc.apps.medical_notes.selectors import (
     is_note_author,
 )
 
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
+
 
 class AnimalDirectAccessRequiredMixin(UserPassesTestMixin):
     """Allow access when pk in URL is an Animal UUID and the profile can access it."""
+
+    request: AuthenticatedRequest
 
     def test_func(self):
         animal = get_object_or_404(Animal, id=self.kwargs.get("pk"))
@@ -35,6 +44,8 @@ class AnimalDirectAccessRequiredMixin(UserPassesTestMixin):
 class AnimalAccessRequiredMixin(UserPassesTestMixin):
     """Allow access when pk in URL is a MedicalRecord UUID and the profile can access its animal."""
 
+    request: AuthenticatedRequest
+
     def test_func(self):
         note = get_object_or_404(MedicalRecord, id=self.kwargs.get("pk"))
         return can_access_note_animal(self.request.user.profile, note)
@@ -43,6 +54,8 @@ class AnimalAccessRequiredMixin(UserPassesTestMixin):
 class NoteAuthorRequiredMixin(UserPassesTestMixin):
     """Allow access only to the author of the MedicalRecord (pk = note UUID)."""
 
+    request: AuthenticatedRequest
+
     def test_func(self):
         note = get_object_or_404(MedicalRecord, id=self.kwargs.get("pk"))
         return is_note_author(self.request.user.profile, note)
@@ -50,6 +63,8 @@ class NoteAuthorRequiredMixin(UserPassesTestMixin):
 
 class AttachmentAuthorRequiredMixin(UserPassesTestMixin):
     """Allow access only to the author of the note that owns the attachment (pk = attachment UUID)."""
+
+    request: AuthenticatedRequest
 
     def test_func(self):
         attachment = get_object_or_404(MedicalRecordAttachment, pk=self.kwargs.get("pk"))

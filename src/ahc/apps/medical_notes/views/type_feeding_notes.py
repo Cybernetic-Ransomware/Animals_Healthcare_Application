@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
@@ -17,6 +21,7 @@ from ahc.apps.medical_notes.selectors import (
     notifications_for_feednote,
     notifications_for_mednote,
 )
+from ahc.apps.medical_notes.services.feeding import create_feeding_note
 from ahc.apps.medical_notes.services.notifications import (
     create_email_notification,
     delete_notification,
@@ -24,10 +29,14 @@ from ahc.apps.medical_notes.services.notifications import (
 )
 from ahc.apps.medical_notes.views.mixins.user_animal_permisions import AnimalAccessRequiredMixin
 
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
+
 
 class DietRecordCreateView(LoginRequiredMixin, AnimalAccessRequiredMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = DietRecordForm
+    request: AuthenticatedRequest
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -37,13 +46,8 @@ class DietRecordCreateView(LoginRequiredMixin, AnimalAccessRequiredMixin, FormVi
     def form_valid(self, form):
         note_id = self.kwargs.get("pk")
         related_note = get_object_or_404(MedicalRecord, id=note_id)
-
-        feeding_note = form.save(commit=False)
-        feeding_note.related_note = related_note
-        feeding_note.save()
-
-        success_url = reverse("note_related_diets", kwargs={"pk": note_id})
-        return redirect(success_url)
+        create_feeding_note(related_note, form)
+        return redirect(reverse("note_related_diets", kwargs={"pk": note_id}))
 
 
 class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -51,25 +55,15 @@ class EditDietRecordView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "medical_notes/edit.html"
     form_class = DietRecordForm
     context_object_name = "note"
+    request: AuthenticatedRequest
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["form_name"] = str(self.form_class.__name__)
         return context
 
-    def form_valid(self, form):
-        form.save(commit=True)
-
-        email_notification = get_object_or_404(EmailNotification, id=self.kwargs.get("pk"))
-        feeding_note = email_notification.related_note
-        medical_record = feeding_note.related_note
-
-        success_url = reverse_lazy("note_related_diets", kwargs={"pk": medical_record.id})
-        return redirect(str(success_url))
-
     def get_success_url(self):
-        note = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
-        return reverse("full_timeline_of_notes", kwargs={"pk": note.animal.id})
+        return reverse("note_related_diets", kwargs={"pk": self.object.related_note.id})
 
     def test_func(self):
         feeding_note = get_object_or_404(FeedingNote, id=self.kwargs.get("pk"))
@@ -80,6 +74,7 @@ class FeedingNoteListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = FeedingNote
     template_name = "medical_notes/feeding_notes_list.html"
     context_object_name = "feeding_notes"
+    request: AuthenticatedRequest
 
     def get_queryset(self):
         medical_record = get_object_or_404(MedicalRecord, pk=self.kwargs.get("pk"))
@@ -100,6 +95,7 @@ class CreateNotificationView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = NotificationRecordForm
     success_url = "/"
+    request: AuthenticatedRequest
 
     def get_object(self):
         return get_object_or_404(FeedingNote, id=self.kwargs.get("pk"))

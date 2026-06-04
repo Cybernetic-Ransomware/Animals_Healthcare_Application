@@ -23,10 +23,10 @@ def create_background(sender, instance, **kwargs):
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
     if created:
-        _background, _ = ProfileBackground.objects.get_or_create(title="Default Background")
         Profile.objects.create(user=instance)
 
 
 @receiver(post_save, sender=User)
 def save_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    if hasattr(instance, "profile"):
+        instance.profile.save()

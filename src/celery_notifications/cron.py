@@ -148,6 +148,30 @@ def send_discord_notes():
 
 
 @log_exceptions_and_notifications
+def clean_orphaned_profile_images() -> None:
+    """Delete animal profile images with no corresponding Animal row.
+
+    Runs as a daily Celery Beat task. Replaces the former post_save / post_delete
+    full directory-scan signals on Animal and Profile that ran O(N images) on every
+    write. Now runs once per day at 03:00 UTC.
+    """
+    import os
+    from pathlib import Path
+
+    from django.conf import settings
+
+    from ahc.apps.animals.models import Animal
+
+    animals_media_dir = Path(settings.MEDIA_ROOT) / "profile_pics" / "animals"
+    if not animals_media_dir.is_dir():
+        return
+    live = {str(p).split("/")[-1] for p in Animal.objects.exclude(profile_image="").values_list("profile_image", flat=True)}
+    for image_name in os.listdir(animals_media_dir):
+        if image_name not in live:
+            (animals_media_dir / image_name).unlink(missing_ok=True)
+
+
+@log_exceptions_and_notifications
 def send_vaccination_reminders() -> None:
     """Send Discord reminders for vaccinations whose reminder_date is today or overdue.
 

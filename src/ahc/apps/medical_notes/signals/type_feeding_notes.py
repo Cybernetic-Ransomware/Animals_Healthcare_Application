@@ -2,13 +2,17 @@ from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
-from ahc.apps.users.models import Profile as UserProfile
 
 
 @receiver(post_save, sender=FeedingNote)
 def clean_orphaned_diet_records(sender, instance, **kwargs):
-    user_profile = UserProfile.objects.get(id=instance.related_note.author.id)
+    related = instance.related_note
+    if related is None or related.author is None:
+        return
     with transaction.atomic():
-        orphaned_notes = FeedingNote.objects.filter(author=user_profile, related_note=None)
-        orphaned_notes.delete()
+        shells = MedicalRecord.objects.filter(author=related.author, type_of_event="diet_note")
+        for record in shells:
+            if not record.feedingnote_set.exists():
+                record.delete()

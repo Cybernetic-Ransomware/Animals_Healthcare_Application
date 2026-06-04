@@ -33,6 +33,13 @@ def dispatch_vaccination_reminders():
     send_vaccination_reminders()
 
 
+@celery_obj.task(name="ahc.beat.clean_orphaned_profile_images")
+def dispatch_clean_orphaned_profile_images():
+    from celery_notifications.cron import clean_orphaned_profile_images
+
+    clean_orphaned_profile_images()
+
+
 celery_obj.conf.beat_schedule = {
     "send-discord-notes-hourly": {
         "task": "ahc.beat.dispatch_discord_notes",
@@ -41,6 +48,10 @@ celery_obj.conf.beat_schedule = {
     "send-vaccination-reminders-daily": {
         "task": "ahc.beat.dispatch_vaccination_reminders",
         "schedule": crontab(hour=8, minute=0),
+    },
+    "clean-orphaned-profile-images-daily": {
+        "task": "ahc.beat.clean_orphaned_profile_images",
+        "schedule": crontab(hour=3, minute=0),
     },
 }
 

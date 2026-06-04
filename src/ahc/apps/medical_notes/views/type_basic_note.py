@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -22,6 +25,7 @@ from ahc.apps.medical_notes.selectors import (
     available_months_for,
     can_access_note_animal,
     is_attachment_author,
+    is_author_of_any_note,
     page_of_month,
     timeline_for,
 )
@@ -32,16 +36,21 @@ from ahc.apps.medical_notes.services.attachments import (
     upload_attachment,
 )
 from ahc.apps.medical_notes.services.notes import create_note, next_route_for, update_note
+from ahc.apps.medical_notes.utils import build_timeline_base_query
 from ahc.apps.medical_notes.views.mixins.user_animal_permisions import (
     AnimalDirectAccessRequiredMixin,
     AttachmentAuthorRequiredMixin,
     NoteAuthorRequiredMixin,
 )
 
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
+
 
 class CreateNoteFormView(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = MedicalRecordForm
+    request: AuthenticatedRequest
 
     def get_template_names(self):
         if self.request.headers.get("HX-Request"):
@@ -100,6 +109,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, L
     template_name = "medical_notes/full_timeline_of_notes.html"
     context_object_name = "notes"
     paginate_by = 4
+    request: AuthenticatedRequest
 
     def get_template_names(self):
         if self.request.headers.get("HX-Request"):
@@ -146,12 +156,7 @@ class FullTimelineOfNotes(LoginRequiredMixin, AnimalDirectAccessRequiredMixin, L
         context["scroll_to_month"] = self.request.GET.get("month", "")
         context["type_of_event"] = type_of_event
         context["tag_name"] = tag_name
-        base_parts = []
-        if type_of_event:
-            base_parts.append(f"type_of_event={type_of_event}")
-        if tag_name:
-            base_parts.append(f"tag_name={tag_name}")
-        context["base_query"] = "&".join(base_parts)
+        context["base_query"] = build_timeline_base_query(type_of_event, tag_name)
 
         return context
 
@@ -182,6 +187,7 @@ class EditNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, UpdateView):
     form_class = MedicalRecordEditForm
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
+    request: AuthenticatedRequest
 
     def get_template_names(self):
         if self.request.headers.get("HX-Request"):
@@ -242,11 +248,11 @@ class EditRelatedAnimalsView(EditNoteView):
     form_class = MedicalRecordEditRelatedAnimalsForm
     template_name = "medical_notes/edit.html"
     context_object_name = "note"
+    request: AuthenticatedRequest
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        user = self.request.user.profile
-        kwargs["is_author"] = MedicalRecord.objects.filter(author=user).exists()
+        kwargs["is_author"] = is_author_of_any_note(self.request.user.profile)
         return kwargs
 
     def test_func(self):
@@ -282,6 +288,8 @@ class DeleteNoteView(LoginRequiredMixin, NoteAuthorRequiredMixin, DeleteView):
 
 class DownloadAttachmentView(LoginRequiredMixin, UserPassesTestMixin, View):
     """Download attachment by CouchDB reference id (URL kwarg: id, not pk)."""
+
+    request: AuthenticatedRequest
 
     def test_func(self):
         attachment = get_object_or_404(MedicalRecordAttachment, couch_id=self.kwargs.get("id"))
