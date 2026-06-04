@@ -91,6 +91,7 @@ name = "animals-healthcare-application"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aiohttp" },
     { name = "celery" },
     { name = "cffi" },
     { name = "cryptography" },
@@ -130,6 +131,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiohttp", specifier = ">=3" },
     { name = "celery", specifier = ">=5.4" },
     { name = "cffi", specifier = ">=1.17" },
     { name = "cryptography", specifier = ">=43" },
