@@ -16,7 +16,7 @@ from django.urls import reverse
 from django.views import View
 
 from ahc.apps.animals.models import Animal
-from ahc.apps.animals.selectors import allowed_categories_for, is_animal_owner, user_can_access_animal
+from ahc.apps.animals.selectors import allowed_categories_for, is_animal_owner, user_can_modify_animal
 
 if TYPE_CHECKING:
     from ahc.types import AuthenticatedRequest
@@ -30,8 +30,12 @@ from ahc.apps.medical_notes.services.vaccinations import (
 
 
 def _has_vaccination_access(profile, animal: Animal) -> bool:
-    """Return True if profile may read/write vaccinations on this animal."""
-    if not user_can_access_animal(profile, animal):
+    """Return True if profile may write (add/edit/delete) vaccinations on this animal.
+
+    Uses user_can_modify_animal so deceased animals are blocked for everyone,
+    including the owner.
+    """
+    if not user_can_modify_animal(profile, animal):
         return False
     if is_animal_owner(profile, animal):
         return True

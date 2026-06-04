@@ -112,8 +112,8 @@ class TestUserRegisterView:
                 {
                     "username": "brandnewuser",
                     "email": "newuser@example.com",
-                    "password1": "Str0ng_P@ssw0rd!",
-                    "password2": "Str0ng_P@ssw0rd!",
+                    "password1": "test-fixture-password-1",
+                    "password2": "test-fixture-password-1",
                 },
             )
         assert response.status_code == 302

@@ -38,12 +38,37 @@
 {% block content %}
 <div class="content-section">
 
+    {% if is_deceased %}
+    <article class="deceased-banner">
+        <hgroup>
+            <h4>In memoriam — {{ animal.date_of_death }}</h4>
+            {% if animal.memorial_note %}<p>{{ animal.memorial_note }}</p>{% endif %}
+        </hgroup>
+        {% if is_owner %}
+        <div class="grid">
+            <a role="button" class="secondary outline" href="{% url 'animal_memorial' pk=animal.id %}">Edit memorial note</a>
+            <form method="post" action="{% url 'animal_unarchive' pk=animal.id %}">
+                {% csrf_token %}
+                <button type="submit" class="secondary">Restore (un-archive)</button>
+            </form>
+        </div>
+        {% endif %}
+    </article>
+    {% endif %}
+
     <div class="animal-profile-hero">
+        {% if is_deceased %}
+        <div class="animal-profile-hero__img">
+            <img src="{{ animal.profile_image.url }}"
+                 alt="Animal's profile picture">
+        </div>
+        {% else %}
         <a class="animal-profile-hero__img" href="{% url 'upload_image' pk=animal.id %}">
             <img src="{{ animal.profile_image.url }}"
                  alt="Animal's profile picture"
                  title="Change a picture">
         </a>
+        {% endif %}
         <div class="animal-profile-hero__info">
             <h2>{{ animal.full_name }}</h2>
 

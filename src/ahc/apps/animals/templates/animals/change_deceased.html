@@ -1,0 +1,16 @@
+{% extends "homepage/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="content-section">
+    <h2>Archive animal as deceased</h2>
+    <p>Recording a date of death will archive this animal. Carers will lose access immediately. You can restore the animal at any time from the profile page.</p>
+    <form method="post">
+        {% csrf_token %}
+        {% include "partials/form_fields.html" %}
+        <button type="submit">Archive animal</button>
+    </form>
+    <br>
+    <a role="button" class="secondary outline" href="{% url 'animal_tab' pk=animal_id slug='settings' %}">Back to Settings</a>
+</div>
+{% endblock %}

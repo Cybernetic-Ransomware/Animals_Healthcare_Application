@@ -16,10 +16,13 @@ from ahc.apps.animals.services import (
     remove_keeper,
     set_animal_details,
     set_birthday,
+    set_deceased,
     set_dietary_restrictions,
     set_first_contact,
+    set_memorial_note,
     set_next_visit,
     transfer_ownership,
+    unset_deceased,
     update_share,
 )
 from ahc.apps.animals.utils_owner.forms import (
@@ -29,9 +32,11 @@ from ahc.apps.animals.utils_owner.forms import (
     ChangeFirstContactForm,
     ChangeNextVisitForm,
     ChangeOwnerForm,
+    EditMemorialNoteForm,
     EditShareForm,
     ImageUploadForm,
     ManageKeepersForm,
+    MarkDeceasedForm,
 )
 
 if TYPE_CHECKING:
@@ -289,3 +294,73 @@ class EditShareView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
         }
         update_share(form.instance, scope=scope, valid_until=cd.get("valid_until"))
         return redirect(reverse("animal_tab", kwargs={"pk": self.kwargs["pk"], "slug": "ownership"}))
+
+
+class MarkDeceasedView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
+    """Record the animal as deceased and store an optional memorial note.
+
+    Uses UserPassesOwnershipTestMixin (which checks is_animal_owner directly) so this
+    view works even when the animal is already marked deceased, allowing owners to
+    correct the date or update the memorial note.
+    """
+
+    form_class = MarkDeceasedForm
+    template_name = "animals/change_deceased.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        return context
+
+    def form_valid(self, form):
+        set_deceased(
+            get_object_or_404(Animal, pk=self.kwargs["pk"]),
+            date_of_death=form.cleaned_data["date_of_death"],
+            memorial_note=form.cleaned_data["memorial_note"],
+        )
+        return redirect(reverse("animal_profile", kwargs={"pk": self.kwargs["pk"]}))
+
+
+class EditMemorialNoteView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
+    """Edit the memorial note on a deceased animal (owner-only).
+
+    Intentionally bypasses user_can_modify_animal so the owner may update the
+    memorial note while the animal remains in the archived/deceased state.
+    """
+
+    form_class = EditMemorialNoteForm
+    template_name = "animals/change_memorial_note.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animal_id"] = self.kwargs["pk"]
+        return context
+
+    def form_valid(self, form):
+        set_memorial_note(
+            get_object_or_404(Animal, pk=self.kwargs["pk"]),
+            memorial_note=form.cleaned_data["memorial_note"],
+        )
+        return redirect(reverse("animal_profile", kwargs={"pk": self.kwargs["pk"]}))
+
+
+class UnarchiveAnimalView(LoginRequiredMixin, UserPassesOwnershipTestMixin, View):
+    """Reverse an archiving action — the animal becomes living again (owner-only, POST).
+
+    Uses UserPassesOwnershipTestMixin so this view works on a deceased animal.
+    Bypasses user_can_modify_animal by design: this is the intentional reversal path.
+    """
+
+    def post(self, request, pk, *args, **kwargs):
+        unset_deceased(get_object_or_404(Animal, pk=pk))
+        return redirect(reverse("animal_profile", kwargs={"pk": pk}))

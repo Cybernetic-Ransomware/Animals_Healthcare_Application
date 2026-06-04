@@ -19,9 +19,10 @@ from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import (
     allowed_categories_for,
     animals_visible_to,
+    deceased_animals_for,
     is_animal_owner,
     is_pinned,
-    user_can_access_animal,
+    user_can_view_animal,
 )
 from ahc.apps.animals.services import create_animal, pin_animal, unpin_animal
 
@@ -254,10 +255,13 @@ def _base_profile_context(request, animal: Animal) -> dict[str, Any]:
     profile = request.user.profile
     owner = is_animal_owner(profile, animal)
     allowed = allowed_categories_for(profile, animal)
+    deceased = animal.is_deceased
 
     def _tab_visible(tab: Tab) -> bool:
+        # Owner-only mutation tabs (settings, ownership) are hidden for deceased animals —
+        # the animal is read-only; the owner's only permitted actions are on the profile page.
         if tab.owner_only:
-            return owner
+            return owner and not deceased
         if not tab.categories:
             return True
         return owner or bool(tab.categories & allowed)
@@ -265,6 +269,7 @@ def _base_profile_context(request, animal: Animal) -> dict[str, Any]:
     return {
         "now": timezone.now().date(),
         "is_owner": owner,
+        "is_deceased": deceased,
         "is_pinned": is_pinned(profile, animal),
         "allowed_categories": allowed,
         "tabs": [t for t in TABS_LIST if _tab_visible(t)],
@@ -306,7 +311,7 @@ class AnimalProfileDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailVie
 
     def test_func(self):
         animal = self.get_object()
-        return user_can_access_animal(self.request.user.profile, animal)
+        return user_can_view_animal(self.request.user.profile, animal)
 
 
 class AnimalTabView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
@@ -331,13 +336,15 @@ class AnimalTabView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def test_func(self):
         animal = self.get_object()
         profile = self.request.user.profile
-        if not user_can_access_animal(profile, animal):
+        if not user_can_view_animal(profile, animal):
             return False
         tab = TAB_REGISTRY.get(self.kwargs.get("slug", ""))
         if tab is None:
             return True
+        # Owner-only tabs (settings, ownership) are blocked on deceased animals to enforce
+        # the read-only archive mode. The owner's only write actions are on the profile page.
         if tab.owner_only:
-            return is_animal_owner(profile, animal)
+            return is_animal_owner(profile, animal) and not animal.is_deceased
         if tab.categories and not is_animal_owner(profile, animal):
             allowed = allowed_categories_for(profile, animal)
             return bool(tab.categories & allowed)
@@ -369,6 +376,22 @@ class StableView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["animals"] = animals_visible_to(self.request.user.profile)
+        return context
+
+
+class ArchiveView(LoginRequiredMixin, TemplateView):
+    """Owner-only read-only archive of deceased animals.
+
+    Only animals owned by the current user are shown — carers are intentionally
+    excluded because death withdraws management to the owner only.
+    """
+
+    template_name = "animals/archive.html"
+    request: AuthenticatedRequest
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["animals"] = deceased_animals_for(self.request.user.profile)
         return context
 
 

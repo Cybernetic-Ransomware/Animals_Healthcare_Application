@@ -1,0 +1,63 @@
+{% extends "homepage/base.html" %}
+{% load static %}
+{% block extra_js %}
+    <script defer src="{% static 'js/biometric_batch.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="content-section">
+    <h3>Batch measurement entry</h3>
+    <p>Select a measurement type, check each animal you measured, enter the value, then save all at once.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <fieldset>
+            <legend>Session settings</legend>
+            {% include "partials/form_fields.html" with form=session_form %}
+        </fieldset>
+
+        {{ formset.management_form }}
+
+        {% if rows %}
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th scope="col">Include</th>
+                    <th scope="col">Animal</th>
+                    <th scope="col">Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row_form, animal in rows %}
+                <tr>
+                    <td>{{ row_form.include }}</td>
+                    <td>
+                        {{ row_form.animal_id }}
+                        {{ animal.full_name }}
+                    </td>
+                    <td>
+                        {{ row_form.value }}
+                        {% for error in row_form.value.errors %}
+                            <small class="form-error">{{ error }}</small>
+                        {% endfor %}
+                        {% for error in row_form.non_field_errors %}
+                            <small class="form-error">{{ error }}</small>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No animals available. <a href="{% url 'animal_create' %}">Add an animal</a> first, or ask an owner to share one with you.</p>
+        {% endif %}
+
+        <button type="submit">Save all</button>
+    </form>
+
+    <br>
+    <small>
+        <a href="{% url 'Homepage' %}">Back to homepage</a>
+    </small>
+</div>
+{% endblock %}
