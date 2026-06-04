@@ -25,6 +25,7 @@ dependencies = [
     "python-dateutil",
     "pyjwt",
     "defusedxml",
+    "aiohttp>=3",
 ]
 
 [dependency-groups]
