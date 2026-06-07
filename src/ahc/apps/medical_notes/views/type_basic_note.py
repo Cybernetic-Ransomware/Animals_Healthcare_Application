@@ -13,6 +13,7 @@ from django.views.generic.edit import DeleteView, FormView, UpdateView
 from django.views.generic.list import ListView
 
 from ahc.apps.animals.models import Animal as AnimalProfile
+from ahc.apps.animals.selectors import user_can_record_biometrics
 from ahc.apps.medical_notes.forms.type_basic_note import (
     MedicalRecordEditForm,
     MedicalRecordEditRelatedAnimalsForm,
@@ -52,6 +53,14 @@ class CreateNoteFormView(LoginRequiredMixin, AnimalDirectModifyMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = MedicalRecordForm
     request: AuthenticatedRequest
+
+    def test_func(self):
+        if not super().test_func():
+            return False
+        if self.request.GET.get("type_of_event") == "biometric_record":
+            animal = get_object_or_404(AnimalProfile, id=self.kwargs.get("pk"))
+            return user_can_record_biometrics(self.request.user.profile, animal)
+        return True
 
     def get_template_names(self):
         if self.request.headers.get("HX-Request"):

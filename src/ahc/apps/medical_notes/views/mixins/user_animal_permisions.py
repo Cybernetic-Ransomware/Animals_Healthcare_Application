@@ -3,11 +3,13 @@
 Each mixin implements test_func by delegating to a selector from
 ahc.apps.medical_notes.selectors, keeping views free of inline permission logic.
 
-Four access-level patterns exist:
+Five access-level patterns exist:
 - AnimalDirectViewMixin — pk in URL is an Animal UUID; grants read-only access
   (owner always; carer only if living animal + active share).
 - AnimalDirectModifyMixin — pk in URL is an Animal UUID; grants write access
   (blocked entirely on deceased animals, even for the owner).
+- BiometricModifyMixin — pk in URL is an Animal UUID; grants biometric write access
+  (owner always; carer needs allow_biometrics=True on their active share).
 - AnimalAccessRequiredMixin — pk in URL is a MedicalRecord UUID; write access
   checked on the linked animal via can_access_note_animal.
 - NoteAuthorRequiredMixin — pk is a MedicalRecord UUID; author-only access.
@@ -25,7 +27,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.shortcuts import get_object_or_404
 
 from ahc.apps.animals.models import Animal
-from ahc.apps.animals.selectors import user_can_modify_animal, user_can_view_animal
+from ahc.apps.animals.selectors import user_can_modify_animal, user_can_record_biometrics, user_can_view_animal
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 from ahc.apps.medical_notes.selectors import (
     can_access_note_animal,
@@ -66,6 +68,21 @@ class AnimalDirectModifyMixin(UserPassesTestMixin):
 
 # Backward-compatible alias — existing views that only need read access continue to work.
 AnimalDirectAccessRequiredMixin = AnimalDirectViewMixin
+
+
+class BiometricModifyMixin(UserPassesTestMixin):
+    """Allow biometric writes when pk is an Animal UUID and the profile may record biometrics.
+
+    Owners always pass; carers need allow_biometrics=True on their active share.
+    Deceased animals are blocked for everyone (user_can_record_biometrics delegates to
+    user_can_modify_animal which enforces that invariant).
+    """
+
+    request: AuthenticatedRequest
+
+    def test_func(self):
+        animal = get_object_or_404(Animal, id=self.kwargs.get("pk"))
+        return user_can_record_biometrics(self.request.user.profile, animal)
 
 
 class AnimalAccessRequiredMixin(UserPassesTestMixin):

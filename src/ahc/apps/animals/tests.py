@@ -5,6 +5,7 @@ import pytest
 
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import (
+    animals_for_biometric_batch,
     animals_visible_to,
     deceased_animals_for,
     is_animal_owner,
@@ -12,6 +13,7 @@ from ahc.apps.animals.selectors import (
     recent_records_for,
     user_can_access_animal,
     user_can_modify_animal,
+    user_can_record_biometrics,
     user_can_view_animal,
 )
 from ahc.apps.animals.services import (
@@ -1277,3 +1279,72 @@ class TestStableAndArchiveViews:
         other_user, _ = second_user_profile
         response = self._client_for(other_user).get("/pet/archive/")
         assert deceased_animal not in response.context["animals"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestUserCanRecordBiometrics:
+    """user_can_record_biometrics: biometric-category gate layered on top of modify access."""
+
+    def test_owner_can_record_biometrics(self, animal, user_profile):
+        _, profile = user_profile
+        assert user_can_record_biometrics(profile, animal) is True
+
+    def test_carer_with_allow_biometrics_can_record(self, animal, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True)
+        assert user_can_record_biometrics(carer_profile, animal) is True
+
+    def test_carer_without_allow_biometrics_blocked(self, animal, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
+        assert user_can_record_biometrics(carer_profile, animal) is False
+
+    def test_stranger_without_share_blocked(self, animal, second_user_profile):
+        _, other_profile = second_user_profile
+        assert user_can_record_biometrics(other_profile, animal) is False
+
+    def test_deceased_animal_blocked_even_for_owner(self, user_profile):
+        _, profile = user_profile
+        deceased = Animal.objects.create(full_name="Gone", owner=profile, date_of_death=date(2024, 1, 1))
+        assert user_can_record_biometrics(profile, deceased) is False
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestAnimalsForBiometricBatch:
+    """animals_for_biometric_batch: owner always included; carer only with allow_biometrics."""
+
+    def test_owner_animal_included(self, animal, user_profile):
+        _, profile = user_profile
+        assert animal in animals_for_biometric_batch(profile)
+
+    def test_carer_with_allow_biometrics_included(self, animal, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True)
+        assert animal in animals_for_biometric_batch(carer_profile)
+
+    def test_carer_without_allow_biometrics_excluded(self, animal, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
+        assert animal not in animals_for_biometric_batch(carer_profile)
+
+    def test_expired_share_with_allow_biometrics_excluded(self, animal, second_user_profile):
+        from ahc.apps.animals.models import AnimalShare
+
+        _, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True, valid_until=date(2020, 1, 1))
+        assert animal not in animals_for_biometric_batch(carer_profile)
+
+    def test_deceased_animal_excluded_for_owner(self, user_profile):
+        _, profile = user_profile
+        deceased = Animal.objects.create(full_name="Gone", owner=profile, date_of_death=date(2024, 1, 1))
+        assert deceased not in animals_for_biometric_batch(profile)

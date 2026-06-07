@@ -1178,3 +1178,149 @@ class TestDeceasedAnimalWriteBlocking:
         reminder_ids = {v.pk for v in reminders}
         assert living_vacc.pk in reminder_ids
         assert deceased_vacc.pk not in reminder_ids
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestBiometricBatchCarerPermissions:
+    """BiometricBatchCreateView: carer without allow_biometrics is blocked end-to-end."""
+
+    @pytest.fixture
+    def shared_animal_no_biometrics(self, db, user_profile, second_user_profile):
+        from ahc.apps.animals.models import Animal, AnimalShare
+
+        _, owner_profile = user_profile
+        _, carer_profile = second_user_profile
+        animal = Animal.objects.create(full_name="SharedPet", owner=owner_profile)
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
+        return animal, carer_profile
+
+    def test_carer_without_biometrics_gets_no_rows(self, client, second_user_profile, shared_animal_no_biometrics):
+        """GET must not offer the animal when carer lacks allow_biometrics."""
+        carer_user, _ = second_user_profile
+        animal, _ = shared_animal_no_biometrics
+        client.force_login(carer_user)
+        response = client.get(reverse("biometric_batch"))
+
+        assert response.status_code == 200
+        offered_ids = {str(a.id) for _, a in response.context["rows"]}
+        assert str(animal.id) not in offered_ids
+
+    def test_carer_without_biometrics_post_creates_no_records(
+        self, client, second_user_profile, shared_animal_no_biometrics
+    ):
+        """POST with a no-biometrics animal_id must produce zero records."""
+        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
+
+        carer_user, _ = second_user_profile
+        animal, _ = shared_animal_no_biometrics
+        client.force_login(carer_user)
+
+        data = {
+            "record_type": "weight",
+            "unit": "kg",
+            "custom_name": "",
+            "custom_unit": "",
+            "form-TOTAL_FORMS": "1",
+            "form-INITIAL_FORMS": "0",
+            "form-MIN_NUM_FORMS": "0",
+            "form-MAX_NUM_FORMS": "1000",
+            "form-0-include": "on",
+            "form-0-animal_id": str(animal.id),
+            "form-0-value": "5.0",
+        }
+        response = client.post(reverse("biometric_batch"), data)
+
+        assert response.status_code == 302
+        assert BiometricRecord.objects.count() == 0
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestBiometricRecordCreateViewPermissions:
+    """BiometricRecordCreateView: allow_biometrics flag enforced at mixin level."""
+
+    @pytest.fixture
+    def animal_and_shell_note(self, db, user_profile):
+        from ahc.apps.animals.models import Animal
+        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+
+        _, owner_profile = user_profile
+        animal = Animal.objects.create(full_name="BioAnimal", owner=owner_profile)
+        shell = MedicalRecord.objects.create(
+            animal=animal, author=owner_profile, short_description="shell", type_of_event="biometric_record"
+        )
+        return animal, shell
+
+    def test_carer_without_biometrics_gets_403(self, client, second_user_profile, user_profile, animal_and_shell_note):
+        from ahc.apps.animals.models import AnimalShare
+
+        carer_user, carer_profile = second_user_profile
+        animal, shell = animal_and_shell_note
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
+        client.force_login(carer_user)
+
+        response = client.get(f"/note/{animal.id}/{shell.id}/medical_create/")
+        assert response.status_code == 403
+
+    def test_owner_can_access(self, client, user_profile, animal_and_shell_note):
+        owner_user, _ = user_profile
+        animal, shell = animal_and_shell_note
+        client.force_login(owner_user)
+
+        response = client.get(f"/note/{animal.id}/{shell.id}/medical_create/")
+        assert response.status_code == 200
+
+    def test_carer_with_biometrics_can_access(self, client, second_user_profile, user_profile, animal_and_shell_note):
+        from ahc.apps.animals.models import AnimalShare
+
+        carer_user, carer_profile = second_user_profile
+        animal, shell = animal_and_shell_note
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True)
+        client.force_login(carer_user)
+
+        response = client.get(f"/note/{animal.id}/{shell.id}/medical_create/")
+        assert response.status_code == 200
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestCreateNoteFormViewBiometricGate:
+    """CreateNoteFormView: biometric shell-note gate — carers need allow_biometrics; other types unaffected."""
+
+    @pytest.fixture
+    def animal_with_share(self, db, user_profile, second_user_profile):
+        from ahc.apps.animals.models import Animal, AnimalShare
+
+        _, owner_profile = user_profile
+        _, carer_profile = second_user_profile
+        animal = Animal.objects.create(full_name="GatedAnimal", owner=owner_profile)
+        share = AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False, allow_basic=True)
+        return animal, share, carer_profile
+
+    def test_carer_without_biometrics_gets_403_on_biometric_type(self, client, second_user_profile, animal_with_share):
+        carer_user, _ = second_user_profile
+        animal, _, _ = animal_with_share
+        client.force_login(carer_user)
+
+        response = client.get(f"/note/{animal.id}/create/?type_of_event=biometric_record")
+        assert response.status_code == 403
+
+    def test_carer_with_biometrics_can_create_shell_note(self, client, second_user_profile, animal_with_share):
+        carer_user, _ = second_user_profile
+        animal, share, _ = animal_with_share
+        share.allow_biometrics = True
+        share.save()
+        client.force_login(carer_user)
+
+        response = client.get(f"/note/{animal.id}/create/?type_of_event=biometric_record")
+        assert response.status_code == 200
+
+    def test_carer_without_biometrics_can_create_other_note_types(self, client, second_user_profile, animal_with_share):
+        """allow_biometrics gate must not affect non-biometric note types."""
+        carer_user, _ = second_user_profile
+        animal, _, _ = animal_with_share
+        client.force_login(carer_user)
+
+        response = client.get(f"/note/{animal.id}/create/?type_of_event=fast_note")
+        assert response.status_code == 200

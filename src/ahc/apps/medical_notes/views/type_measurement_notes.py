@@ -15,13 +15,13 @@ from ahc.apps.medical_notes.forms.biometric_batch import BiometricBatchFormSet, 
 from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 from ahc.apps.medical_notes.services.biometrics import create_batch_biometric_records, create_biometric_record
-from ahc.apps.medical_notes.views.mixins.user_animal_permisions import AnimalDirectModifyMixin
+from ahc.apps.medical_notes.views.mixins.user_animal_permisions import BiometricModifyMixin
 
 if TYPE_CHECKING:
     from ahc.types import AuthenticatedRequest
 
 
-class BiometricRecordCreateView(LoginRequiredMixin, AnimalDirectModifyMixin, FormView):
+class BiometricRecordCreateView(LoginRequiredMixin, BiometricModifyMixin, FormView):
     template_name = "medical_notes/create.html"
     form_class = BiometricRecordForm
 

@@ -112,15 +112,34 @@ def get_or_create_share_defaults(profile) -> ShareDefaults:
     return defaults
 
 
-def animals_for_biometric_batch(profile) -> QuerySet[Animal]:
-    """Return all animals the profile may include in a batch biometric session.
+def user_can_record_biometrics(profile, animal: Animal) -> bool:
+    """Return True if the profile may create biometric records for this animal.
 
-    Currently mirrors animals_visible_to (owner or active share with any access),
-    matching the permission level of the single-record BiometricRecordCreateView.
-    TODO: narrow to allow_biometrics=True for carer shares once that flag is enforced
-    consistently across single-record creation too.
+    Layers user_can_modify_animal (living animal + owner/active share) with the
+    BIOMETRICS share-category gate: owners always pass; carers need allow_biometrics=True.
     """
-    return animals_visible_to(profile)
+    if not user_can_modify_animal(profile, animal):
+        return False
+    return ShareCategory.BIOMETRICS.value in allowed_categories_for(profile, animal)
+
+
+def animals_for_biometric_batch(profile) -> QuerySet[Animal]:
+    """Return all living animals the profile may include in a batch biometric session.
+
+    Owners get all their living animals; carers only those whose active share grants
+    allow_biometrics=True. Queryset-level mirror of user_can_record_biometrics.
+    """
+    today = _today()
+    return (
+        Animal.objects.filter(date_of_death__isnull=True)
+        .filter(
+            Q(owner=profile)
+            | Q(shares__carer=profile, shares__allow_biometrics=True, shares__valid_until__isnull=True)
+            | Q(shares__carer=profile, shares__allow_biometrics=True, shares__valid_until__gte=today)
+        )
+        .distinct()
+        .order_by("-creation_date")
+    )
 
 
 def is_pinned(profile, animal: Animal) -> bool:
