@@ -33,7 +33,8 @@ services:
       - traefik.enable=true
       - traefik.docker.network=proxy
       - traefik.http.routers.ahc.rule=Host(`${AHC_DOMAIN}`)
-      - traefik.http.routers.ahc.entrypoints=web
+      - traefik.http.routers.ahc.entrypoints=websecure
+      - traefik.http.routers.ahc.tls=true
       - traefik.http.services.ahc.loadbalancer.server.port=8000
     restart: unless-stopped
 
@@ -152,7 +153,8 @@ services:
       - traefik.enable=true
       - traefik.docker.network=proxy
       - traefik.http.routers.ahc-flower.rule=Host(`flower.${AHC_DOMAIN}`)
-      - traefik.http.routers.ahc-flower.entrypoints=web
+      - traefik.http.routers.ahc-flower.entrypoints=websecure
+      - traefik.http.routers.ahc-flower.tls=true
       - traefik.http.services.ahc-flower.loadbalancer.server.port=5555
     restart: unless-stopped
 
