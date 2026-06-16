@@ -20,6 +20,8 @@ services:
         condition: service_started
       couch_db:
         condition: service_healthy
+    volumes:
+      - ../static/media:/app/static/media
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
