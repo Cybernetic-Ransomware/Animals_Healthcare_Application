@@ -18,6 +18,7 @@ from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord, BiometricWeightRecords
+from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
 from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
 from ahc.apps.offline_snapshots.services.schema import SCHEMA_VERSION
 
@@ -69,6 +70,18 @@ def snapshot_animal(db, user_profile):
     )
     weight = BiometricWeightRecords.objects.create(weight=5)
     BiometricRecord.objects.create(animal=animal, related_note=shell, weight_biometric_record=weight)
+    vacc_shell = MedicalRecord.objects.create(
+        animal=animal, author=profile, short_description="Rabies shot", type_of_event="vaccination_note"
+    )
+    VaccinationNote.objects.create(
+        related_note=vacc_shell,
+        vaccine_name="Rabies",
+        last_vaccination_date=date(2026, 3, 1),
+        valid_until=date(2027, 3, 1),
+        suggested_clinic="Happy Paws Clinic",
+        reminder_date=date(2027, 2, 1),
+        reminder_sent=True,
+    )
     return animal, profile
 
 
@@ -87,6 +100,8 @@ class TestOwnerSnapshotExport:
         assert manifest["generated_at"]
         assert manifest["generated_by"] == profile.user.username
         assert manifest["is_read_only"] == 1
+        assert len(manifest["source_revision"]) == 64
+        assert all(char in "0123456789abcdef" for char in manifest["source_revision"])
 
     def test_animal_row_has_all_fields_for_owner(self, snapshot_animal, tmp_path):
         animal, profile = snapshot_animal
@@ -115,7 +130,7 @@ class TestOwnerSnapshotExport:
         path = export_animal_snapshot(animal, profile, tmp_path)
 
         rows = _query(path, "SELECT id, animal_id FROM medical_record_snapshot")
-        assert len(rows) == 4
+        assert len(rows) == 5
         assert {row["animal_id"] for row in rows} == {str(animal.id)}
         assert str(foreign.id) not in {row["id"] for row in rows}
 
@@ -130,6 +145,20 @@ class TestOwnerSnapshotExport:
         assert row["weight_unit"] == "g"
         assert row["height"] is None
         assert row["custom_name"] is None
+
+    def test_vaccination_rows_hold_domain_fields_without_reminder_state(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        (row,) = _query(path, "SELECT * FROM vaccination_note_snapshot")
+        assert row["vaccine_name"] == "Rabies"
+        assert row["last_vaccination_date"] == "2026-03-01"
+        assert row["valid_until"] == "2027-03-01"
+        assert row["suggested_clinic"] == "Happy Paws Clinic"
+        columns = {info["name"] for info in _query(path, "PRAGMA table_info(vaccination_note_snapshot)")}
+        expected = {"id", "medical_record_id", "vaccine_name", "last_vaccination_date", "valid_until", "suggested_clinic"}
+        assert columns == expected
 
     def test_attachment_table_holds_metadata_only(self, snapshot_animal, tmp_path):
         animal, profile = snapshot_animal
@@ -160,9 +189,46 @@ class TestSnapshotRebuild:
         second_path = export_animal_snapshot(animal, profile, tmp_path, force=True)
 
         assert second_path == first_path
-        assert not (tmp_path / f"animal_{animal.id}.tmp.db").exists()
+        assert not list(tmp_path.glob("*.tmp.db"))
         (second_manifest,) = _query(second_path, "SELECT generated_at FROM snapshot_manifest")
         assert second_manifest["generated_at"] >= first_manifest["generated_at"]
+
+
+@pytest.mark.integration
+class TestSourceRevision:
+    @staticmethod
+    def _revision(path):
+        (manifest,) = _query(path, "SELECT source_revision FROM snapshot_manifest")
+        return manifest["source_revision"]
+
+    def test_identical_data_yields_identical_revision(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        first = self._revision(export_animal_snapshot(animal, profile, tmp_path))
+
+        second = self._revision(export_animal_snapshot(animal, profile, tmp_path, force=True))
+
+        assert first == second
+
+    def test_animal_field_change_changes_revision(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        first = self._revision(export_animal_snapshot(animal, profile, tmp_path))
+
+        animal.dietary_restrictions = "grain only, actually"
+        animal.save()
+        second = self._revision(export_animal_snapshot(animal, profile, tmp_path, force=True))
+
+        assert first != second
+
+    def test_feeding_note_change_changes_revision(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        first = self._revision(export_animal_snapshot(animal, profile, tmp_path))
+
+        note = FeedingNote.objects.get(related_note__animal=animal)
+        note.dose_annotations = "200g daily"
+        note.save()
+        second = self._revision(export_animal_snapshot(animal, profile, tmp_path, force=True))
+
+        assert first != second
 
 
 @pytest.mark.integration
@@ -183,6 +249,7 @@ class TestShareFiltering:
         assert {r["type_of_event"] for r in records} == {"diet_note"}
         assert len(_query(path, "SELECT * FROM feeding_note_snapshot")) == 1
         assert _query(path, "SELECT * FROM biometric_snapshot") == []
+        assert _query(path, "SELECT * FROM vaccination_note_snapshot") == []
         assert _query(path, "SELECT * FROM attachment_metadata_snapshot") == []
 
     def test_profile_without_access_is_denied(self, snapshot_animal, second_user_profile, tmp_path):

@@ -4,6 +4,10 @@ The snapshot is a standard SQLite-format database. PostgreSQL remains the
 source of truth; the file is a disposable cache that can be deleted and
 rebuilt at any time. Binary attachment content never enters the snapshot —
 attachments are represented by metadata rows pointing back to CouchDB.
+
+is_read_only in the manifest marks an application contract (AHC never writes
+to a generated snapshot), not a filesystem guarantee — the file itself stays
+writable.
 """
 
 SCHEMA_VERSION = 1
@@ -78,6 +82,16 @@ TABLES = (
         custom_name TEXT,
         custom_value TEXT,
         custom_unit TEXT
+    )
+    """,
+    """
+    CREATE TABLE vaccination_note_snapshot (
+        id TEXT PRIMARY KEY,
+        medical_record_id TEXT NOT NULL,
+        vaccine_name TEXT,
+        last_vaccination_date TEXT,
+        valid_until TEXT,
+        suggested_clinic TEXT
     )
     """,
     """

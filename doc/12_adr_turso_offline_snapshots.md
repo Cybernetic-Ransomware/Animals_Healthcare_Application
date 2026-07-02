@@ -40,6 +40,18 @@ single animal's health data:
 - Snapshot content respects the sharing model: the export is filtered through
   `allowed_categories_for` (owners get everything, carers only the categories
   their active `AnimalShare` grants; no access → `PermissionDenied`).
+- Vaccination detail rows (`vaccine_name`, `last_vaccination_date`,
+  `valid_until`, `suggested_clinic`) are exported under the `vaccinations`
+  category; server-side reminder workflow state (`reminder_date`,
+  `reminder_sent`) is deliberately excluded — it is infrastructure state,
+  not medical data, and is meaningless outside the server.
+- `source_revision` in the manifest is a SHA-256 hash of the canonical export
+  payload (rows sorted by id): identical source data always yields an
+  identical revision, so consumers can detect content changes without
+  comparing files. `generated_at` answers "when was this built";
+  `source_revision` answers "did the content change".
+- "Read-only" is an application contract — AHC never writes to a generated
+  snapshot — not a filesystem guarantee; the file itself remains writable.
 - The Turso driver is confined to `offline_snapshots/services/exporter.py`;
   it is never bound to the Django ORM.
 
