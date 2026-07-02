@@ -240,8 +240,12 @@ def _build_payload(animal: Animal, allowed: set[str]) -> dict[str, list[tuple]]:
 
 
 def _source_revision(payload: dict[str, list[tuple]]) -> str:
-    """SHA-256 over the canonical payload: identical exported data yields an identical revision."""
-    canonical = json.dumps(payload, sort_keys=True)
+    """SHA-256 over the canonical payload: identical exported data yields an identical revision.
+
+    The canonical form (sorted keys, no whitespace) is frozen — changing it
+    would silently invalidate revision comparability across snapshots.
+    """
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return sha256(canonical.encode()).hexdigest()
 
 

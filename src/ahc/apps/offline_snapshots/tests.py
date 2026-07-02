@@ -252,6 +252,26 @@ class TestShareFiltering:
         assert _query(path, "SELECT * FROM vaccination_note_snapshot") == []
         assert _query(path, "SELECT * FROM attachment_metadata_snapshot") == []
 
+    def test_vaccination_only_carer_gets_filtered_snapshot(self, snapshot_animal, second_user_profile, tmp_path):
+        animal, _ = snapshot_animal
+        _, carer = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer, allow_vaccinations=True)
+
+        path = export_animal_snapshot(animal, carer, tmp_path)
+
+        records = _query(path, "SELECT type_of_event FROM medical_record_snapshot")
+        assert {r["type_of_event"] for r in records} == {"vaccination_note"}
+        (vaccination,) = _query(path, "SELECT * FROM vaccination_note_snapshot")
+        assert vaccination["vaccine_name"] == "Rabies"
+        assert vaccination["valid_until"] == "2027-03-01"
+        (row,) = _query(path, "SELECT species, dietary_restrictions, first_contact_vet FROM animal_snapshot")
+        assert row["species"] is None
+        assert row["dietary_restrictions"] is None
+        assert row["first_contact_vet"] is None
+        assert _query(path, "SELECT * FROM feeding_note_snapshot") == []
+        assert _query(path, "SELECT * FROM biometric_snapshot") == []
+        assert _query(path, "SELECT * FROM attachment_metadata_snapshot") == []
+
     def test_profile_without_access_is_denied(self, snapshot_animal, second_user_profile, tmp_path):
         animal, _ = snapshot_animal
         _, stranger = second_user_profile
