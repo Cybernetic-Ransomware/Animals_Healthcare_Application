@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "ahc.apps.users.apps.UsersConfig",
     "ahc.apps.animals.apps.AnimalsConfig",
     "ahc.apps.medical_notes.apps.MedicalNotesConfig",
+    "ahc.apps.offline_snapshots.apps.OfflineSnapshotsConfig",
 ]
 
 MIDDLEWARE = [

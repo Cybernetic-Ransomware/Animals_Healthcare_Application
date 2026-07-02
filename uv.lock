@@ -116,6 +116,7 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "python-decouple" },
     { name = "python3-openid" },
+    { name = "pyturso" },
     { name = "redis" },
     { name = "requests" },
     { name = "requests-oauthlib" },
@@ -158,6 +159,7 @@ requires-dist = [
     { name = "python-dateutil" },
     { name = "python-decouple" },
     { name = "python3-openid" },
+    { name = "pyturso", specifier = ">=0.6.1" },
     { name = "redis", specifier = ">=5.0" },
     { name = "requests" },
     { name = "requests-oauthlib" },
@@ -1283,6 +1285,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5f/4a/29feb8da6c44f77007dcd29518fea73a3d5653ee02a587ae1f17f1f5ddb5/python3-openid-3.2.0.tar.gz", hash = "sha256:33fbf6928f401e0b790151ed2b5290b02545e8775f982485205a066f874aaeaf", size = 305600, upload-time = "2020-06-29T12:15:49.026Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e0/a5/c6ba13860bdf5525f1ab01e01cc667578d6f1efc8a1dba355700fb04c29b/python3_openid-3.2.0-py3-none-any.whl", hash = "sha256:6626f771e0417486701e0b4daff762e7212e820ca5b29fcc0d05f6f8736dfa6b", size = 133681, upload-time = "2020-06-29T12:15:47.502Z" },
+]
+
+[[package]]
+name = "pyturso"
+version = "0.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/67/49879858c34e5c861084c611807a56392a15fa0bc7a2c6c43dd88317a919/pyturso-0.6.1.tar.gz", hash = "sha256:f33b2faad0f38af5256fb54457a8cd14aa0c6c17c846e850d7f8e6c5c9d29044", size = 2388457, upload-time = "2026-05-22T15:43:12.435Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/28/e6f0cf37cc53a45681556f91f17a5f7dd15737f02375a317bdb0a831c016/pyturso-0.6.1-cp314-cp314-macosx_10_12_x86_64.whl", hash = "sha256:964890a6280b3e67a84ab24479fac0342b99caa23c52a75ff1e84279b557467f", size = 5899806, upload-time = "2026-05-22T15:42:50.385Z" },
+    { url = "https://files.pythonhosted.org/packages/59/29/cc52192523e07243dd60f9fed650f83c5c23229d5f8dfb0a79e6f50af2d1/pyturso-0.6.1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:e16cd6af73251cd7d00b0c1f10139f526160a3d7bbf2ff89d2f03e81e3964f2f", size = 5184871, upload-time = "2026-05-22T15:42:52.329Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/7b/eaf87196515be9cbe808bfb178db570d4e051a397eedb50ebebb7d051e73/pyturso-0.6.1-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:72cff3ea527e674668db9321f618e65078579c4f423892243d7d079d1b318332", size = 16220304, upload-time = "2026-05-22T15:42:54.317Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/fc/b3aab38ebee7b51fcc9ec5c7482eba187b761cb8b57e858705ca8c5c59f6/pyturso-0.6.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:466d92918a8e8a991f6433ba366d7b630a4ddcc2ec3c9b003629636e18ef611b", size = 16352139, upload-time = "2026-05-22T15:42:57.19Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/0e/3188b222e4970035fffdc2a23160df722bd09d166466ffbae040c70ba92d/pyturso-0.6.1-cp315-cp315-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a2baeba246b765ba77639212cc16f42b655ac5c6468d04eecd61051fe7b20f78", size = 16220304, upload-time = "2026-05-22T15:43:00.355Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/2c/4a6b9e9cba933e721ac4eed6b6c91791fea3f778af4b18fce191255b0dbe/pyturso-0.6.1-cp315-cp315-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:12aaa3b4eacf6d00393c7b691a4e1440cd08b6de9ef57e956c30ce05482bde5a", size = 16352140, upload-time = "2026-05-22T15:43:03.596Z" },
 ]
 
 [[package]]
