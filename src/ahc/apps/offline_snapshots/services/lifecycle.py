@@ -26,7 +26,14 @@ if TYPE_CHECKING:
 
 
 def current_snapshot_for(animal: Animal, profile: Profile) -> AnimalSnapshot | None:
-    return AnimalSnapshot.objects.filter(animal=animal, generated_for=profile, is_current=True).first()
+    # status=READY is defensive: _promote_to_current sets READY and is_current
+    # together, but the partial unique constraint alone does not enforce it.
+    return AnimalSnapshot.objects.filter(
+        animal=animal,
+        generated_for=profile,
+        status=SnapshotStatus.READY,
+        is_current=True,
+    ).first()
 
 
 def active_building_snapshot_for(animal: Animal, profile: Profile) -> AnimalSnapshot | None:
