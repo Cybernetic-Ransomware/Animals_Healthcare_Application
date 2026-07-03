@@ -26,6 +26,7 @@ urlpatterns = [
     path("", include("ahc.apps.homepage.urls")),
     path("user/", include("ahc.apps.users.urls")),
     path("pet/", include("ahc.apps.animals.urls")),
+    path("pet/<uuid:pk>/offline-snapshot/", include("ahc.apps.offline_snapshots.urls")),
     path("note/", include("ahc.apps.medical_notes.urls")),
     path(
         "favicon.ico",

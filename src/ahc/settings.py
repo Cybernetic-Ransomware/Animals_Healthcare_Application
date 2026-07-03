@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "ahc.apps.users.apps.UsersConfig",
     "ahc.apps.animals.apps.AnimalsConfig",
     "ahc.apps.medical_notes.apps.MedicalNotesConfig",
+    "ahc.apps.offline_snapshots.apps.OfflineSnapshotsConfig",
 ]
 
 MIDDLEWARE = [
@@ -210,6 +211,11 @@ STORAGES = {
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "static" / "media"
+
+# Private file storage — never mounted under any URL; files are served only
+# through permission-checked views (see offline_snapshots download view).
+PRIVATE_STORAGE_ROOT = Path(config("PRIVATE_STORAGE_ROOT", default=str(BASE_DIR / "private")))
+OFFLINE_SNAPSHOT_ROOT = PRIVATE_STORAGE_ROOT / "offline_snapshots"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
