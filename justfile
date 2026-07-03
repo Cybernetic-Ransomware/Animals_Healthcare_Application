@@ -44,6 +44,14 @@ migrate:
 shell:
     uv run python manage.py shell
 
+# Read-only offline snapshot health report (pass --strict for non-zero exit on problems)
+snapshots-check *ARGS:
+    uv run python manage.py check_animal_snapshots {{ ARGS }}
+
+# Prune superseded/stale snapshots and old download logs (accepts command flags)
+snapshots-prune *ARGS:
+    uv run python manage.py prune_animal_snapshots {{ ARGS }}
+
 # Start all Docker services (full stack, with rebuild)
 up:
     docker-compose --env-file .env -f docker/docker-compose.yml up -d --build

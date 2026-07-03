@@ -112,6 +112,140 @@ safely serve snapshots to the requesting user.
 Stage 2 still excludes: async rebuilds via Celery, Turso Cloud sync,
 post-save signal rebuilds, delta updates, and local writes.
 
+### Stage 3 — asynchronous builds via Celery (2026-07-03)
+
+Stage 3 moves the build off the request thread. `POST rebuild/` no longer
+blocks on file I/O: it answers `200` with the current READY artifact when the
+revision is fresh, or `202` with a BUILDING row whose file is produced by the
+`ahc.offline_snapshots.build_snapshot` Celery task.
+
+- **Request/build split** (`services/lifecycle.py`):
+  `request_snapshot_build` performs the permission check and revision
+  comparison, dedupes against an active BUILDING row for the pair
+  (`select_for_update` inside a transaction — repeated clicks reuse the same
+  build; `force` bypasses only the freshness check, never the dedupe), creates
+  the BUILDING row with a pre-generated `task_id`, and enqueues the task via
+  `transaction.on_commit` so the worker cannot race an uncommitted row.
+  `run_snapshot_build` executes one attempt: it re-reads data and permissions
+  at execution time (a share revoked after enqueue yields FAILED, not a stale
+  export), writes the file, and only then flips `is_current` — the stage 2
+  contract that a failed build never touches the previous downloadable
+  artifact is unchanged and covered by tests.
+- **Task** (`offline_snapshots/tasks.py`): a thin wrapper decorated with
+  `@celery_obj.task` imported from `celery_notifications.config`. A bare
+  `shared_task` would bind `.apply_async()` calls in the web process to
+  Celery's unconfigured default app (wrong broker); importing `celery_obj`
+  configures the app in both processes. No automatic retry: failure is
+  reported through the FAILED status and the user retriggers explicitly.
+- **Model additions**: `task_id`, `build_started_at`, `build_finished_at`
+  (migration 0003). `generated_at` keeps meaning "row created / build
+  requested".
+- **Manifest**: gains a constant `building_snapshot_id` field (`null` when
+  idle), so clients can poll during a force-rebuild while the previous READY
+  artifact stays advertised and downloadable. With no current READY artifact
+  the manifest reports the active BUILDING row, then the latest FAILED row,
+  then `missing`.
+- **UI widget** (`GET widget/` + `_snapshot_widget.html`): a small htmx
+  partial embedded in the animal Settings tab. While a build runs the widget
+  re-fetches itself every 3 s (`hx-trigger="load delay:3s"`,
+  `hx-swap="outerHTML"`); a render without an active build carries no trigger,
+  so polling stops by construction.
+- **Stuck builds**: a worker crash strands a BUILDING row that would dedupe
+  all future requests. `prune_animal_snapshots --stale-building-hours 6`
+  (default) marks such rows FAILED instead of deleting them, preserving the
+  error trail.
+- **Deployment**: the `queue` service now bind-mounts the repo like `web` —
+  the worker writes snapshot files that the web app must serve, so
+  `PRIVATE_STORAGE_ROOT` has to resolve to storage shared by both containers.
+
+Stage 3 still excludes: Turso Cloud sync, post-save signal rebuilds (every
+diet edit would mint a `.db` file), delta updates, local writes, task retries,
+and a partial unique constraint on BUILDING rows.
+
+### Stage 4 — stale snapshot awareness (2026-07-03)
+
+A READY artifact stays READY forever while the source data moves on. Stage 4
+makes that visible instead of pretending the cache is always current —
+detection only, no automatic rebuilds.
+
+- **Freshness is computed, never stored** (`snapshot_freshness_for` in
+  `services/lifecycle.py`): every manifest/widget read rebuilds the
+  profile-scoped export plan (`build_export_plan`, no file I/O) and compares
+  its `source_revision` against the current artifact's. No new model fields,
+  no migration, and no invalidation bookkeeping to get wrong.
+- **Manifest**: a READY payload gains `latest_source_revision`, `is_stale`,
+  and `can_rebuild` (`is_stale` and no build running). During a force rebuild
+  the stale READY artifact remains the payload subject and stays downloadable,
+  with `building_snapshot_id` pointing at the replacement build. The rebuild
+  endpoint now answers with the same manifest-shaped payload (`202` while a
+  build is active, `200` otherwise).
+- **Per-profile correctness**: because the plan is filtered through
+  `allowed_categories_for`, a diet-only carer's snapshot does not go stale
+  when a vaccination changes — their export genuinely did not change.
+- **Widget**: "Ready" splits into "Ready, up to date" / "Ready, but outdated"
+  with a one-line hint, and the button relabels to "Refresh offline snapshot"
+  when stale. No new panels or polling behaviour.
+- **Cost**: one full payload serialisation per manifest/widget read for a
+  single animal — accepted; the widget only polls while a build is running.
+
+Stage 4 still excludes: post-save signal rebuilds (freshness must be visible
+before deciding whether refresh should be automatic), Turso Cloud sync, delta
+updates, local writes, and scheduling `prune_animal_snapshots` via Celery Beat.
+
+### Stage 5 — operational hardening and compatibility contract (2026-07-03)
+
+Stage 5 adds the operational layer around the existing lifecycle and freezes
+the rules a future external reader (mobile app, CLI) can rely on. No API
+shape changes.
+
+**Schema compatibility contract.** `SCHEMA_VERSION` (`services/schema.py`) is
+bumped **only for breaking changes**: dropping or renaming a table or column,
+changing a column's type or semantics, changing the canonical payload form
+behind `source_revision`, or changing the meaning of a manifest field.
+Additive changes — new tables, new nullable or defaulted columns — do **not**
+bump it. Reader obligations, in exchange:
+
+- select columns by name, never by position;
+- tolerate unknown tables and columns;
+- tolerate the absence of optional columns (files written before stage 5
+  lack `exporter_version`);
+- refuse to open a file whose `schema_version` is greater than the highest
+  version the reader knows.
+
+The manifest gains `exporter_version` (the first additive change under this
+contract — `SCHEMA_VERSION` stays 1): provenance only, "which exporter code
+wrote this file", never consulted for compatibility decisions. It mirrors the
+project version in `pyproject.toml` and is kept in sync manually.
+
+**Ops.** Retention logic moves from the management command into
+`services/pruning.py`; `prune_animal_snapshots` remains as a thin CLI wrapper
+and the same pass runs daily at 03:30 UTC as the
+`ahc.offline_snapshots.prune_snapshots` Celery Beat task (closing the stage 4
+exclusion). Build start/finish/fail and access denials are logged under the
+`ahc.apps.offline_snapshots` logger (console-only — containers collect
+stdout); log lines carry ids only, never medical content.
+`check_animal_snapshots` is a read-only ops probe reporting status counts,
+stale BUILDING rows, current READY rows whose file is missing, and orphaned
+files; `--strict` makes it exit non-zero for cron/CI use.
+
+**Deployment.** `PRIVATE_STORAGE_ROOT` must live on a named volume
+(`private_storage`) mounted by both `web` and `queue` in **both** compose
+files. This supersedes the stage 2 remark that the dev bind mount "covers
+it" — the traefik compose previously mounted nothing at `/app/private`, so
+worker-built snapshots were invisible to the web container and vanished on
+recreate.
+
+**Download audit.** Snapshots carry medical data, so every download attempt
+is recorded in `SnapshotDownloadLog` (migration 0004): requesting profile,
+animal, outcome (`success` / `forbidden` / `not_found`) and, when resolvable,
+the artifact row. The snapshot FK is `SET_NULL` — the audit entry outlives
+the pruned artifact. `success` means the response was issued, not that the
+client received every byte. Retention rides the same prune pass
+(`--download-log-days`, default 90).
+
+Stage 5 still excludes: Turso Cloud sync, post-save signal rebuilds, delta
+updates, local writes, task retries, and manifest API restructuring.
+
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
   mobile companion can pull the file as-is; the snapshot doubles as a

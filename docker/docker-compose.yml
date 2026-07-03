@@ -10,6 +10,9 @@ services:
       - "8000:8000"
     volumes:
       - ..:/app
+      # Shadows the repo's private/ dir with the shared persistent volume so
+      # snapshots survive container recreation (see ADR-12, stage 5).
+      - private_storage:/app/private
     env_file:
       - ../.env
     environment:
@@ -84,6 +87,11 @@ services:
       context: ..
       dockerfile: docker/Dockerfile-app
     command: celery -A celery_notifications.config:celery_obj worker -l info
+    volumes:
+      - ..:/app
+      # Snapshot files under PRIVATE_STORAGE_ROOT must be visible to both the
+      # worker (writes) and the web app (serves) — same named volume as web.
+      - private_storage:/app/private
     env_file:
       - ../.env
     environment:
@@ -175,4 +183,10 @@ volumes:
     driver_opts:
       type: none
       device: ${DB_VOLUMEN_COUCH}
+      o: bind
+  private_storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${VOLUMEN_PRIVATE_STORAGE}
       o: bind

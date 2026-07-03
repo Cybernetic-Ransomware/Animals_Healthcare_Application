@@ -20,6 +20,12 @@
     </div>
 
     <br>
+    <h5>Offline snapshot</h5>
+    <div hx-get="{% url 'offline_snapshot_widget' pk=animal.id %}" hx-trigger="load" hx-swap="outerHTML">
+        <p><small>Loading snapshot status&hellip;</small></p>
+    </div>
+
+    <br>
     <details>
         <summary>Danger zone</summary>
         <br>

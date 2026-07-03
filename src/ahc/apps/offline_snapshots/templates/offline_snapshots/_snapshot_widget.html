@@ -1,0 +1,53 @@
+{# Self-contained snapshot widget: while a build is running the root element #}
+{# re-fetches itself every 3s; the next render without a build carries no #}
+{# hx-trigger, so polling stops on its own. #}
+<section id="offline-snapshot-widget"
+    {% if building %}
+        hx-get="{% url 'offline_snapshot_widget' pk=animal.id %}"
+        hx-trigger="load delay:3s"
+        hx-swap="outerHTML"
+    {% endif %}>
+
+    <p>
+        Status:
+        {% if building %}<strong>Building&hellip;</strong>
+        {% elif current and is_stale %}<strong>Ready, but outdated</strong>
+        {% elif current %}<strong>Ready, up to date</strong>
+        {% elif failed %}<strong>Failed</strong>
+        {% else %}<strong>Missing</strong>
+        {% endif %}
+    </p>
+
+    {% if current %}
+        <p><small>
+            Revision: <code>{{ current.source_revision|slice:":12" }}</code><br>
+            Generated at: {{ current.generated_at|date:"Y-m-d H:i" }}<br>
+            Size: {{ current.file_size_bytes|filesizeformat }}
+        </small></p>
+        {% if is_stale %}
+            <p><small>
+                {% if building %}This export is outdated; a newer one is being generated.
+                {% else %}This export is outdated. A newer export can be generated.
+                {% endif %}
+            </small></p>
+        {% endif %}
+    {% endif %}
+    {% if failed %}
+        <p><small>Last build failed: {{ failed.error_message }}</small></p>
+    {% endif %}
+
+    <div class="grid">
+        <button class="secondary outline"
+                hx-post="{% url 'offline_snapshot_rebuild' pk=animal.id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-vals='{"force": "1"}'
+                hx-target="#offline-snapshot-widget"
+                hx-swap="outerHTML"
+                {% if building %}disabled{% endif %}>
+            {% if is_stale %}Refresh offline snapshot{% else %}Generate offline snapshot{% endif %}
+        </button>
+        {% if download_url %}
+            <a role="button" class="secondary outline" href="{{ download_url }}">Download current snapshot</a>
+        {% endif %}
+    </div>
+</section>
