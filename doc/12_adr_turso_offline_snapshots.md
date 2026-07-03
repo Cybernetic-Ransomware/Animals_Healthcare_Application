@@ -192,6 +192,60 @@ Stage 4 still excludes: post-save signal rebuilds (freshness must be visible
 before deciding whether refresh should be automatic), Turso Cloud sync, delta
 updates, local writes, and scheduling `prune_animal_snapshots` via Celery Beat.
 
+### Stage 5 — operational hardening and compatibility contract (2026-07-03)
+
+Stage 5 adds the operational layer around the existing lifecycle and freezes
+the rules a future external reader (mobile app, CLI) can rely on. No API
+shape changes.
+
+**Schema compatibility contract.** `SCHEMA_VERSION` (`services/schema.py`) is
+bumped **only for breaking changes**: dropping or renaming a table or column,
+changing a column's type or semantics, changing the canonical payload form
+behind `source_revision`, or changing the meaning of a manifest field.
+Additive changes — new tables, new nullable or defaulted columns — do **not**
+bump it. Reader obligations, in exchange:
+
+- select columns by name, never by position;
+- tolerate unknown tables and columns;
+- tolerate the absence of optional columns (files written before stage 5
+  lack `exporter_version`);
+- refuse to open a file whose `schema_version` is greater than the highest
+  version the reader knows.
+
+The manifest gains `exporter_version` (the first additive change under this
+contract — `SCHEMA_VERSION` stays 1): provenance only, "which exporter code
+wrote this file", never consulted for compatibility decisions. It mirrors the
+project version in `pyproject.toml` and is kept in sync manually.
+
+**Ops.** Retention logic moves from the management command into
+`services/pruning.py`; `prune_animal_snapshots` remains as a thin CLI wrapper
+and the same pass runs daily at 03:30 UTC as the
+`ahc.offline_snapshots.prune_snapshots` Celery Beat task (closing the stage 4
+exclusion). Build start/finish/fail and access denials are logged under the
+`ahc.apps.offline_snapshots` logger (console-only — containers collect
+stdout); log lines carry ids only, never medical content.
+`check_animal_snapshots` is a read-only ops probe reporting status counts,
+stale BUILDING rows, current READY rows whose file is missing, and orphaned
+files; `--strict` makes it exit non-zero for cron/CI use.
+
+**Deployment.** `PRIVATE_STORAGE_ROOT` must live on a named volume
+(`private_storage`) mounted by both `web` and `queue` in **both** compose
+files. This supersedes the stage 2 remark that the dev bind mount "covers
+it" — the traefik compose previously mounted nothing at `/app/private`, so
+worker-built snapshots were invisible to the web container and vanished on
+recreate.
+
+**Download audit.** Snapshots carry medical data, so every download attempt
+is recorded in `SnapshotDownloadLog` (migration 0004): requesting profile,
+animal, outcome (`success` / `forbidden` / `not_found`) and, when resolvable,
+the artifact row. The snapshot FK is `SET_NULL` — the audit entry outlives
+the pruned artifact. `success` means the response was issued, not that the
+client received every byte. Retention rides the same prune pass
+(`--download-log-days`, default 90).
+
+Stage 5 still excludes: Turso Cloud sync, post-save signal rebuilds, delta
+updates, local writes, task retries, and manifest API restructuring.
+
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
   mobile companion can pull the file as-is; the snapshot doubles as a

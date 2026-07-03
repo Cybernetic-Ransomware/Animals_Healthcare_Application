@@ -53,6 +53,10 @@ celery_obj.conf.beat_schedule = {
         "task": "ahc.beat.clean_orphaned_profile_images",
         "schedule": crontab(hour=3, minute=0),
     },
+    "prune-animal-snapshots-daily": {
+        "task": "ahc.offline_snapshots.prune_snapshots",
+        "schedule": crontab(hour=3, minute=30),
+    },
 }
 
 

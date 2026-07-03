@@ -5,9 +5,12 @@ this proves the artifact produced via the Turso driver is a standard,
 portable SQLite database.
 """
 
+import logging
 import sqlite3
+import uuid
 from datetime import date, timedelta
 from decimal import Decimal
+from io import StringIO
 from pathlib import Path
 
 import pytest
@@ -23,7 +26,7 @@ from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord, BiometricWeightRecords
 from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
 from ahc.apps.offline_snapshots import tasks as snapshot_tasks
-from ahc.apps.offline_snapshots.models import AnimalSnapshot, SnapshotStatus
+from ahc.apps.offline_snapshots.models import AnimalSnapshot, DownloadOutcome, SnapshotDownloadLog, SnapshotStatus
 from ahc.apps.offline_snapshots.services import lifecycle
 from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
 from ahc.apps.offline_snapshots.services.lifecycle import (
@@ -31,8 +34,10 @@ from ahc.apps.offline_snapshots.services.lifecycle import (
     request_snapshot_build,
     run_snapshot_build,
 )
-from ahc.apps.offline_snapshots.services.schema import SCHEMA_VERSION
+from ahc.apps.offline_snapshots.services.pruning import prune_snapshots
+from ahc.apps.offline_snapshots.services.schema import EXPORTER_VERSION, SCHEMA_VERSION
 from ahc.apps.offline_snapshots.services.storage import snapshot_path
+from celery_notifications.config import celery_obj
 
 
 def _query(db_path, sql, params=()):
@@ -989,3 +994,239 @@ class TestPruneStaleBuilding:
         assert stale.build_finished_at is not None
         fresh.refresh_from_db()
         assert fresh.status == SnapshotStatus.BUILDING
+
+
+@pytest.fixture
+def snapshot_logs(caplog):
+    """Capture app logs despite propagate=False on the ahc.apps.offline_snapshots logger."""
+    app_logger = logging.getLogger("ahc.apps.offline_snapshots")
+    old_propagate = app_logger.propagate
+    app_logger.propagate = True
+    caplog.set_level(logging.INFO, logger="ahc.apps.offline_snapshots")
+    yield caplog
+    app_logger.propagate = old_propagate
+
+
+@pytest.mark.integration
+class TestPruningService:
+    def test_service_keeps_current_and_recent_superseded(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        artifacts = [get_or_create_snapshot(animal, profile, force=True) for _ in range(4)]
+
+        result = prune_snapshots(keep=3)
+
+        assert result.deleted_snapshots == 1
+        remaining = set(AnimalSnapshot.objects.values_list("id", flat=True))
+        assert remaining == {a.id for a in artifacts[1:]}
+        assert not snapshot_path(artifacts[0].storage_key).exists()
+
+    def test_service_rejects_invalid_arguments(self):
+        with pytest.raises(ValueError, match="keep"):
+            prune_snapshots(keep=0)
+        with pytest.raises(ValueError, match="download_log_days"):
+            prune_snapshots(download_log_days=-1)
+
+    def test_command_maps_invalid_arguments_to_command_error(self, db):
+        with pytest.raises(CommandError, match="keep"):
+            call_command("prune_animal_snapshots", "--keep", "0")
+
+
+@pytest.mark.unit
+class TestPruneTaskRegistration:
+    def test_prune_task_is_in_beat_schedule(self):
+        entry = celery_obj.conf.beat_schedule["prune-animal-snapshots-daily"]
+
+        assert entry["task"] == "ahc.offline_snapshots.prune_snapshots"
+        assert entry["task"] in celery_obj.tasks
+
+    def test_prune_task_calls_service_with_defaults(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr(snapshot_tasks, "prune_snapshots", lambda: calls.append(True))
+
+        snapshot_tasks.prune_snapshots_task.run()
+
+        assert calls == [True]
+
+
+@pytest.mark.integration
+class TestBuildLogging:
+    def test_successful_build_logs_started_and_finished(self, snapshot_animal, snapshot_dir, snapshot_logs):
+        animal, profile = snapshot_animal
+        building = request_snapshot_build(animal, profile)
+
+        run_snapshot_build(str(building.id))
+
+        messages = [record.getMessage() for record in snapshot_logs.records]
+        assert any(f"Snapshot build enqueued: snapshot={building.id}" in message for message in messages)
+        assert any(f"Snapshot build started: snapshot={building.id}" in message for message in messages)
+        assert any(f"Snapshot build finished: snapshot={building.id}" in message for message in messages)
+
+    def test_failed_build_logs_exception_with_traceback(self, snapshot_animal, snapshot_dir, snapshot_logs, monkeypatch):
+        animal, profile = snapshot_animal
+        building = request_snapshot_build(animal, profile)
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(lifecycle, "write_snapshot_file", _boom)
+        run_snapshot_build(str(building.id))
+
+        errors = [record for record in snapshot_logs.records if record.levelno == logging.ERROR]
+        assert len(errors) == 1
+        assert f"snapshot={building.id}" in errors[0].getMessage()
+        assert errors[0].exc_info is not None
+
+
+@pytest.mark.integration
+class TestCheckAnimalSnapshotsCommand:
+    def test_healthy_state_reports_no_problems(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        get_or_create_snapshot(animal, profile)
+        out = StringIO()
+
+        call_command("check_animal_snapshots", stdout=out)
+
+        output = out.getvalue()
+        assert "Ready: 1" in output
+        assert "No problems found." in output
+
+    def test_reports_broken_current_and_orphans(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+        snapshot_path(snapshot.storage_key).unlink()
+        (snapshot_dir / "orphan.db").write_bytes(b"stray")
+        out = StringIO()
+
+        call_command("check_animal_snapshots", stdout=out)
+
+        output = out.getvalue()
+        assert f"Current READY row without file: {snapshot.id}" in output
+        assert "Orphaned file (no DB row): orphan.db" in output
+        assert "Found 2 problem(s)." in output
+
+    def test_strict_exits_nonzero_on_problems(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+        snapshot_path(snapshot.storage_key).unlink()
+
+        with pytest.raises(CommandError, match="1 problem"):
+            call_command("check_animal_snapshots", "--strict")
+
+    def test_stale_building_is_reported_not_mutated(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        stale = request_snapshot_build(animal, profile)
+        AnimalSnapshot.objects.filter(id=stale.id).update(generated_at=timezone.now() - timedelta(hours=7))
+        out = StringIO()
+
+        call_command("check_animal_snapshots", stdout=out)
+
+        assert f"Stale BUILDING: {stale.id}" in out.getvalue()
+        stale.refresh_from_db()
+        assert stale.status == SnapshotStatus.BUILDING
+
+
+@pytest.mark.integration
+class TestSchemaVersioning:
+    def test_model_row_and_manifest_carry_same_schema_version(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+
+        (manifest,) = _query(snapshot_path(snapshot.storage_key), "SELECT * FROM snapshot_manifest")
+
+        assert manifest["schema_version"] == snapshot.schema_version == SCHEMA_VERSION
+
+    def test_manifest_carries_exporter_version(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+
+        (manifest,) = _query(snapshot_path(snapshot.storage_key), "SELECT exporter_version FROM snapshot_manifest")
+
+        assert manifest["exporter_version"] == EXPORTER_VERSION
+
+
+@pytest.mark.unit
+def test_schema_version_bump_is_deliberate():
+    # Bumping SCHEMA_VERSION is a breaking change for every snapshot reader.
+    # Re-read the compatibility contract in ADR-12 (stage 5) before touching
+    # this assertion: additive changes must NOT bump the version.
+    assert SCHEMA_VERSION == 1
+
+
+@pytest.mark.integration
+class TestDownloadAuditTrail:
+    def test_successful_download_is_recorded(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+        client.force_login(profile.user)
+
+        response = client.get(_download_url(animal, snapshot.id))
+
+        assert response.status_code == 200
+        log = SnapshotDownloadLog.objects.get()
+        assert log.outcome == DownloadOutcome.SUCCESS
+        assert log.animal == animal
+        assert log.profile == profile
+        assert log.snapshot == snapshot
+
+    def test_forbidden_download_is_recorded_without_snapshot(
+        self, snapshot_animal, second_user_profile, snapshot_dir, client
+    ):
+        animal, owner = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, owner)
+        stranger_user, stranger = second_user_profile
+        client.force_login(stranger_user)
+
+        response = client.get(_download_url(animal, snapshot.id))
+
+        assert response.status_code == 403
+        log = SnapshotDownloadLog.objects.get()
+        assert log.outcome == DownloadOutcome.FORBIDDEN
+        assert log.profile == stranger
+        assert log.snapshot is None
+
+    def test_unknown_snapshot_id_is_recorded_as_not_found(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+
+        response = client.get(_download_url(animal, uuid.uuid4()))
+
+        assert response.status_code == 404
+        log = SnapshotDownloadLog.objects.get()
+        assert log.outcome == DownloadOutcome.NOT_FOUND
+        assert log.snapshot is None
+
+    def test_missing_file_is_recorded_with_snapshot_row(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+        snapshot_path(snapshot.storage_key).unlink()
+        client.force_login(profile.user)
+
+        response = client.get(_download_url(animal, snapshot.id))
+
+        assert response.status_code == 404
+        log = SnapshotDownloadLog.objects.get()
+        assert log.outcome == DownloadOutcome.NOT_FOUND
+        assert log.snapshot == snapshot
+
+    def test_audit_row_outlives_deleted_snapshot(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+        client.force_login(profile.user)
+        client.get(_download_url(animal, snapshot.id))
+
+        snapshot.delete()
+
+        log = SnapshotDownloadLog.objects.get()
+        assert log.outcome == DownloadOutcome.SUCCESS
+        assert log.snapshot is None
+
+    def test_prune_trims_old_download_logs(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        old = SnapshotDownloadLog.objects.create(animal=animal, profile=profile, outcome=DownloadOutcome.SUCCESS)
+        SnapshotDownloadLog.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=91))
+        recent = SnapshotDownloadLog.objects.create(animal=animal, profile=profile, outcome=DownloadOutcome.SUCCESS)
+
+        result = prune_snapshots(download_log_days=90)
+
+        assert result.deleted_download_logs == 1
+        assert set(SnapshotDownloadLog.objects.values_list("pk", flat=True)) == {recent.pk}

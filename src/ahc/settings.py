@@ -238,6 +238,33 @@ DISCORD_TOKEN = config("DISCORD_TOKEN")
 
 TEST_RUNNER = "django.test.runner.DiscoverRunner"
 
+# Console-only logging: containers run with PYTHONUNBUFFERED=1 and collect
+# stdout. disable_existing_loggers must stay False — the Celery cron logger
+# configures itself separately via celery_notifications/logger_config.json.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "{asctime} {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
+        "ahc.apps.offline_snapshots": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
 from django.utils.csp import CSP  # noqa: E402
 
 SECURE_CSP = {

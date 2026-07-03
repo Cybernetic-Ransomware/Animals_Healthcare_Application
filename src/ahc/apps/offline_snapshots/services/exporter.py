@@ -29,7 +29,7 @@ from ahc.apps.animals.selectors import allowed_categories_for, user_can_view_ani
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
 from ahc.apps.medical_notes.selectors import feeding_notes_for, other_history_for, timeline_for, vaccination_notes_for
-from ahc.apps.offline_snapshots.services.schema import SCHEMA_VERSION, create_schema
+from ahc.apps.offline_snapshots.services.schema import EXPORTER_VERSION, SCHEMA_VERSION, create_schema
 
 if TYPE_CHECKING:
     from ahc.apps.users.models import Profile
@@ -252,9 +252,9 @@ def _source_revision(payload: dict[str, list[tuple]]) -> str:
 
 def _insert_manifest(conn: turso.Connection, animal: Animal, profile: Profile, revision: str) -> None:
     conn.execute(
-        "INSERT INTO snapshot_manifest (id, animal_id, schema_version, source_revision, generated_at, generated_by,"
-        " is_read_only) VALUES (1, ?, ?, ?, ?, ?, 1)",
-        (str(animal.id), SCHEMA_VERSION, revision, _iso(timezone.now()), profile.user.username),
+        "INSERT INTO snapshot_manifest (id, animal_id, schema_version, exporter_version, source_revision, generated_at,"
+        " generated_by, is_read_only) VALUES (1, ?, ?, ?, ?, ?, ?, 1)",
+        (str(animal.id), SCHEMA_VERSION, EXPORTER_VERSION, revision, _iso(timezone.now()), profile.user.username),
     )
 
 

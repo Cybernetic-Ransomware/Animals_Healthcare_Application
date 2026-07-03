@@ -10,7 +10,15 @@ to a generated snapshot), not a filesystem guarantee — the file itself stays
 writable.
 """
 
+# Bumped only for breaking changes; additive changes (new tables, new
+# nullable/defaulted columns) keep the version. See the compatibility
+# contract in ADR-12, stage 5.
 SCHEMA_VERSION = 1
+
+# Provenance only ("which exporter code wrote this file") — never consulted
+# for compatibility decisions. Kept in sync with pyproject.toml manually.
+# Absent (NULL column) in files written before ADR-12 stage 5.
+EXPORTER_VERSION = "0.1.0"
 
 TABLES = (
     """
@@ -18,6 +26,7 @@ TABLES = (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         animal_id TEXT NOT NULL,
         schema_version INTEGER NOT NULL,
+        exporter_version TEXT,
         source_revision TEXT NOT NULL,
         generated_at TEXT NOT NULL,
         generated_by TEXT,

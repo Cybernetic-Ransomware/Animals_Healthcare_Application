@@ -22,6 +22,9 @@ services:
         condition: service_healthy
     volumes:
       - ../static/media:/app/static/media
+      # Shared with queue: the worker writes snapshot files, the web app
+      # serves them; without this mount they never leave the worker container.
+      - private_storage:/app/private
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -84,6 +87,8 @@ services:
   queue:
     image: ahc-app:latest
     command: celery -A celery_notifications.config:celery_obj worker -l info
+    volumes:
+      - private_storage:/app/private
     env_file:
       - ../.env
     environment:
@@ -178,4 +183,10 @@ volumes:
     driver_opts:
       type: none
       device: ${DB_VOLUMEN_COUCH}
+      o: bind
+  private_storage:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${VOLUMEN_PRIVATE_STORAGE}
       o: bind

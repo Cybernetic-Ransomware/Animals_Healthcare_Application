@@ -10,6 +10,7 @@ compared against the live profile-scoped payload revision on every read.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -21,7 +22,7 @@ from django.views import View
 
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import user_can_view_animal
-from ahc.apps.offline_snapshots.models import AnimalSnapshot, SnapshotStatus
+from ahc.apps.offline_snapshots.models import AnimalSnapshot, DownloadOutcome, SnapshotDownloadLog, SnapshotStatus
 from ahc.apps.offline_snapshots.services.lifecycle import (
     active_building_snapshot_for,
     current_snapshot_for,
@@ -34,9 +35,18 @@ if TYPE_CHECKING:
     from ahc.apps.users.models import Profile
     from ahc.types import AuthenticatedRequest
 
+logger = logging.getLogger(__name__)
 
-def _forbidden() -> JsonResponse:
+
+def _forbidden(view: str, animal: Animal, profile: Profile) -> JsonResponse:
+    logger.warning("Snapshot access forbidden: view=%s animal=%s profile=%s", view, animal.id, profile.pk)
     return JsonResponse({"status": "forbidden"}, status=403)
+
+
+def _log_download(animal: Animal, profile: Profile, snapshot: AnimalSnapshot | None, outcome: str) -> None:
+    # Deliberately not wrapped in try/except: a failing audit insert should
+    # fail the request loudly rather than skip the record silently.
+    SnapshotDownloadLog.objects.create(animal=animal, profile=profile, snapshot=snapshot, outcome=outcome)
 
 
 def _missing(animal: Animal) -> JsonResponse:
@@ -127,7 +137,7 @@ class SnapshotManifestView(LoginRequiredMixin, View):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         profile = request.user.profile
         if not user_can_view_animal(profile, animal):
-            return _forbidden()
+            return _forbidden("manifest", animal, profile)
         payload = _manifest_payload(animal, profile, *_snapshot_state(animal, profile))
         if payload is None:
             return _missing(animal)
@@ -144,7 +154,7 @@ class SnapshotRebuildView(LoginRequiredMixin, View):
         try:
             request_snapshot_build(animal, profile, force=force)
         except PermissionDenied:
-            return _forbidden()
+            return _forbidden("rebuild", animal, profile)
         if request.headers.get("HX-Request"):
             return _render_widget(request, animal, profile)
         # Manifest-shaped response: during a force rebuild the READY current
@@ -164,7 +174,7 @@ class SnapshotWidgetView(LoginRequiredMixin, View):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         profile = request.user.profile
         if not user_can_view_animal(profile, animal):
-            return _forbidden()
+            return _forbidden("widget", animal, profile)
         return _render_widget(request, animal, profile)
 
 
@@ -175,17 +185,28 @@ class SnapshotDownloadView(LoginRequiredMixin, View):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         profile = request.user.profile
         if not user_can_view_animal(profile, animal):
-            return _forbidden()
+            _log_download(animal, profile, None, DownloadOutcome.FORBIDDEN)
+            return _forbidden("download", animal, profile)
         # Filtering by generated_for makes another profile's artifact (e.g. the
         # owner's full snapshot requested by a carer) unaddressable by design.
         snapshot = AnimalSnapshot.objects.filter(
             id=self.kwargs["snapshot_id"], animal=animal, generated_for=profile
         ).first()
         if snapshot is None or snapshot.status != SnapshotStatus.READY:
+            _log_download(animal, profile, snapshot, DownloadOutcome.NOT_FOUND)
+            logger.warning("Snapshot download not found: animal=%s profile=%s", animal.id, profile.pk)
             raise Http404
         path = snapshot_path(snapshot.storage_key)
         if not path.exists():
+            # The snapshot FK pins the row whose file vanished — distinguishes
+            # a lost artifact from a request for a nonexistent snapshot id.
+            _log_download(animal, profile, snapshot, DownloadOutcome.NOT_FOUND)
+            logger.warning("Snapshot file missing on download: snapshot=%s animal=%s", snapshot.id, animal.id)
             raise Http404
+        # SUCCESS means the response was issued; FileResponse streams after the
+        # view returns, so client-side completion is not guaranteed.
+        _log_download(animal, profile, snapshot, DownloadOutcome.SUCCESS)
+        logger.info("Snapshot downloaded: snapshot=%s animal=%s profile=%s", snapshot.id, animal.id, profile.pk)
         return FileResponse(
             path.open("rb"),
             as_attachment=True,

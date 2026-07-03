@@ -58,3 +58,36 @@ class AnimalSnapshot(models.Model):
 
     def __str__(self):
         return f"Snapshot {self.id} ({self.status}) of {self.animal_id} for {self.generated_for_id}"  # type: ignore
+
+
+class DownloadOutcome(models.TextChoices):
+    SUCCESS = "success", "Success"
+    FORBIDDEN = "forbidden", "Forbidden"
+    NOT_FOUND = "not_found", "Not found"
+
+
+class SnapshotDownloadLog(models.Model):
+    """Append-only audit row for one snapshot download attempt (ADR-12, stage 5).
+
+    Denied attempts (403/404) are recorded too — snapshots carry medical data,
+    so who tried to fetch what matters as much as who succeeded. The snapshot
+    FK is SET_NULL: pruning deletes artifact rows after a few days and the
+    audit entry must outlive them; a 404 attempt never had a row to begin with.
+    """
+
+    animal = models.ForeignKey(Animal, on_delete=models.CASCADE, related_name="snapshot_download_logs")
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="snapshot_download_logs")
+    snapshot = models.ForeignKey(
+        AnimalSnapshot, on_delete=models.SET_NULL, default=None, blank=True, null=True, related_name="download_logs"
+    )
+    outcome = models.CharField(max_length=10, choices=DownloadOutcome.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["animal", "-created_at"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return f"Download {self.outcome} of {self.animal_id} by {self.profile_id} at {self.created_at}"  # type: ignore

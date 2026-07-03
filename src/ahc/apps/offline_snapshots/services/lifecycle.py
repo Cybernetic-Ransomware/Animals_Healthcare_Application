@@ -9,6 +9,7 @@ build to the Celery task, which calls run_snapshot_build.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import TYPE_CHECKING
 
@@ -23,6 +24,8 @@ from ahc.apps.offline_snapshots.services.storage import build_snapshot_storage_k
 if TYPE_CHECKING:
     from ahc.apps.animals.models import Animal
     from ahc.apps.users.models import Profile
+
+logger = logging.getLogger(__name__)
 
 
 def current_snapshot_for(animal: Animal, profile: Profile) -> AnimalSnapshot | None:
@@ -93,6 +96,19 @@ def _promote_to_current(snapshot: AnimalSnapshot, plan: ExportPlan) -> None:
         snapshot.is_current = True
         snapshot.build_finished_at = timezone.now()
         snapshot.save()
+    duration = (
+        (snapshot.build_finished_at - snapshot.build_started_at).total_seconds()
+        if snapshot.build_started_at is not None
+        else None
+    )
+    logger.info(
+        "Snapshot build finished: snapshot=%s animal=%s profile=%s size=%s duration_s=%s",
+        snapshot.id,
+        snapshot.animal_id,  # type: ignore
+        snapshot.generated_for_id,  # type: ignore
+        snapshot.file_size_bytes,
+        f"{duration:.1f}" if duration is not None else "unknown",
+    )
 
 
 def get_or_create_snapshot(animal: Animal, profile: Profile, force: bool = False) -> AnimalSnapshot:
@@ -120,6 +136,7 @@ def get_or_create_snapshot(animal: Animal, profile: Profile, force: bool = False
     try:
         write_snapshot_file(animal, profile, plan, snapshot_path(snapshot.storage_key))
     except Exception as exc:
+        logger.exception("Snapshot build failed: snapshot=%s animal=%s profile=%s", snapshot.id, animal.id, profile.pk)
         _mark_failed(snapshot, exc)
         return snapshot
 
@@ -154,11 +171,21 @@ def request_snapshot_build(animal: Animal, profile: Profile, force: bool = False
             .first()
         )
         if building is not None:
+            logger.info(
+                "Snapshot build request deduplicated onto active build: snapshot=%s animal=%s profile=%s",
+                building.id,
+                animal.id,
+                profile.pk,
+            )
             return building
 
         snapshot = _new_building_snapshot(animal, profile, plan)
         snapshot.task_id = str(uuid.uuid4())
         snapshot.save()
+
+    logger.info(
+        "Snapshot build enqueued: snapshot=%s animal=%s profile=%s force=%s", snapshot.id, animal.id, profile.pk, force
+    )
 
     from ahc.apps.offline_snapshots.tasks import build_snapshot_task  # local import: tasks.py imports this module
 
@@ -184,11 +211,23 @@ def run_snapshot_build(snapshot_id: str) -> None:
 
     snapshot.build_started_at = timezone.now()
     snapshot.save(update_fields=["build_started_at"])
+    logger.info(
+        "Snapshot build started: snapshot=%s animal=%s profile=%s",
+        snapshot.id,
+        snapshot.animal_id,  # type: ignore
+        snapshot.generated_for_id,  # type: ignore
+    )
 
     try:
         plan = build_export_plan(snapshot.animal, snapshot.generated_for)
         write_snapshot_file(snapshot.animal, snapshot.generated_for, plan, snapshot_path(snapshot.storage_key))
     except Exception as exc:
+        logger.exception(
+            "Snapshot build failed: snapshot=%s animal=%s profile=%s",
+            snapshot.id,
+            snapshot.animal_id,  # type: ignore
+            snapshot.generated_for_id,  # type: ignore
+        )
         _mark_failed(snapshot, exc)
         return
 
