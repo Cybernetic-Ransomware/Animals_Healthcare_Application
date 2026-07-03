@@ -8,19 +8,26 @@ portable SQLite database.
 import sqlite3
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
+from django.conf import settings as django_settings
 from django.core.exceptions import PermissionDenied
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils import timezone
 
-from ahc.apps.animals.models import Animal, AnimalShare
+from ahc.apps.animals.models import Animal, AnimalShare, ShareCategory
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
 from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord, BiometricWeightRecords
 from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
+from ahc.apps.offline_snapshots.models import AnimalSnapshot, SnapshotStatus
+from ahc.apps.offline_snapshots.services import lifecycle
 from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
+from ahc.apps.offline_snapshots.services.lifecycle import get_or_create_snapshot
 from ahc.apps.offline_snapshots.services.schema import SCHEMA_VERSION
+from ahc.apps.offline_snapshots.services.storage import snapshot_path
 
 
 def _query(db_path, sql, params=()):
@@ -318,3 +325,265 @@ class TestExportCommand:
             call_command(
                 "export_animal_snapshot", str(animal.id), "--username", user.username, "--output-dir", str(tmp_path)
             )
+
+
+@pytest.fixture
+def snapshot_dir(tmp_path, settings):
+    """Point the private snapshot storage at a per-test directory."""
+    settings.OFFLINE_SNAPSHOT_ROOT = tmp_path
+    return tmp_path
+
+
+def _saved_response_db(response, tmp_path):
+    """Write a streamed download response to disk so it can be queried with sqlite3."""
+    target = tmp_path / "downloaded.db"
+    target.write_bytes(b"".join(response.streaming_content))
+    return target
+
+
+@pytest.mark.unit
+class TestSnapshotStorage:
+    def test_traversal_key_is_rejected(self):
+        with pytest.raises(ValueError, match="Invalid snapshot storage key"):
+            snapshot_path("../../etc/passwd")
+
+    def test_snapshot_root_is_not_under_media_root(self):
+        snapshot_root = Path(django_settings.OFFLINE_SNAPSHOT_ROOT).resolve()
+        media_root = Path(django_settings.MEDIA_ROOT).resolve()
+        assert not snapshot_root.is_relative_to(media_root)
+
+
+@pytest.mark.integration
+class TestSnapshotLifecycle:
+    def test_owner_build_creates_ready_current_snapshot(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+
+        snapshot = get_or_create_snapshot(animal, profile)
+
+        assert snapshot.status == SnapshotStatus.READY
+        assert snapshot.is_current is True
+        assert snapshot.schema_version == SCHEMA_VERSION
+        assert len(snapshot.source_revision) == 64
+        assert snapshot.file_size_bytes > 0
+        assert snapshot.allowed_categories_json == sorted(c.value for c in ShareCategory)
+        assert (snapshot_dir / f"{snapshot.id}.db").exists()
+
+    def test_diet_carer_gets_own_filtered_snapshot(self, snapshot_animal, second_user_profile, snapshot_dir, tmp_path):
+        animal, owner = snapshot_animal
+        _, carer = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer, allow_diet=True)
+
+        owner_snapshot = get_or_create_snapshot(animal, owner)
+        carer_snapshot = get_or_create_snapshot(animal, carer)
+
+        assert carer_snapshot.id != owner_snapshot.id
+        assert carer_snapshot.storage_key != owner_snapshot.storage_key
+        assert carer_snapshot.allowed_categories_json == [ShareCategory.DIET.value]
+        records = _query(snapshot_path(carer_snapshot.storage_key), "SELECT type_of_event FROM medical_record_snapshot")
+        assert {r["type_of_event"] for r in records} == {"diet_note"}
+
+    def test_stranger_is_denied_and_nothing_created(self, snapshot_animal, second_user_profile, snapshot_dir):
+        animal, _ = snapshot_animal
+        _, stranger = second_user_profile
+
+        with pytest.raises(PermissionDenied):
+            get_or_create_snapshot(animal, stranger)
+        assert AnimalSnapshot.objects.count() == 0
+        assert list(snapshot_dir.iterdir()) == []
+
+    def test_unchanged_data_returns_same_artifact(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        first = get_or_create_snapshot(animal, profile)
+
+        second = get_or_create_snapshot(animal, profile)
+
+        assert second.id == first.id
+        assert second.generated_at == first.generated_at
+        assert AnimalSnapshot.objects.count() == 1
+
+    def test_changed_data_creates_new_current_artifact(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        first = get_or_create_snapshot(animal, profile)
+
+        animal.dietary_restrictions = "grain only, actually"
+        animal.save()
+        second = get_or_create_snapshot(animal, profile)
+
+        assert second.id != first.id
+        assert second.source_revision != first.source_revision
+        assert second.is_current is True
+        first.refresh_from_db()
+        assert first.is_current is False
+        assert first.superseded_at is not None
+        assert snapshot_path(first.storage_key).exists()
+
+    def test_force_creates_new_artifact_for_identical_data(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        first = get_or_create_snapshot(animal, profile)
+
+        second = get_or_create_snapshot(animal, profile, force=True)
+
+        assert second.id != first.id
+        assert second.source_revision == first.source_revision
+        assert second.is_current is True
+
+    def test_failed_build_keeps_previous_artifact(self, snapshot_animal, snapshot_dir, monkeypatch):
+        animal, profile = snapshot_animal
+        first = get_or_create_snapshot(animal, profile)
+        animal.dietary_restrictions = "grain only, actually"
+        animal.save()
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(lifecycle, "write_snapshot_file", _boom)
+        failed = get_or_create_snapshot(animal, profile)
+
+        assert failed.status == SnapshotStatus.FAILED
+        assert failed.error_message == "boom"
+        assert failed.is_current is False
+        first.refresh_from_db()
+        assert first.is_current is True
+        assert snapshot_path(first.storage_key).exists()
+
+
+@pytest.mark.integration
+class TestSnapshotEndpoints:
+    @staticmethod
+    def _manifest_url(animal):
+        return f"/pet/{animal.id}/offline-snapshot/"
+
+    @staticmethod
+    def _rebuild_url(animal):
+        return f"/pet/{animal.id}/offline-snapshot/rebuild/"
+
+    @staticmethod
+    def _download_url(animal, snapshot_id):
+        return f"/pet/{animal.id}/offline-snapshot/{snapshot_id}/download/"
+
+    def test_manifest_missing_reports_can_generate(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+
+        response = client.get(self._manifest_url(animal))
+
+        assert response.status_code == 200
+        assert response.json() == {"animal_id": str(animal.id), "status": "missing", "can_generate": True}
+
+    def test_rebuild_then_manifest_round_trip(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+
+        rebuild = client.post(self._rebuild_url(animal)).json()
+        manifest = client.get(self._manifest_url(animal)).json()
+
+        assert rebuild["status"] == "ready"
+        assert manifest["status"] == "ready"
+        assert manifest["snapshot_id"] == rebuild["snapshot_id"]
+        assert manifest["source_revision"] == rebuild["source_revision"]
+        assert manifest["schema_version"] == SCHEMA_VERSION
+        assert manifest["file_size_bytes"] > 0
+        assert manifest["download_url"] == rebuild["download_url"]
+        assert rebuild["download_url"] == self._download_url(animal, rebuild["snapshot_id"])
+
+    def test_stranger_gets_403_on_all_endpoints(self, snapshot_animal, second_user_profile, snapshot_dir, client):
+        animal, owner = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, owner)
+        stranger_user, _ = second_user_profile
+        client.force_login(stranger_user)
+
+        assert client.get(self._manifest_url(animal)).status_code == 403
+        assert client.post(self._rebuild_url(animal)).status_code == 403
+        assert client.get(self._download_url(animal, snapshot.id)).status_code == 403
+
+    def test_carer_downloads_own_filtered_file(self, snapshot_animal, second_user_profile, snapshot_dir, client, tmp_path):
+        animal, _ = snapshot_animal
+        carer_user, carer = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer, allow_diet=True)
+        snapshot = get_or_create_snapshot(animal, carer)
+        client.force_login(carer_user)
+
+        response = client.get(self._download_url(animal, snapshot.id))
+
+        assert response.status_code == 200
+        downloaded = _saved_response_db(response, tmp_path)
+        (manifest,) = _query(downloaded, "SELECT source_revision FROM snapshot_manifest")
+        assert manifest["source_revision"] == snapshot.source_revision
+        records = _query(downloaded, "SELECT type_of_event FROM medical_record_snapshot")
+        assert {r["type_of_event"] for r in records} == {"diet_note"}
+
+    def test_carer_cannot_download_owners_snapshot(self, snapshot_animal, second_user_profile, snapshot_dir, client):
+        animal, owner = snapshot_animal
+        owner_snapshot = get_or_create_snapshot(animal, owner)
+        carer_user, carer = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer, allow_diet=True)
+        client.force_login(carer_user)
+
+        response = client.get(self._download_url(animal, owner_snapshot.id))
+
+        assert response.status_code == 404
+
+    def test_download_headers(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+        client.force_login(profile.user)
+
+        response = client.get(self._download_url(animal, snapshot.id))
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/vnd.sqlite3"
+        assert "attachment" in response["Content-Disposition"]
+        assert f"animal_{animal.id}_snapshot.db" in response["Content-Disposition"]
+
+    def test_manifest_reflects_new_revision_after_change(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+        first = client.post(self._rebuild_url(animal)).json()
+
+        animal.dietary_restrictions = "grain only, actually"
+        animal.save()
+        second = client.post(self._rebuild_url(animal)).json()
+        manifest = client.get(self._manifest_url(animal)).json()
+
+        assert second["source_revision"] != first["source_revision"]
+        assert manifest["source_revision"] == second["source_revision"]
+        assert manifest["download_url"] == second["download_url"]
+
+    def test_anonymous_is_redirected_to_login(self, snapshot_animal, snapshot_dir, client):
+        animal, _ = snapshot_animal
+
+        response = client.get(self._manifest_url(animal))
+
+        assert response.status_code == 302
+        assert "login" in response["Location"]
+
+
+@pytest.mark.integration
+class TestPruneCommand:
+    def test_prune_keeps_current_and_recent_superseded(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        artifacts = [get_or_create_snapshot(animal, profile, force=True) for _ in range(4)]
+        oldest = artifacts[0]
+
+        call_command("prune_animal_snapshots", "--keep", "3")
+
+        remaining = set(AnimalSnapshot.objects.values_list("id", flat=True))
+        assert remaining == {a.id for a in artifacts[1:]}
+        assert not snapshot_path(oldest.storage_key).exists()
+        assert all(snapshot_path(a.storage_key).exists() for a in artifacts[1:])
+
+    def test_prune_deletes_old_failed_rows(self, snapshot_animal, snapshot_dir, monkeypatch):
+        animal, profile = snapshot_animal
+        current = get_or_create_snapshot(animal, profile)
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(lifecycle, "write_snapshot_file", _boom)
+        failed = get_or_create_snapshot(animal, profile, force=True)
+        AnimalSnapshot.objects.filter(id=failed.id).update(generated_at=timezone.now() - timedelta(days=8))
+
+        call_command("prune_animal_snapshots", "--failed-days", "7")
+
+        remaining = set(AnimalSnapshot.objects.values_list("id", flat=True))
+        assert remaining == {current.id}

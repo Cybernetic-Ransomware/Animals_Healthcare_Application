@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from hashlib import sha256
 from pathlib import Path
@@ -267,45 +268,69 @@ def _sanity_check(conn: turso.Connection, animal: Animal, payload: dict[str, lis
         raise RuntimeError(f"Snapshot contains {count_row} medical records, expected {expected}.")
 
 
-def export_animal_snapshot(animal: Animal, profile: Profile, output_dir: Path, force: bool = False) -> Path:
-    """Export the animal's data visible to the profile into animal_<uuid>.db.
+@dataclass(frozen=True, slots=True)
+class ExportPlan:
+    """Everything needed to write a snapshot file, computed without any file I/O."""
+
+    payload: dict[str, list[tuple]]
+    source_revision: str
+    allowed_categories: list[str]
+
+
+def build_export_plan(animal: Animal, profile: Profile) -> ExportPlan:
+    """Permission-check the profile and assemble the canonical payload and revision.
+
+    Raises PermissionDenied when the profile may not view the animal.
+    """
+    if not user_can_view_animal(profile, animal):
+        raise PermissionDenied("Profile has no access to this animal.")
+    allowed = allowed_categories_for(profile, animal)
+    payload = _build_payload(animal, allowed)
+    return ExportPlan(payload=payload, source_revision=_source_revision(payload), allowed_categories=sorted(allowed))
+
+
+def write_snapshot_file(animal: Animal, profile: Profile, plan: ExportPlan, final_path: Path) -> Path:
+    """Write the planned snapshot to final_path.
 
     The snapshot is written to a uniquely named temporary file in the target
     directory (same volume — a precondition for atomic os.replace) and swapped
     in, so readers never observe a partially written database and concurrent
     exports of the same animal cannot corrupt each other.
-
-    Raises PermissionDenied when the profile may not view the animal, and
-    FileExistsError when the target file exists and force is False.
     """
-    if not user_can_view_animal(profile, animal):
-        raise PermissionDenied("Profile has no access to this animal.")
-    allowed = allowed_categories_for(profile, animal)
+    final_path = Path(final_path)
+    final_path.parent.mkdir(parents=True, exist_ok=True)
 
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    final_path = output_dir / f"animal_{animal.id}.db"
-    if final_path.exists() and not force:
-        raise FileExistsError(f"Snapshot file already exists: {final_path}")
-
-    payload = _build_payload(animal, allowed)
-    revision = _source_revision(payload)
-
-    with NamedTemporaryFile(prefix=f"animal_{animal.id}.", suffix=".tmp.db", dir=output_dir, delete=False) as handle:
+    with NamedTemporaryFile(prefix=f"animal_{animal.id}.", suffix=".tmp.db", dir=final_path.parent, delete=False) as handle:
         tmp_path = Path(handle.name)
     try:
         conn = turso.connect(str(tmp_path))
         try:
             create_schema(conn)
-            _insert_manifest(conn, animal, profile, revision)
-            for table, rows in payload.items():
+            _insert_manifest(conn, animal, profile, plan.source_revision)
+            for table, rows in plan.payload.items():
                 if rows:
                     conn.executemany(INSERTS[table], rows)
             conn.commit()
-            _sanity_check(conn, animal, payload)
+            _sanity_check(conn, animal, plan.payload)
         finally:
             conn.close()
         os.replace(tmp_path, final_path)
     finally:
         tmp_path.unlink(missing_ok=True)
     return final_path
+
+
+def export_animal_snapshot(animal: Animal, profile: Profile, output_dir: Path, force: bool = False) -> Path:
+    """Export the animal's data visible to the profile into animal_<uuid>.db.
+
+    Raises PermissionDenied when the profile may not view the animal, and
+    FileExistsError when the target file exists and force is False.
+    """
+    plan = build_export_plan(animal, profile)
+
+    output_dir = Path(output_dir)
+    final_path = output_dir / f"animal_{animal.id}.db"
+    if final_path.exists() and not force:
+        raise FileExistsError(f"Snapshot file already exists: {final_path}")
+
+    return write_snapshot_file(animal, profile, plan, final_path)

@@ -62,6 +62,47 @@ The governing design rule: **the snapshot can be deleted and rebuilt at any
 time**. If losing the local `.db` file would lose data, it has stopped being
 a cache and this ADR has been violated.
 
+### Stage 2 — server-side lifecycle (2026-07-02)
+
+Stage 2 turns the exporter into a product: AHC can generate, version and
+safely serve snapshots to the requesting user.
+
+- **`AnimalSnapshot` registry** (`offline_snapshots/models.py`): one immutable
+  artifact row per build attempt, keyed per `(animal, generated_for)` pair —
+  owner and carer snapshots differ in content and never share a file.
+  `is_current=True` marks the latest successful build (enforced by a partial
+  unique constraint) and moves only after the new file exists on disk, so a
+  FAILED build never clobbers the previous downloadable artifact. A process
+  crash can strand a row in BUILDING; the next rebuild self-heals because
+  BUILDING is never current.
+- **Lifecycle service** (`services/lifecycle.py`): `get_or_create_snapshot`
+  computes the current `source_revision` without file I/O
+  (`build_export_plan`), returns the current artifact when the revision
+  matches and the file exists, and otherwise builds a new artifact.
+  Synchronous for now; the BUILDING/FAILED statuses keep the contract ready
+  for a future Celery task.
+- **Endpoints** (mounted at `pet/<uuid>/offline-snapshot/`): a JSON manifest
+  (`GET /`), a rebuild trigger (`POST rebuild/`), and a file download
+  (`GET <snapshot_id>/download/`). The download view looks the artifact up
+  filtered by `generated_for=request.user.profile`, so another profile's
+  snapshot (e.g. the owner's full export requested by a carer) is
+  unaddressable by design.
+- **Private storage**: snapshot files live under `OFFLINE_SNAPSHOT_ROOT`
+  (`PRIVATE_STORAGE_ROOT/offline_snapshots`, configurable via env), never
+  under `MEDIA_ROOT` — the `/media/` route is served without authentication,
+  so a default-storage `FileField` would leak medical data. There is no
+  public URL for a snapshot; the permission-checked download view is the only
+  path to the bytes. `services/storage.py` guards against path traversal in
+  storage keys. In Docker the directory must live on a persistent volume
+  (the dev compose bind-mounts the repo, which covers it).
+- **Retention**: `prune_animal_snapshots --keep 3 --failed-days 7` deletes
+  older superseded artifacts and stale FAILED rows together with their files;
+  it never touches current or BUILDING rows. Scheduling it (Celery Beat) is a
+  later stage.
+
+Stage 2 still excludes: async rebuilds via Celery, Turso Cloud sync,
+post-save signal rebuilds, delta updates, and local writes.
+
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
   mobile companion can pull the file as-is; the snapshot doubles as a

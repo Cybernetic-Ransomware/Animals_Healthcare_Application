@@ -54,6 +54,7 @@ CLAUDE.md
 
 # Project-specific
 /exports/
+/private/
 /static_collected/
 /static/media/animal_pic/
 /static/media/attachments/
