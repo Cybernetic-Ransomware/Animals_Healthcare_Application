@@ -41,6 +41,9 @@ class AnimalSnapshot(models.Model):
     status = models.CharField(max_length=10, choices=SnapshotStatus.choices, default=SnapshotStatus.BUILDING)
     error_message = models.CharField(max_length=2500, default=None, blank=True, null=True)
     is_current = models.BooleanField(default=False)
+    task_id = models.CharField(max_length=255, blank=True, default="")
+    build_started_at = models.DateTimeField(default=None, blank=True, null=True)
+    build_finished_at = models.DateTimeField(default=None, blank=True, null=True)
     generated_at = models.DateTimeField(auto_now_add=True)
     superseded_at = models.DateTimeField(default=None, blank=True, null=True)
 

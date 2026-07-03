@@ -22,10 +22,15 @@ from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, Medical
 from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord, BiometricWeightRecords
 from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
+from ahc.apps.offline_snapshots import tasks as snapshot_tasks
 from ahc.apps.offline_snapshots.models import AnimalSnapshot, SnapshotStatus
 from ahc.apps.offline_snapshots.services import lifecycle
 from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
-from ahc.apps.offline_snapshots.services.lifecycle import get_or_create_snapshot
+from ahc.apps.offline_snapshots.services.lifecycle import (
+    get_or_create_snapshot,
+    request_snapshot_build,
+    run_snapshot_build,
+)
 from ahc.apps.offline_snapshots.services.schema import SCHEMA_VERSION
 from ahc.apps.offline_snapshots.services.storage import snapshot_path
 
@@ -474,17 +479,21 @@ class TestSnapshotEndpoints:
         animal, profile = snapshot_animal
         client.force_login(profile.user)
 
-        rebuild = client.post(self._rebuild_url(animal)).json()
+        rebuild_response = client.post(self._rebuild_url(animal))
+        rebuild = rebuild_response.json()
+        run_snapshot_build(rebuild["snapshot_id"])
         manifest = client.get(self._manifest_url(animal)).json()
 
-        assert rebuild["status"] == "ready"
+        assert rebuild_response.status_code == 202
+        assert rebuild["status"] == "building"
+        assert rebuild["download_url"] is None
         assert manifest["status"] == "ready"
         assert manifest["snapshot_id"] == rebuild["snapshot_id"]
         assert manifest["source_revision"] == rebuild["source_revision"]
         assert manifest["schema_version"] == SCHEMA_VERSION
         assert manifest["file_size_bytes"] > 0
-        assert manifest["download_url"] == rebuild["download_url"]
-        assert rebuild["download_url"] == self._download_url(animal, rebuild["snapshot_id"])
+        assert manifest["building_snapshot_id"] is None
+        assert manifest["download_url"] == self._download_url(animal, rebuild["snapshot_id"])
 
     def test_stranger_gets_403_on_all_endpoints(self, snapshot_animal, second_user_profile, snapshot_dir, client):
         animal, owner = snapshot_animal
@@ -539,15 +548,17 @@ class TestSnapshotEndpoints:
         animal, profile = snapshot_animal
         client.force_login(profile.user)
         first = client.post(self._rebuild_url(animal)).json()
+        run_snapshot_build(first["snapshot_id"])
 
         animal.dietary_restrictions = "grain only, actually"
         animal.save()
         second = client.post(self._rebuild_url(animal)).json()
+        run_snapshot_build(second["snapshot_id"])
         manifest = client.get(self._manifest_url(animal)).json()
 
         assert second["source_revision"] != first["source_revision"]
         assert manifest["source_revision"] == second["source_revision"]
-        assert manifest["download_url"] == second["download_url"]
+        assert manifest["download_url"] == self._download_url(animal, second["snapshot_id"])
 
     def test_manifest_reports_missing_when_file_deleted(self, snapshot_animal, snapshot_dir, client):
         animal, profile = snapshot_animal
@@ -598,3 +609,272 @@ class TestPruneCommand:
 
         remaining = set(AnimalSnapshot.objects.values_list("id", flat=True))
         assert remaining == {current.id}
+
+
+def _manifest_url(animal):
+    return f"/pet/{animal.id}/offline-snapshot/"
+
+
+def _rebuild_url(animal):
+    return f"/pet/{animal.id}/offline-snapshot/rebuild/"
+
+
+def _widget_url(animal):
+    return f"/pet/{animal.id}/offline-snapshot/widget/"
+
+
+def _download_url(animal, snapshot_id):
+    return f"/pet/{animal.id}/offline-snapshot/{snapshot_id}/download/"
+
+
+@pytest.fixture
+def captured_enqueues(monkeypatch):
+    """Record build_snapshot_task.apply_async calls instead of talking to the broker."""
+    calls = []
+    monkeypatch.setattr(snapshot_tasks.build_snapshot_task, "apply_async", lambda **kwargs: calls.append(kwargs))
+    return calls
+
+
+@pytest.mark.integration
+class TestAsyncRebuildRequest:
+    def test_post_without_current_returns_202_and_enqueues(
+        self, snapshot_animal, snapshot_dir, client, captured_enqueues, django_capture_on_commit_callbacks
+    ):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+
+        with django_capture_on_commit_callbacks(execute=True):
+            response = client.post(_rebuild_url(animal))
+
+        assert response.status_code == 202
+        body = response.json()
+        assert body["status"] == "building"
+        assert body["download_url"] is None
+        snapshot = AnimalSnapshot.objects.get(id=body["snapshot_id"])
+        assert snapshot.status == SnapshotStatus.BUILDING
+        assert snapshot.task_id
+        assert captured_enqueues == [{"args": [str(snapshot.id)], "task_id": snapshot.task_id}]
+
+    def test_fresh_current_returns_200_without_enqueue(
+        self, snapshot_animal, snapshot_dir, client, captured_enqueues, django_capture_on_commit_callbacks
+    ):
+        animal, profile = snapshot_animal
+        current = get_or_create_snapshot(animal, profile)
+        client.force_login(profile.user)
+
+        with django_capture_on_commit_callbacks(execute=True):
+            response = client.post(_rebuild_url(animal))
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "ready"
+        assert body["snapshot_id"] == str(current.id)
+        assert body["download_url"] == _download_url(animal, current.id)
+        assert captured_enqueues == []
+
+    def test_second_post_during_building_is_deduped(
+        self, snapshot_animal, snapshot_dir, client, captured_enqueues, django_capture_on_commit_callbacks
+    ):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+
+        with django_capture_on_commit_callbacks(execute=True):
+            first = client.post(_rebuild_url(animal))
+        with django_capture_on_commit_callbacks(execute=True):
+            second = client.post(_rebuild_url(animal), {"force": "1"})
+
+        assert first.status_code == 202
+        assert second.status_code == 202
+        assert second.json()["snapshot_id"] == first.json()["snapshot_id"]
+        assert AnimalSnapshot.objects.filter(status=SnapshotStatus.BUILDING).count() == 1
+        assert len(captured_enqueues) == 1
+
+    def test_stranger_post_creates_no_row(self, snapshot_animal, second_user_profile, snapshot_dir, client):
+        animal, _ = snapshot_animal
+        stranger_user, _ = second_user_profile
+        client.force_login(stranger_user)
+
+        response = client.post(_rebuild_url(animal))
+
+        assert response.status_code == 403
+        assert AnimalSnapshot.objects.count() == 0
+
+    def test_rebuild_with_hx_header_returns_widget_html(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+
+        response = client.post(_rebuild_url(animal), headers={"HX-Request": "true"})
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "offline-snapshot-widget" in content
+        assert "Building" in content
+
+    def test_widget_shows_missing_state(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        client.force_login(profile.user)
+
+        response = client.get(_widget_url(animal))
+
+        assert response.status_code == 200
+        assert "Missing" in response.content.decode()
+
+
+@pytest.mark.integration
+class TestSnapshotBuildTask:
+    def test_run_build_promotes_to_ready_and_supersedes_previous(self, snapshot_animal, snapshot_dir):
+        animal, profile = snapshot_animal
+        first = get_or_create_snapshot(animal, profile)
+        animal.dietary_restrictions = "grain only, actually"
+        animal.save()
+        building = request_snapshot_build(animal, profile)
+
+        run_snapshot_build(str(building.id))
+
+        building.refresh_from_db()
+        assert building.status == SnapshotStatus.READY
+        assert building.is_current is True
+        assert building.file_size_bytes > 0
+        assert building.build_started_at is not None
+        assert building.build_finished_at is not None
+        assert snapshot_path(building.storage_key).exists()
+        first.refresh_from_db()
+        assert first.is_current is False
+        assert first.superseded_at is not None
+
+    def test_failed_async_build_leaves_previous_ready_downloadable(
+        self, snapshot_animal, snapshot_dir, client, monkeypatch
+    ):
+        animal, profile = snapshot_animal
+        first = get_or_create_snapshot(animal, profile)
+        animal.dietary_restrictions = "grain only, actually"
+        animal.save()
+        building = request_snapshot_build(animal, profile)
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(lifecycle, "write_snapshot_file", _boom)
+        run_snapshot_build(str(building.id))
+
+        building.refresh_from_db()
+        assert building.status == SnapshotStatus.FAILED
+        assert building.error_message == "boom"
+        assert building.is_current is False
+        assert building.build_finished_at is not None
+        first.refresh_from_db()
+        assert first.is_current is True
+        client.force_login(profile.user)
+        assert client.get(_download_url(animal, first.id)).status_code == 200
+
+    def test_run_build_skips_rows_that_are_not_building(self, snapshot_animal, snapshot_dir, monkeypatch):
+        animal, profile = snapshot_animal
+        ready = get_or_create_snapshot(animal, profile)
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(lifecycle, "write_snapshot_file", _boom)
+        run_snapshot_build(str(ready.id))
+
+        ready.refresh_from_db()
+        assert ready.status == SnapshotStatus.READY
+        assert ready.is_current is True
+
+    def test_share_revoked_between_enqueue_and_execution_fails_build(
+        self, snapshot_animal, second_user_profile, snapshot_dir
+    ):
+        animal, _ = snapshot_animal
+        _, carer = second_user_profile
+        share = AnimalShare.objects.create(animal=animal, carer=carer, allow_diet=True)
+        building = request_snapshot_build(animal, carer)
+
+        share.delete()
+        run_snapshot_build(str(building.id))
+
+        building.refresh_from_db()
+        assert building.status == SnapshotStatus.FAILED
+        assert "no access" in building.error_message
+        assert building.is_current is False
+
+
+@pytest.mark.integration
+class TestManifestWithBuilding:
+    def test_manifest_shows_building_without_current(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        building = request_snapshot_build(animal, profile)
+        client.force_login(profile.user)
+
+        manifest = client.get(_manifest_url(animal)).json()
+
+        assert manifest["status"] == "building"
+        assert manifest["snapshot_id"] == str(building.id)
+        assert manifest["download_url"] is None
+        assert manifest["building_snapshot_id"] == str(building.id)
+
+    def test_manifest_keeps_ready_current_during_force_rebuild(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        current = get_or_create_snapshot(animal, profile)
+        building = request_snapshot_build(animal, profile, force=True)
+        client.force_login(profile.user)
+
+        manifest = client.get(_manifest_url(animal)).json()
+
+        assert manifest["status"] == "ready"
+        assert manifest["snapshot_id"] == str(current.id)
+        assert manifest["download_url"] == _download_url(animal, current.id)
+        assert manifest["building_snapshot_id"] == str(building.id)
+
+        run_snapshot_build(str(building.id))
+        manifest = client.get(_manifest_url(animal)).json()
+
+        assert manifest["status"] == "ready"
+        assert manifest["snapshot_id"] == str(building.id)
+        assert manifest["building_snapshot_id"] is None
+
+    def test_manifest_reports_failed_when_nothing_better_exists(self, snapshot_animal, snapshot_dir, client, monkeypatch):
+        animal, profile = snapshot_animal
+        building = request_snapshot_build(animal, profile)
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(lifecycle, "write_snapshot_file", _boom)
+        run_snapshot_build(str(building.id))
+        client.force_login(profile.user)
+
+        manifest = client.get(_manifest_url(animal)).json()
+
+        assert manifest["status"] == "failed"
+        assert manifest["error_message"] == "boom"
+        assert manifest["download_url"] is None
+        assert manifest["building_snapshot_id"] is None
+
+    def test_download_of_building_snapshot_is_404(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        building = request_snapshot_build(animal, profile)
+        client.force_login(profile.user)
+
+        response = client.get(_download_url(animal, building.id))
+
+        assert response.status_code == 404
+
+
+@pytest.mark.integration
+class TestPruneStaleBuilding:
+    def test_prune_marks_stale_building_failed_and_keeps_fresh(self, snapshot_animal, second_user_profile, snapshot_dir):
+        animal, profile = snapshot_animal
+        _, carer = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer, allow_diet=True)
+        stale = request_snapshot_build(animal, profile)
+        AnimalSnapshot.objects.filter(id=stale.id).update(generated_at=timezone.now() - timedelta(hours=7))
+        fresh = request_snapshot_build(animal, carer)
+
+        call_command("prune_animal_snapshots")
+
+        stale.refresh_from_db()
+        assert stale.status == SnapshotStatus.FAILED
+        assert "Stale build" in stale.error_message
+        assert stale.build_finished_at is not None
+        fresh.refresh_from_db()
+        assert fresh.status == SnapshotStatus.BUILDING

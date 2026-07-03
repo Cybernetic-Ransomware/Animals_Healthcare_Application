@@ -8,7 +8,7 @@ from ahc.apps.offline_snapshots.services.storage import snapshot_path
 
 
 class Command(BaseCommand):
-    help = "Delete superseded snapshot artifacts and stale failed build rows (see ADR-12, stage 2)."
+    help = "Delete superseded snapshot artifacts and stale failed/building rows (see ADR-12, stages 2-3)."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -17,17 +17,35 @@ class Command(BaseCommand):
         parser.add_argument(
             "--failed-days", type=int, default=7, help="Delete FAILED rows older than this many days (default: 7)"
         )
+        parser.add_argument(
+            "--stale-building-hours",
+            type=int,
+            default=6,
+            help="Mark BUILDING rows older than this many hours as FAILED (default: 6)",
+        )
 
     def handle(self, *args, **options):
         keep = options["keep"]
         failed_days = options["failed_days"]
+        stale_building_hours = options["stale_building_hours"]
         if keep < 1:
             raise CommandError("--keep must be at least 1.")
         if failed_days < 0:
             raise CommandError("--failed-days must not be negative.")
+        if stale_building_hours < 0:
+            raise CommandError("--stale-building-hours must not be negative.")
 
+        failed = self._fail_stale_building(stale_building_hours)
         deleted = self._prune_superseded(keep) + self._prune_failed(failed_days)
-        self.stdout.write(self.style.SUCCESS(f"Deleted {deleted} snapshot(s)."))
+        self.stdout.write(self.style.SUCCESS(f"Deleted {deleted} snapshot(s), failed {failed} stale build(s)."))
+
+    def _fail_stale_building(self, stale_building_hours: int) -> int:
+        cutoff = timezone.now() - timedelta(hours=stale_building_hours)
+        return AnimalSnapshot.objects.filter(status=SnapshotStatus.BUILDING, generated_at__lt=cutoff).update(
+            status=SnapshotStatus.FAILED,
+            error_message="Stale build: worker never finished.",
+            build_finished_at=timezone.now(),
+        )
 
     def _prune_superseded(self, keep: int) -> int:
         deleted = 0

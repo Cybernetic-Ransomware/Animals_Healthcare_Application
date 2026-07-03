@@ -1,8 +1,9 @@
-"""Manifest, rebuild and download endpoints for offline snapshots (ADR-12, stage 2).
+"""Manifest, rebuild, download and widget endpoints for offline snapshots (ADR-12, stages 2-3).
 
 Plain JsonResponse views — ADR-07 (API framework) is still pending, so no DRF.
 Snapshot files live in private storage with no public URL; the download view
-is the only way to fetch them.
+is the only way to fetch them. Rebuild is asynchronous: POST enqueues a Celery
+build and answers 202, the manifest (or the htmx widget) reports progress.
 """
 
 from __future__ import annotations
@@ -12,17 +13,22 @@ from typing import TYPE_CHECKING
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views import View
 
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import user_can_view_animal
 from ahc.apps.offline_snapshots.models import AnimalSnapshot, SnapshotStatus
-from ahc.apps.offline_snapshots.services.lifecycle import current_snapshot_for, get_or_create_snapshot
+from ahc.apps.offline_snapshots.services.lifecycle import (
+    active_building_snapshot_for,
+    current_snapshot_for,
+    request_snapshot_build,
+)
 from ahc.apps.offline_snapshots.services.storage import snapshot_path
 
 if TYPE_CHECKING:
+    from ahc.apps.users.models import Profile
     from ahc.types import AuthenticatedRequest
 
 
@@ -41,7 +47,7 @@ def _download_url(animal: Animal, snapshot: AnimalSnapshot) -> str | None:
 
 
 def _snapshot_payload(animal: Animal, snapshot: AnimalSnapshot) -> dict:
-    return {
+    payload = {
         "animal_id": str(animal.id),
         "snapshot_id": str(snapshot.id),
         "status": snapshot.status,
@@ -51,6 +57,44 @@ def _snapshot_payload(animal: Animal, snapshot: AnimalSnapshot) -> dict:
         "file_size_bytes": snapshot.file_size_bytes,
         "download_url": _download_url(animal, snapshot),
     }
+    if snapshot.status == SnapshotStatus.FAILED:
+        payload["error_message"] = snapshot.error_message
+    return payload
+
+
+def _snapshot_state(
+    animal: Animal, profile: Profile
+) -> tuple[AnimalSnapshot | None, AnimalSnapshot | None, AnimalSnapshot | None]:
+    """Resolve (current READY, active BUILDING, latest FAILED) for the pair.
+
+    A current row whose file vanished (e.g. redeploy without a volume) is
+    treated as absent, and FAILED is only surfaced when there is nothing
+    better to show.
+    """
+    current = current_snapshot_for(animal, profile)
+    if current is not None and not snapshot_path(current.storage_key).exists():
+        current = None
+    building = active_building_snapshot_for(animal, profile)
+    failed = None
+    if current is None and building is None:
+        failed = (
+            AnimalSnapshot.objects.filter(animal=animal, generated_for=profile, status=SnapshotStatus.FAILED)
+            .order_by("-generated_at")
+            .first()
+        )
+    return current, building, failed
+
+
+def _render_widget(request, animal: Animal, profile: Profile):
+    current, building, failed = _snapshot_state(animal, profile)
+    context = {
+        "animal": animal,
+        "current": current,
+        "building": building,
+        "failed": failed,
+        "download_url": _download_url(animal, current) if current else None,
+    }
+    return render(request, "offline_snapshots/_snapshot_widget.html", context)
 
 
 class SnapshotManifestView(LoginRequiredMixin, View):
@@ -61,14 +105,13 @@ class SnapshotManifestView(LoginRequiredMixin, View):
         profile = request.user.profile
         if not user_can_view_animal(profile, animal):
             return _forbidden()
-        snapshot = current_snapshot_for(animal, profile)
+        current, building, failed = _snapshot_state(animal, profile)
+        snapshot = current or building or failed
         if snapshot is None:
             return _missing(animal)
-        if snapshot.status == SnapshotStatus.READY and not snapshot_path(snapshot.storage_key).exists():
-            # The disposable cache file vanished (e.g. redeploy without a volume);
-            # report missing instead of advertising a download that would 404.
-            return _missing(animal)
-        return JsonResponse(_snapshot_payload(animal, snapshot))
+        payload = _snapshot_payload(animal, snapshot)
+        payload["building_snapshot_id"] = str(building.id) if building else None
+        return JsonResponse(payload)
 
 
 class SnapshotRebuildView(LoginRequiredMixin, View):
@@ -78,18 +121,30 @@ class SnapshotRebuildView(LoginRequiredMixin, View):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         force = request.POST.get("force") in {"1", "true", "on"}
         try:
-            snapshot = get_or_create_snapshot(animal, request.user.profile, force=force)
+            snapshot = request_snapshot_build(animal, request.user.profile, force=force)
         except PermissionDenied:
             return _forbidden()
+        if request.headers.get("HX-Request"):
+            return _render_widget(request, animal, request.user.profile)
         payload = {
             "status": snapshot.status,
             "snapshot_id": str(snapshot.id),
             "source_revision": snapshot.source_revision,
             "download_url": _download_url(animal, snapshot),
         }
-        if snapshot.status == SnapshotStatus.FAILED:
-            payload["error_message"] = snapshot.error_message
-        return JsonResponse(payload)
+        status_code = 200 if snapshot.status == SnapshotStatus.READY else 202
+        return JsonResponse(payload, status=status_code)
+
+
+class SnapshotWidgetView(LoginRequiredMixin, View):
+    request: AuthenticatedRequest
+
+    def get(self, request, *args, **kwargs):
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        profile = request.user.profile
+        if not user_can_view_animal(profile, animal):
+            return _forbidden()
+        return _render_widget(request, animal, profile)
 
 
 class SnapshotDownloadView(LoginRequiredMixin, View):

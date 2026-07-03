@@ -84,6 +84,10 @@ services:
       context: ..
       dockerfile: docker/Dockerfile-app
     command: celery -A celery_notifications.config:celery_obj worker -l info
+    volumes:
+      # Same bind mount as web: snapshot files under PRIVATE_STORAGE_ROOT must
+      # be visible to both the worker (writes) and the web app (serves).
+      - ..:/app
     env_file:
       - ../.env
     environment:

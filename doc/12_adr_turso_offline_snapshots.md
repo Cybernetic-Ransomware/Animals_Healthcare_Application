@@ -112,6 +112,56 @@ safely serve snapshots to the requesting user.
 Stage 2 still excludes: async rebuilds via Celery, Turso Cloud sync,
 post-save signal rebuilds, delta updates, and local writes.
 
+### Stage 3 — asynchronous builds via Celery (2026-07-03)
+
+Stage 3 moves the build off the request thread. `POST rebuild/` no longer
+blocks on file I/O: it answers `200` with the current READY artifact when the
+revision is fresh, or `202` with a BUILDING row whose file is produced by the
+`ahc.offline_snapshots.build_snapshot` Celery task.
+
+- **Request/build split** (`services/lifecycle.py`):
+  `request_snapshot_build` performs the permission check and revision
+  comparison, dedupes against an active BUILDING row for the pair
+  (`select_for_update` inside a transaction — repeated clicks reuse the same
+  build; `force` bypasses only the freshness check, never the dedupe), creates
+  the BUILDING row with a pre-generated `task_id`, and enqueues the task via
+  `transaction.on_commit` so the worker cannot race an uncommitted row.
+  `run_snapshot_build` executes one attempt: it re-reads data and permissions
+  at execution time (a share revoked after enqueue yields FAILED, not a stale
+  export), writes the file, and only then flips `is_current` — the stage 2
+  contract that a failed build never touches the previous downloadable
+  artifact is unchanged and covered by tests.
+- **Task** (`offline_snapshots/tasks.py`): a thin wrapper decorated with
+  `@celery_obj.task` imported from `celery_notifications.config`. A bare
+  `shared_task` would bind `.apply_async()` calls in the web process to
+  Celery's unconfigured default app (wrong broker); importing `celery_obj`
+  configures the app in both processes. No automatic retry: failure is
+  reported through the FAILED status and the user retriggers explicitly.
+- **Model additions**: `task_id`, `build_started_at`, `build_finished_at`
+  (migration 0003). `generated_at` keeps meaning "row created / build
+  requested".
+- **Manifest**: gains a constant `building_snapshot_id` field (`null` when
+  idle), so clients can poll during a force-rebuild while the previous READY
+  artifact stays advertised and downloadable. With no current READY artifact
+  the manifest reports the active BUILDING row, then the latest FAILED row,
+  then `missing`.
+- **UI widget** (`GET widget/` + `_snapshot_widget.html`): a small htmx
+  partial embedded in the animal Settings tab. While a build runs the widget
+  re-fetches itself every 3 s (`hx-trigger="load delay:3s"`,
+  `hx-swap="outerHTML"`); a render without an active build carries no trigger,
+  so polling stops by construction.
+- **Stuck builds**: a worker crash strands a BUILDING row that would dedupe
+  all future requests. `prune_animal_snapshots --stale-building-hours 6`
+  (default) marks such rows FAILED instead of deleting them, preserving the
+  error trail.
+- **Deployment**: the `queue` service now bind-mounts the repo like `web` —
+  the worker writes snapshot files that the web app must serve, so
+  `PRIVATE_STORAGE_ROOT` has to resolve to storage shared by both containers.
+
+Stage 3 still excludes: Turso Cloud sync, post-save signal rebuilds (every
+diet edit would mint a `.db` file), delta updates, local writes, task retries,
+and a partial unique constraint on BUILDING rows.
+
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
   mobile companion can pull the file as-is; the snapshot doubles as a
