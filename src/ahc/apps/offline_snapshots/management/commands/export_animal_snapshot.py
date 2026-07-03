@@ -9,7 +9,12 @@ from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
 
 
 class Command(BaseCommand):
-    help = "Export a read-only SQLite snapshot of one animal's health data (see ADR-12)."
+    help = (
+        "Manually export a read-only SQLite snapshot of one animal's health data to an arbitrary"
+        " directory (see ADR-12). Dev/ops tool only: user-facing downloads go through the snapshot"
+        " lifecycle and private storage, never through this command's output. Do not point"
+        " --output-dir at a publicly served directory such as static/media."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("animal_id", help="UUID of the animal to export")

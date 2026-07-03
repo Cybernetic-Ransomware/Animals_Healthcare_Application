@@ -30,6 +30,10 @@ def _forbidden() -> JsonResponse:
     return JsonResponse({"status": "forbidden"}, status=403)
 
 
+def _missing(animal: Animal) -> JsonResponse:
+    return JsonResponse({"animal_id": str(animal.id), "status": "missing", "can_generate": True})
+
+
 def _download_url(animal: Animal, snapshot: AnimalSnapshot) -> str | None:
     if snapshot.status != SnapshotStatus.READY:
         return None
@@ -59,7 +63,11 @@ class SnapshotManifestView(LoginRequiredMixin, View):
             return _forbidden()
         snapshot = current_snapshot_for(animal, profile)
         if snapshot is None:
-            return JsonResponse({"animal_id": str(animal.id), "status": "missing", "can_generate": True})
+            return _missing(animal)
+        if snapshot.status == SnapshotStatus.READY and not snapshot_path(snapshot.storage_key).exists():
+            # The disposable cache file vanished (e.g. redeploy without a volume);
+            # report missing instead of advertising a download that would 404.
+            return _missing(animal)
         return JsonResponse(_snapshot_payload(animal, snapshot))
 
 

@@ -36,7 +36,7 @@ class AnimalSnapshot(models.Model):
     storage_backend = models.CharField(
         max_length=32, choices=SnapshotStorageBackend.choices, default=SnapshotStorageBackend.LOCAL_PRIVATE
     )
-    storage_key = models.CharField(max_length=500)
+    storage_key = models.CharField(max_length=500, unique=True)
     file_size_bytes = models.PositiveBigIntegerField(default=0)
     status = models.CharField(max_length=10, choices=SnapshotStatus.choices, default=SnapshotStatus.BUILDING)
     error_message = models.CharField(max_length=2500, default=None, blank=True, null=True)

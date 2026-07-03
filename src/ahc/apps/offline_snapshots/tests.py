@@ -549,6 +549,17 @@ class TestSnapshotEndpoints:
         assert manifest["source_revision"] == second["source_revision"]
         assert manifest["download_url"] == second["download_url"]
 
+    def test_manifest_reports_missing_when_file_deleted(self, snapshot_animal, snapshot_dir, client):
+        animal, profile = snapshot_animal
+        snapshot = get_or_create_snapshot(animal, profile)
+        snapshot_path(snapshot.storage_key).unlink()
+        client.force_login(profile.user)
+
+        response = client.get(self._manifest_url(animal))
+
+        assert response.status_code == 200
+        assert response.json() == {"animal_id": str(animal.id), "status": "missing", "can_generate": True}
+
     def test_anonymous_is_redirected_to_login(self, snapshot_animal, snapshot_dir, client):
         animal, _ = snapshot_animal
 

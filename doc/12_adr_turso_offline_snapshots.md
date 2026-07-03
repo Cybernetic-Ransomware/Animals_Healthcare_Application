@@ -99,6 +99,15 @@ safely serve snapshots to the requesting user.
   older superseded artifacts and stale FAILED rows together with their files;
   it never touches current or BUILDING rows. Scheduling it (Celery Beat) is a
   later stage.
+- **Concurrency**: the partial unique constraint guarantees at most one
+  current artifact per pair; two parallel rebuilds of the same pair may race
+  (IntegrityError or last-writer-wins on the pointer swap). Acceptable while
+  builds are synchronous and request-scoped; the async stage must add a lock
+  (e.g. `select_for_update` on the pair) before moving builds to Celery.
+- **Manual export command**: `export_animal_snapshot` stays as a dev/ops tool
+  writing to an arbitrary `--output-dir` with no registry row. User-facing
+  downloads always go through the lifecycle and private storage; never point
+  the command's output at a publicly served directory.
 
 Stage 2 still excludes: async rebuilds via Celery, Turso Cloud sync,
 post-save signal rebuilds, delta updates, and local writes.
