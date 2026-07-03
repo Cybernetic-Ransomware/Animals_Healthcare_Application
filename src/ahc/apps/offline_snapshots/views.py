@@ -1,9 +1,11 @@
-"""Manifest, rebuild, download and widget endpoints for offline snapshots (ADR-12, stages 2-3).
+"""Manifest, rebuild, download and widget endpoints for offline snapshots (ADR-12, stages 2-4).
 
 Plain JsonResponse views — ADR-07 (API framework) is still pending, so no DRF.
 Snapshot files live in private storage with no public URL; the download view
 is the only way to fetch them. Rebuild is asynchronous: POST enqueues a Celery
 build and answers 202, the manifest (or the htmx widget) reports progress.
+A READY manifest also reports freshness: the stored source_revision is
+compared against the live profile-scoped payload revision on every read.
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from ahc.apps.offline_snapshots.services.lifecycle import (
     active_building_snapshot_for,
     current_snapshot_for,
     request_snapshot_build,
+    snapshot_freshness_for,
 )
 from ahc.apps.offline_snapshots.services.storage import snapshot_path
 
@@ -85,13 +88,33 @@ def _snapshot_state(
     return current, building, failed
 
 
+def _manifest_payload(animal: Animal, profile: Profile, current, building, failed) -> dict | None:
+    """Full manifest dict for the pair, or None when there is nothing to report.
+
+    Freshness keys are present only for a READY current artifact; can_rebuild
+    is offered when the data changed and no build is already running.
+    """
+    snapshot = current or building or failed
+    if snapshot is None:
+        return None
+    payload = _snapshot_payload(animal, snapshot)
+    payload["building_snapshot_id"] = str(building.id) if building else None
+    freshness = snapshot_freshness_for(animal, profile, current)
+    if freshness is not None:
+        payload.update(freshness)
+        payload["can_rebuild"] = freshness["is_stale"] and building is None
+    return payload
+
+
 def _render_widget(request, animal: Animal, profile: Profile):
     current, building, failed = _snapshot_state(animal, profile)
+    freshness = snapshot_freshness_for(animal, profile, current)
     context = {
         "animal": animal,
         "current": current,
         "building": building,
         "failed": failed,
+        "is_stale": freshness["is_stale"] if freshness else False,
         "download_url": _download_url(animal, current) if current else None,
     }
     return render(request, "offline_snapshots/_snapshot_widget.html", context)
@@ -105,12 +128,9 @@ class SnapshotManifestView(LoginRequiredMixin, View):
         profile = request.user.profile
         if not user_can_view_animal(profile, animal):
             return _forbidden()
-        current, building, failed = _snapshot_state(animal, profile)
-        snapshot = current or building or failed
-        if snapshot is None:
+        payload = _manifest_payload(animal, profile, *_snapshot_state(animal, profile))
+        if payload is None:
             return _missing(animal)
-        payload = _snapshot_payload(animal, snapshot)
-        payload["building_snapshot_id"] = str(building.id) if building else None
         return JsonResponse(payload)
 
 
@@ -119,20 +139,21 @@ class SnapshotRebuildView(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        profile = request.user.profile
         force = request.POST.get("force") in {"1", "true", "on"}
         try:
-            snapshot = request_snapshot_build(animal, request.user.profile, force=force)
+            request_snapshot_build(animal, profile, force=force)
         except PermissionDenied:
             return _forbidden()
         if request.headers.get("HX-Request"):
-            return _render_widget(request, animal, request.user.profile)
-        payload = {
-            "status": snapshot.status,
-            "snapshot_id": str(snapshot.id),
-            "source_revision": snapshot.source_revision,
-            "download_url": _download_url(animal, snapshot),
-        }
-        status_code = 200 if snapshot.status == SnapshotStatus.READY else 202
+            return _render_widget(request, animal, profile)
+        # Manifest-shaped response: during a force rebuild the READY current
+        # stays the payload subject while 202 signals the running build.
+        current, building, failed = _snapshot_state(animal, profile)
+        payload = _manifest_payload(animal, profile, current, building, failed)
+        if payload is None:
+            return _missing(animal)
+        status_code = 202 if building is not None else 200
         return JsonResponse(payload, status=status_code)
 
 

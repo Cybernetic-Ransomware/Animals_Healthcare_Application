@@ -37,6 +37,23 @@ def active_building_snapshot_for(animal: Animal, profile: Profile) -> AnimalSnap
     )
 
 
+def snapshot_freshness_for(animal: Animal, profile: Profile, current: AnimalSnapshot | None) -> dict | None:
+    """Compare the current READY artifact against the live payload revision.
+
+    Returns None when there is nothing READY to compare against. The plan is
+    profile-scoped, so a carer's freshness reflects only the data they may
+    see: a change in a category hidden from them does not mark their snapshot
+    stale. Raises PermissionDenied when the profile may not view the animal.
+    """
+    if current is None or current.status != SnapshotStatus.READY:
+        return None
+    plan = build_export_plan(animal, profile)
+    return {
+        "latest_source_revision": plan.source_revision,
+        "is_stale": current.source_revision != plan.source_revision,
+    }
+
+
 def _new_building_snapshot(animal: Animal, profile: Profile, plan: ExportPlan) -> AnimalSnapshot:
     snapshot = AnimalSnapshot(
         animal=animal,

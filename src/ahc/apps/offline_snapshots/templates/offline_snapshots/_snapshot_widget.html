@@ -11,7 +11,8 @@
     <p>
         Status:
         {% if building %}<strong>Building&hellip;</strong>
-        {% elif current %}<strong>Ready</strong>
+        {% elif current and is_stale %}<strong>Ready, but outdated</strong>
+        {% elif current %}<strong>Ready, up to date</strong>
         {% elif failed %}<strong>Failed</strong>
         {% else %}<strong>Missing</strong>
         {% endif %}
@@ -23,6 +24,13 @@
             Generated at: {{ current.generated_at|date:"Y-m-d H:i" }}<br>
             Size: {{ current.file_size_bytes|filesizeformat }}
         </small></p>
+        {% if is_stale %}
+            <p><small>
+                {% if building %}This export is outdated; a newer one is being generated.
+                {% else %}This export is outdated. A newer export can be generated.
+                {% endif %}
+            </small></p>
+        {% endif %}
     {% endif %}
     {% if failed %}
         <p><small>Last build failed: {{ failed.error_message }}</small></p>
@@ -36,7 +44,7 @@
                 hx-target="#offline-snapshot-widget"
                 hx-swap="outerHTML"
                 {% if building %}disabled{% endif %}>
-            Generate offline snapshot
+            {% if is_stale %}Refresh offline snapshot{% else %}Generate offline snapshot{% endif %}
         </button>
         {% if download_url %}
             <a role="button" class="secondary outline" href="{{ download_url }}">Download current snapshot</a>

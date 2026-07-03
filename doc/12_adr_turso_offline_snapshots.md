@@ -162,6 +162,36 @@ Stage 3 still excludes: Turso Cloud sync, post-save signal rebuilds (every
 diet edit would mint a `.db` file), delta updates, local writes, task retries,
 and a partial unique constraint on BUILDING rows.
 
+### Stage 4 — stale snapshot awareness (2026-07-03)
+
+A READY artifact stays READY forever while the source data moves on. Stage 4
+makes that visible instead of pretending the cache is always current —
+detection only, no automatic rebuilds.
+
+- **Freshness is computed, never stored** (`snapshot_freshness_for` in
+  `services/lifecycle.py`): every manifest/widget read rebuilds the
+  profile-scoped export plan (`build_export_plan`, no file I/O) and compares
+  its `source_revision` against the current artifact's. No new model fields,
+  no migration, and no invalidation bookkeeping to get wrong.
+- **Manifest**: a READY payload gains `latest_source_revision`, `is_stale`,
+  and `can_rebuild` (`is_stale` and no build running). During a force rebuild
+  the stale READY artifact remains the payload subject and stays downloadable,
+  with `building_snapshot_id` pointing at the replacement build. The rebuild
+  endpoint now answers with the same manifest-shaped payload (`202` while a
+  build is active, `200` otherwise).
+- **Per-profile correctness**: because the plan is filtered through
+  `allowed_categories_for`, a diet-only carer's snapshot does not go stale
+  when a vaccination changes — their export genuinely did not change.
+- **Widget**: "Ready" splits into "Ready, up to date" / "Ready, but outdated"
+  with a one-line hint, and the button relabels to "Refresh offline snapshot"
+  when stale. No new panels or polling behaviour.
+- **Cost**: one full payload serialisation per manifest/widget read for a
+  single animal — accepted; the widget only polls while a build is running.
+
+Stage 4 still excludes: post-save signal rebuilds (freshness must be visible
+before deciding whether refresh should be automatic), Turso Cloud sync, delta
+updates, local writes, and scheduling `prune_animal_snapshots` via Celery Beat.
+
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
   mobile companion can pull the file as-is; the snapshot doubles as a
