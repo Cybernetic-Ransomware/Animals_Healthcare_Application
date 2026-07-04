@@ -110,6 +110,7 @@ h1, h2, h3, h4, h5, h6 {
   padding-block: 0;
   overflow: hidden;
   border-bottom: 1px solid var(--pico-muted-border-color);
+  max-height: 72px;
 }
 
 .site-header__inner {
@@ -121,7 +122,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .site-header__brand {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .site-header__brand a {
@@ -145,7 +148,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   height: 72px;
   object-fit: cover;
-  object-position: 50% 0%;
+  object-position: 50% 30%;
   display: block;
 }
 
@@ -183,16 +186,14 @@ h1, h2, h3, h4, h5, h6 {
   width: auto;
 }
 
-.site-header__brand {
-  gap: 1rem;
-}
-
 .site-header__greeting {
-  display: inline-block;
-  max-width: 14ch;
+  display: block;
+  font-size: 0.75rem;
+  color: var(--pico-muted-color);
+  white-space: nowrap;
+  max-width: 20ch;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 @media (max-width: 767px) {
