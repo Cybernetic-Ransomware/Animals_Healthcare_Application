@@ -355,3 +355,14 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 1rem;
   justify-content: flex-end;
 }
+
+footer nav ul li {
+  display: flex;
+  align-items: stretch;
+}
+
+footer nav ul li > a[role="button"],
+footer nav ul li > button {
+  display: flex;
+  align-items: center;
+}
