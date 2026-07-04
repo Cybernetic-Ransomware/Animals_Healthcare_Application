@@ -1528,6 +1528,7 @@ class TestInspectCommandDriverFlag:
         assert "Driver parity: OK" in output
         assert "Manifest parity: OK" in output
         assert "Row count parity: OK" in output
+        assert "Row data parity: OK" in output
         assert "PRAGMA integrity_check (sqlite3): OK" in output
 
     def test_driver_sqlite_flag_matches_default(self, snapshot_animal, tmp_path):

@@ -112,6 +112,7 @@ class Command(BaseCommand):
             libsql_count = report.libsql_read.row_counts[table]
             self.stdout.write(f"  {table + ':':44} {sqlite_count} / {libsql_count}")
         self.stdout.write(f"Row count parity: {'OK' if report.row_count_diff is None else 'DIFF'}")
+        self.stdout.write(f"Row data parity: {'OK' if report.row_data_diff is None else 'DIFF'}")
         self.stdout.write("")
         self.stdout.write(f"PRAGMA integrity_check (sqlite3): {'OK' if report.integrity_ok else 'FAIL'}")
         parity_label = "OK" if report.ok else "FAIL"

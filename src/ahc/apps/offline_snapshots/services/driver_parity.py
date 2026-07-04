@@ -37,6 +37,7 @@ class ParityReport:
     libsql_read: SnapshotRead
     manifest_diff: dict | None
     row_count_diff: dict | None
+    row_data_diff: dict | None
     integrity_ok: bool
 
 
@@ -100,6 +101,15 @@ def _diff_row_counts(a: dict[str, int], b: dict[str, int]) -> dict | None:
     return diff or None
 
 
+def _diff_table_rows(a: dict[str, list[tuple]], b: dict[str, list[tuple]]) -> dict | None:
+    diff = {
+        table: {"sqlite3_rows": len(a.get(table, [])), "libsql_rows": len(b.get(table, []))}
+        for table in _DATA_TABLES
+        if a.get(table) != b.get(table)
+    }
+    return diff or None
+
+
 def _check_integrity(path: Path) -> bool:
     conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
     try:
@@ -111,17 +121,19 @@ def _check_integrity(path: Path) -> bool:
 
 def compare_drivers(path: Path) -> ParityReport:
     """Read the snapshot through both drivers and return a structured parity report."""
-    sqlite_read = read_snapshot_sqlite3(path)
-    libsql_read = read_snapshot_libsql(path)
+    sqlite_read = read_snapshot_sqlite3(path, fetch_rows=True)
+    libsql_read = read_snapshot_libsql(path, fetch_rows=True)
     manifest_diff = _diff_manifests(sqlite_read.manifest, libsql_read.manifest)
     row_count_diff = _diff_row_counts(sqlite_read.row_counts, libsql_read.row_counts)
+    row_data_diff = _diff_table_rows(sqlite_read.table_rows, libsql_read.table_rows)
     integrity_ok = _check_integrity(path)
-    ok = manifest_diff is None and row_count_diff is None and integrity_ok
+    ok = manifest_diff is None and row_count_diff is None and row_data_diff is None and integrity_ok
     return ParityReport(
         ok=ok,
         sqlite_read=sqlite_read,
         libsql_read=libsql_read,
         manifest_diff=manifest_diff,
         row_count_diff=row_count_diff,
+        row_data_diff=row_data_diff,
         integrity_ok=integrity_ok,
     )
