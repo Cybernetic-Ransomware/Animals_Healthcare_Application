@@ -4,22 +4,25 @@ services:
     pull_policy: always
     labels:
       com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.scope: ahc
 
   queue:
     image: ghcr.io/cybernetic-ransomware/ahc-app:${APP_IMAGE_TAG:-prod}
     pull_policy: always
     labels:
       com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.scope: ahc
 
   celery_beat:
     image: ghcr.io/cybernetic-ransomware/ahc-app:${APP_IMAGE_TAG:-prod}
     pull_policy: always
     labels:
       com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.scope: ahc
 
   watchtower:
     image: containrrr/watchtower:1.7.1
-    command: --label-enable --cleanup --rolling-restart --interval 300
+    command: --label-enable --cleanup --rolling-restart --interval 300 --scope ahc
     environment:
       DOCKER_API_VERSION: "1.41"
     volumes:
