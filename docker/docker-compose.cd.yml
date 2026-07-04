@@ -24,7 +24,7 @@ services:
       DOCKER_API_VERSION: "1.41"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /root/.docker/config.json:/config.json
+      - /root/.docker:/root/.docker:ro
     networks:
       - ahc_net
     restart: unless-stopped
