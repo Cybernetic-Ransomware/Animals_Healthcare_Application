@@ -30,6 +30,7 @@
     <div class="grid site-header__inner">
         <div class="site-header__brand">
             <a href="{% url 'Homepage' %}"><h2>Homepage</h2></a>
+            {% if user.is_authenticated %}<small class="site-header__greeting">Hi {{ user.username }}!</small>{% endif %}
         </div>
         <div class="site-header__banner">
             <img src="{% static 'media/background/lizard2.jpg' %}" alt="">
@@ -38,7 +39,6 @@
             {% if user.is_authenticated %}
             <nav>
                 <ul>
-                    <li><small>Hi {{ user.username }}!</small></li>
                     <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
                     <li>
                         <form method="post" action="{% url 'logout' %}" style="margin:0;display:contents">
