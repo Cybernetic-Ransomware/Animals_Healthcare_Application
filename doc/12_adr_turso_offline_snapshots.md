@@ -266,9 +266,9 @@ What this experiment did **not** adopt:
 - Local writes or bidirectional sync.
 - Conflict resolution of any kind.
 
-The Rust-backed libSQL handler adds no observable overhead for the file sizes produced by a
-single-animal snapshot. The `pyturso` dependency is retained; no change to the existing
-driver boundary.
+`benchmark_animal_snapshot` provides a repeatable timing tool for future reference;
+it makes no time-based assertions and must not be treated as a performance contract.
+The `pyturso` dependency is retained; no change to the existing driver boundary.
 
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
