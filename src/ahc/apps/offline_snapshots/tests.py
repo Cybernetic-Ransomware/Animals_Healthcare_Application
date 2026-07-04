@@ -36,7 +36,7 @@ from ahc.apps.offline_snapshots.services.lifecycle import (
     run_snapshot_build,
 )
 from ahc.apps.offline_snapshots.services.pruning import prune_snapshots
-from ahc.apps.offline_snapshots.services.schema import EXPORTER_VERSION, SCHEMA_VERSION
+from ahc.apps.offline_snapshots.services.schema import EXPORTER_VERSION, SCHEMA_VERSION, TABLES
 from ahc.apps.offline_snapshots.services.storage import snapshot_path
 from celery_notifications.config import celery_obj
 
@@ -1305,3 +1305,36 @@ class TestInspectCommandBrokenFiles:
 
         with pytest.raises(CommandError, match="Not a valid SQLite snapshot"):
             call_command("inspect_animal_snapshot", str(empty))
+
+    def test_accepts_stage4_snapshot_without_exporter_version(self, tmp_path):
+        path = tmp_path / "old.db"
+        conn = sqlite3.connect(path)
+        conn.execute(
+            """
+            CREATE TABLE snapshot_manifest (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                animal_id TEXT NOT NULL,
+                schema_version INTEGER NOT NULL,
+                source_revision TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                generated_by TEXT,
+                is_read_only INTEGER NOT NULL DEFAULT 1
+            )
+            """
+        )
+        for ddl in TABLES[1:]:
+            conn.execute(ddl)
+        conn.execute(
+            "INSERT INTO snapshot_manifest (id, animal_id, schema_version, source_revision, generated_at)"
+            " VALUES (1, ?, ?, ?, ?)",
+            (str(uuid.uuid4()), SCHEMA_VERSION, "a" * 64, "2026-05-01T12:00:00+00:00"),
+        )
+        conn.commit()
+        conn.close()
+        out = StringIO()
+
+        call_command("inspect_animal_snapshot", str(path), "--json", stdout=out)
+
+        report = json.loads(out.getvalue())
+        assert report["exporter_version"] is None
+        assert report["schema_version"] == SCHEMA_VERSION

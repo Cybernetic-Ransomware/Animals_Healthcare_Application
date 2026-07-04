@@ -37,13 +37,27 @@ def inspect_snapshot(path: Path) -> dict:
         "path": str(path),
         "animal_id": manifest["animal_id"],
         "schema_version": manifest["schema_version"],
-        "exporter_version": manifest["exporter_version"],
+        "exporter_version": _optional_column(manifest, "exporter_version"),
         "source_revision": manifest["source_revision"],
         "generated_at": manifest["generated_at"],
-        "generated_by": manifest["generated_by"],
+        "generated_by": _optional_column(manifest, "generated_by"),
         "is_read_only": bool(manifest["is_read_only"]),
         "row_counts": row_counts,
     }
+
+
+def _optional_column(row: sqlite3.Row, column: str) -> str | None:
+    """Read a column that may be absent in files written by older exporters.
+
+    The ADR-12 stage 5 contract keeps schema_version stable across additive
+    changes, so a schema_version 1 file is allowed to predate columns such as
+    exporter_version.
+    """
+    # `in` on sqlite3.Row iterates values, not column names, so .keys() is
+    # required here despite SIM118.
+    if column not in row.keys():  # noqa: SIM118
+        return None
+    return row[column]
 
 
 def _read_manifest(conn: sqlite3.Connection, path: Path) -> sqlite3.Row:
