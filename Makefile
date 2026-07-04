@@ -1,31 +1,38 @@
-.PHONY: up up-cd down restart logs logs-flower build deploy shell
+.PHONY: help up up-cd down down-cd restart logs logs-flower build deploy shell
+.DEFAULT_GOAL := help
 
 COMPOSE    = docker compose --env-file .env -f docker/docker-compose-traefik.yml
 COMPOSE_CD = $(COMPOSE) -f docker/docker-compose.cd.yml
 
-up:
+help: ## List available targets
+	@awk 'BEGIN {FS = ":.*##"}; /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+
+up: ## Build images locally and start production stack
 	$(COMPOSE) up -d --build
 
-up-cd:
+up-cd: ## Start production stack with Watchtower CD overlay (pull from GHCR)
 	$(COMPOSE_CD) up -d
 
-down:
+down: ## Stop production stack (without Watchtower)
 	$(COMPOSE) down
 
-restart: down up
+down-cd: ## Stop full CD stack including Watchtower
+	$(COMPOSE_CD) down
 
-logs:
+restart: down up ## Rebuild and restart production stack
+
+logs: ## Follow web container logs
 	docker logs -f ahc-web
 
-logs-flower:
+logs-flower: ## Follow Flower container logs
 	docker logs -f ahc-flower
 
-build:
+build: ## Build images without starting containers
 	$(COMPOSE) build
 
-deploy:
+deploy: ## Pull latest git changes and restart CD stack
 	git pull
 	$(MAKE) up-cd
 
-shell:
+shell: ## Open Django shell inside web container
 	docker exec -it ahc-web python manage.py shell
