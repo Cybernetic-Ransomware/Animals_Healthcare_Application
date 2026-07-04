@@ -29,6 +29,11 @@ from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
 from ahc.apps.offline_snapshots import tasks as snapshot_tasks
 from ahc.apps.offline_snapshots.models import AnimalSnapshot, DownloadOutcome, SnapshotDownloadLog, SnapshotStatus
 from ahc.apps.offline_snapshots.services import lifecycle
+from ahc.apps.offline_snapshots.services.driver_parity import (
+    compare_drivers,
+    read_snapshot_libsql,
+    read_snapshot_sqlite3,
+)
 from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
 from ahc.apps.offline_snapshots.services.lifecycle import (
     get_or_create_snapshot,
@@ -1338,3 +1343,212 @@ class TestInspectCommandBrokenFiles:
         report = json.loads(out.getvalue())
         assert report["exporter_version"] is None
         assert report["schema_version"] == SCHEMA_VERSION
+
+
+# ---------------------------------------------------------------------------
+# Fixtures and test classes for cross-driver parity (driver_parity.py)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def edge_case_snapshot(db, user_profile, tmp_path):
+    """Snapshot with edge-case data: Polish characters, emoji, newlines, Decimal weight, NULL fields.
+
+    Column indices used by TestEdgeCaseRoundTrip come from schema.py DDL order:
+      animal_snapshot:         [1]=full_name  [2]=species  [3]=breed
+      medical_record_snapshot: [8]=short_description  [9]=full_description  [11]=tags_json
+      biometric_snapshot:      [4]=weight
+    """
+    _, profile = user_profile
+    animal = Animal.objects.create(full_name="Żółć Łódź", owner=profile)
+
+    visit = MedicalRecord.objects.create(
+        animal=animal,
+        author=profile,
+        short_description="Check-up \U0001f415",
+        full_description="Line one\nLine two\nLine three",
+        type_of_event="medical_visit",
+    )
+    visit.note_tags.add("żagiel", "łódź")
+
+    bio_shell = MedicalRecord.objects.create(
+        animal=animal,
+        author=profile,
+        short_description="Weighing",
+        type_of_event="biometric_record",
+    )
+    weight_rec = BiometricWeightRecords.objects.create(weight=Decimal("12.375"))
+    BiometricRecord.objects.create(animal=animal, related_note=bio_shell, weight_biometric_record=weight_rec)
+
+    path = export_animal_snapshot(animal, profile, tmp_path)
+    return path, animal
+
+
+@pytest.mark.integration
+class TestDriverParity:
+    def test_manifest_parity(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        sqlite_read = read_snapshot_sqlite3(path)
+        libsql_read = read_snapshot_libsql(path)
+
+        assert sqlite_read.manifest == libsql_read.manifest
+
+    def test_row_count_parity(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        sqlite_read = read_snapshot_sqlite3(path)
+        libsql_read = read_snapshot_libsql(path)
+
+        assert sqlite_read.row_counts == libsql_read.row_counts
+
+    def test_row_data_parity(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        sqlite_read = read_snapshot_sqlite3(path, fetch_rows=True)
+        libsql_read = read_snapshot_libsql(path, fetch_rows=True)
+
+        assert sqlite_read.table_rows == libsql_read.table_rows
+
+
+@pytest.mark.integration
+class TestEdgeCaseRoundTrip:
+    def test_unicode_round_trip(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+
+        for read_fn in (read_snapshot_sqlite3, read_snapshot_libsql):
+            result = read_fn(path, fetch_rows=True)
+            (animal_row,) = result.table_rows["animal_snapshot"]
+            assert "Żółć Łódź" in animal_row
+
+    def test_emoji_round_trip(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+
+        for read_fn in (read_snapshot_sqlite3, read_snapshot_libsql):
+            result = read_fn(path, fetch_rows=True)
+            short_descs = [row[8] for row in result.table_rows["medical_record_snapshot"]]
+            assert any("\U0001f415" in (desc or "") for desc in short_descs)
+
+    def test_newline_in_text_round_trip(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+
+        for read_fn in (read_snapshot_sqlite3, read_snapshot_libsql):
+            result = read_fn(path, fetch_rows=True)
+            full_descs = [row[9] for row in result.table_rows["medical_record_snapshot"]]
+            assert any("\n" in (desc or "") for desc in full_descs)
+
+    def test_decimal_as_text_round_trip(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+
+        for read_fn in (read_snapshot_sqlite3, read_snapshot_libsql):
+            result = read_fn(path, fetch_rows=True)
+            weights = [row[4] for row in result.table_rows["biometric_snapshot"]]
+            assert "12.375" in weights
+
+    def test_json_tags_round_trip(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+        # json.dumps uses ensure_ascii=True by default, matching the exporter.
+        # sorted(["żagiel", "łódź"]) → ["łódź", "żagiel"] (ł U+0142 < ż U+017C).
+        expected_tags = json.dumps(["łódź", "żagiel"])
+
+        for read_fn in (read_snapshot_sqlite3, read_snapshot_libsql):
+            result = read_fn(path, fetch_rows=True)
+            tags_cells = [row[11] for row in result.table_rows["medical_record_snapshot"]]
+            assert expected_tags in tags_cells
+
+    def test_null_fields(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+
+        for read_fn in (read_snapshot_sqlite3, read_snapshot_libsql):
+            result = read_fn(path, fetch_rows=True)
+            (animal_row,) = result.table_rows["animal_snapshot"]
+            assert animal_row[2] is None
+            assert animal_row[3] is None
+
+    def test_iso_date_format(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+
+        for read_fn in (read_snapshot_sqlite3, read_snapshot_libsql):
+            result = read_fn(path)
+            generated_at = result.manifest["generated_at"]
+            assert isinstance(generated_at, str)
+            assert "T" in generated_at
+
+    def test_row_data_parity_edge_cases(self, edge_case_snapshot):
+        path, _ = edge_case_snapshot
+
+        sqlite_read = read_snapshot_sqlite3(path, fetch_rows=True)
+        libsql_read = read_snapshot_libsql(path, fetch_rows=True)
+
+        assert sqlite_read.table_rows == libsql_read.table_rows
+
+
+@pytest.mark.integration
+class TestPragmaIntegrity:
+    def test_integrity_check_passes(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        report = compare_drivers(path)
+
+        assert report.integrity_ok is True
+
+
+@pytest.mark.integration
+class TestAtomicReplace:
+    def test_atomic_replace_parity(self, snapshot_animal, tmp_path):
+        """After os.replace, both drivers read the same new revision from the rebuilt file."""
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        animal.dietary_restrictions = "only fish"
+        animal.save()
+        export_animal_snapshot(animal, profile, tmp_path, force=True)
+
+        sqlite_read = read_snapshot_sqlite3(path)
+        libsql_read = read_snapshot_libsql(path)
+        assert sqlite_read.manifest["source_revision"] == libsql_read.manifest["source_revision"]
+        report = compare_drivers(path)
+        assert report.ok
+
+
+@pytest.mark.integration
+class TestInspectCommandDriverFlag:
+    def test_compare_drivers_ok(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+        out = StringIO()
+
+        call_command("inspect_animal_snapshot", str(path), "--compare-drivers", stdout=out)
+
+        output = out.getvalue()
+        assert "Driver parity: OK" in output
+        assert "Manifest parity: OK" in output
+        assert "Row count parity: OK" in output
+        assert "PRAGMA integrity_check (sqlite3): OK" in output
+
+    def test_driver_sqlite_flag_matches_default(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+        default_out = StringIO()
+        sqlite_out = StringIO()
+
+        call_command("inspect_animal_snapshot", str(path), stdout=default_out)
+        call_command("inspect_animal_snapshot", str(path), "--driver", "sqlite", stdout=sqlite_out)
+
+        assert default_out.getvalue() == sqlite_out.getvalue()
+
+    def test_driver_libsql_flag(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        path = export_animal_snapshot(animal, profile, tmp_path)
+        out = StringIO()
+
+        call_command("inspect_animal_snapshot", str(path), "--driver", "libsql", stdout=out)
+
+        output = out.getvalue()
+        assert str(animal.id) in output
+        assert f"Schema version: {SCHEMA_VERSION}" in output
+        assert "Snapshot OK" in output
