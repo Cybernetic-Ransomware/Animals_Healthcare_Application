@@ -111,10 +111,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .site-header__inner {
-  height: 72px;
-  overflow: hidden;
+  min-height: 72px;
+  overflow: visible;
   align-items: center;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) max-content;
 }
 
 .site-header__brand {
@@ -135,6 +135,7 @@ h1, h2, h3, h4, h5, h6 {
 .site-header__banner {
   height: 72px;
   overflow: hidden;
+  min-width: 0;
 }
 
 /* height: 72px beats Pico's img { height: auto } (higher specificity: 0,1,1 vs 0,0,1) */
@@ -177,9 +178,16 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0;
 }
 
+.site-header__user-nav small {
+  display: inline-block;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 767px) {
   .site-header__inner {
-    height: auto;
     padding-block: 0.75rem;
     grid-template-columns: 1fr;
   }
@@ -408,6 +416,10 @@ footer nav ul li > a[role="button"],
 footer nav ul li > button {
   display: flex;
   align-items: center;
+}
+
+.homepage-section {
+  margin-top: 2rem;
 }
 
 .ops-row {
