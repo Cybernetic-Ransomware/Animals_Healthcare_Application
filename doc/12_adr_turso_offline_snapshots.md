@@ -270,6 +270,21 @@ What this experiment did **not** adopt:
 it makes no time-based assertions and must not be treated as a performance contract.
 The `pyturso` dependency is retained; no change to the existing driver boundary.
 
+**Local reference run** — 2026-07-04, Windows 11 dev machine, 5 iterations,
+dataset: 1 animal / 3 medical records / 2 vaccinations / 48 KB artifact.
+
+| Phase | min ms | mean ms | max ms |
+|---|---:|---:|---:|
+| `build_export_plan` | 13.8 | 16.3 | 19.8 |
+| `write_snapshot_file` | 9.5 | 11.4 | 16.2 |
+| `inspect_sqlite3` | 1.9 | 2.3 | 2.8 |
+| `read_snapshot_libsql` | 1.9 | 2.0 | 2.4 |
+| `compare_drivers` | 14.4 | 15.1 | 15.7 |
+
+PostgreSQL query (`build_export_plan`) dominates over the libSQL write.
+`compare_drivers` runs two full reads plus a row-level diff — it is not a
+production path and does not reflect snapshot read latency in isolation.
+
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
   mobile companion can pull the file as-is; the snapshot doubles as a
