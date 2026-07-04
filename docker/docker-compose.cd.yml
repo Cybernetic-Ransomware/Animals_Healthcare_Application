@@ -1,0 +1,30 @@
+services:
+  web:
+    image: ghcr.io/cybernetic-ransomware/ahc-app:${APP_IMAGE_TAG:-prod}
+    pull_policy: always
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  queue:
+    image: ghcr.io/cybernetic-ransomware/ahc-app:${APP_IMAGE_TAG:-prod}
+    pull_policy: always
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  celery_beat:
+    image: ghcr.io/cybernetic-ransomware/ahc-app:${APP_IMAGE_TAG:-prod}
+    pull_policy: always
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    command: --label-enable --cleanup --rolling-restart --interval 300
+    environment:
+      DOCKER_API_VERSION: "1.41"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json
+    networks:
+      - ahc_net
+    restart: unless-stopped
