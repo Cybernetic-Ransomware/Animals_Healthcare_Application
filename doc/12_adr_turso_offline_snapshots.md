@@ -4,7 +4,7 @@
 `2026-07-02`
 
 ### Status
-Proposed
+In-building
 
 ### Context
 Pet owners and carers may need access to an animal's health profile without a
@@ -245,6 +245,30 @@ client received every byte. Retention rides the same prune pass
 
 Stage 5 still excludes: Turso Cloud sync, post-save signal rebuilds, delta
 updates, local writes, task retries, and manifest API restructuring.
+
+### Stage 6 — libSQL experiment conclusion (2026-07-04)
+
+The `benchmark_animal_snapshot` management command (diagnostic only; no time assertions, not
+a CI gate) confirmed that `pyturso/libSQL` is acceptable for writing local read-only snapshot
+artifacts:
+
+- Generated `.db` files are standard SQLite and verified readable by `sqlite3`
+  (driver parity confirmed by `TestDriverParity` and `compare_drivers`).
+- PostgreSQL remains the sole source of truth; snapshots remain disposable artifacts.
+- `pyturso` is confined to `services/exporter.py` for writes and
+  `services/driver_parity.py` for cross-driver reads; it is never bound to the
+  Django ORM or any application write path.
+
+What this experiment did **not** adopt:
+
+- Turso Cloud sync or remote replication.
+- ORM replacement or alternative query layer.
+- Local writes or bidirectional sync.
+- Conflict resolution of any kind.
+
+`benchmark_animal_snapshot` provides a repeatable timing tool for future reference;
+it makes no time-based assertions and must not be treated as a performance contract.
+The `pyturso` dependency is retained; no change to the existing driver boundary.
 
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future

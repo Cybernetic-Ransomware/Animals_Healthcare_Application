@@ -7,7 +7,9 @@ portable SQLite database.
 
 import json
 import logging
+import os
 import sqlite3
+import sys
 import uuid
 from datetime import date, timedelta
 from decimal import Decimal
@@ -34,7 +36,7 @@ from ahc.apps.offline_snapshots.services.driver_parity import (
     read_snapshot_libsql,
     read_snapshot_sqlite3,
 )
-from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
+from ahc.apps.offline_snapshots.services.exporter import build_export_plan, export_animal_snapshot, write_snapshot_file
 from ahc.apps.offline_snapshots.services.lifecycle import (
     get_or_create_snapshot,
     request_snapshot_build,
@@ -1553,3 +1555,74 @@ class TestInspectCommandDriverFlag:
         assert str(animal.id) in output
         assert f"Schema version: {SCHEMA_VERSION}" in output
         assert "Snapshot OK" in output
+
+
+@pytest.mark.integration
+class TestAtomicReplaceReadWhileOpen:
+    """Document platform-specific behaviour of os.replace() against an open sqlite3 connection.
+
+    On POSIX, os.replace() swaps the directory entry atomically; the old file descriptor
+    keeps pointing at the old inode, so the reader continues without error.
+
+    On Windows, os.replace() raises PermissionError when the destination file has an open
+    connection — even a read-only one. Consumers must close their connection before the
+    lifecycle triggers a rebuild, or the rebuild will fail at the os.replace() step.
+    """
+
+    def test_atomic_replace_behaviour_with_open_connection(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        plan = build_export_plan(animal, profile)
+        snap_path = tmp_path / "snap.db"
+        write_snapshot_file(animal, profile, plan, snap_path)
+
+        conn = sqlite3.connect(f"file:{snap_path.as_posix()}?mode=ro", uri=True)
+        conn.execute("SELECT source_revision FROM snapshot_manifest").fetchone()
+
+        replacement = tmp_path / "snap_new.db"
+        write_snapshot_file(animal, profile, plan, replacement)
+
+        if sys.platform == "win32":
+            # Windows does not allow replacing a file that has an open handle,
+            # even when opened read-only.
+            with pytest.raises(PermissionError):
+                os.replace(replacement, snap_path)
+            conn.close()
+        else:
+            os.replace(replacement, snap_path)
+            # POSIX: old file descriptor stays valid; replace is invisible to the reader.
+            conn.execute("SELECT source_revision FROM snapshot_manifest").fetchone()
+            conn.close()
+            new_conn = sqlite3.connect(f"file:{snap_path.as_posix()}?mode=ro", uri=True)
+            new_conn.execute("SELECT source_revision FROM snapshot_manifest").fetchone()
+            new_conn.close()
+
+
+@pytest.mark.integration
+class TestBenchmarkCommand:
+    def test_outputs_valid_json(self, snapshot_animal, tmp_path):
+        animal, _ = snapshot_animal
+        out = StringIO()
+
+        call_command("benchmark_animal_snapshot", str(animal.id), "--runs", "1", "--json", stdout=out)
+
+        report = json.loads(out.getvalue())
+        assert report["animal_id"] == str(animal.id)
+        assert report["runs"] == 1
+        assert report["file_size_bytes"] > 0
+        assert set(report["phases"]) == {
+            "build_export_plan",
+            "write_snapshot_file",
+            "inspect_sqlite3",
+            "read_snapshot_libsql",
+            "compare_drivers",
+        }
+        for phase_stats in report["phases"].values():
+            assert "min_ms" in phase_stats
+            assert "mean_ms" in phase_stats
+            assert "max_ms" in phase_stats
+
+    def test_rejects_zero_runs(self, snapshot_animal):
+        animal, _ = snapshot_animal
+
+        with pytest.raises(CommandError, match="--runs must be at least 1"):
+            call_command("benchmark_animal_snapshot", str(animal.id), "--runs", "0")
