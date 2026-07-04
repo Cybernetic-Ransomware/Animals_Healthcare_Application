@@ -20,6 +20,20 @@ SCHEMA_VERSION = 1
 # Absent (NULL column) in files written before ADR-12 stage 5.
 EXPORTER_VERSION = "0.1.0"
 
+# Kept in sync with TABLES below; consumed by the snapshot inspector.
+# All tables listed here are required in a schema_version 1 file. When a
+# future additive table is introduced, split this into required vs optional
+# so readers do not reject older files that legitimately lack it.
+TABLE_NAMES = (
+    "snapshot_manifest",
+    "animal_snapshot",
+    "medical_record_snapshot",
+    "feeding_note_snapshot",
+    "biometric_snapshot",
+    "vaccination_note_snapshot",
+    "attachment_metadata_snapshot",
+)
+
 TABLES = (
     """
     CREATE TABLE snapshot_manifest (
