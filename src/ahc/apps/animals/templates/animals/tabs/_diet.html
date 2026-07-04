@@ -15,7 +15,7 @@
     {% endif %}
 
     <div class="grid">
-        <a role="button" class="secondary outline"
+        <a role="button"
            href="{% url 'note_create' pk=animal.id %}?type_of_event=diet_note"
            hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=diet_note"
            hx-target="#modal-body"
@@ -43,7 +43,7 @@
         </ol>
     </section>
     {% else %}
-    <p>No diet notes recorded yet.</p>
+    <p class="empty-state">No diet notes recorded yet.</p>
     {% endif %}
 
     {% else %}

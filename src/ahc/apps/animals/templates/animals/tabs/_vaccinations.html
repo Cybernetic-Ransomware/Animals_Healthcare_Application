@@ -26,7 +26,7 @@
     </div>
 
     <div class="records-actions">
-        <a role="button" class="secondary outline"
+        <a role="button"
            hx-get="{% url 'vaccination_add' pk=animal.id %}"
            hx-target="#vaccination-rows"
            hx-swap="beforeend"

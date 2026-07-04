@@ -34,6 +34,29 @@
         <div class="site-header__banner">
             <img src="{% static 'media/background/lizard2.jpg' %}" alt="">
         </div>
+        <div class="site-header__user-nav">
+            {% if user.is_authenticated %}
+            <nav>
+                <ul>
+                    <li><small>Hi {{ user.username }}!</small></li>
+                    <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
+                    <li>
+                        <form method="post" action="{% url 'logout' %}" style="margin:0;display:contents">
+                            {% csrf_token %}
+                            <button type="submit" class="secondary outline">Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+            {% else %}
+            <nav>
+                <ul>
+                    <li><a role="button" class="secondary outline" href="{% url 'login' %}">Login</a></li>
+                    <li><a role="button" class="secondary outline" href="{% url 'register' %}">Register</a></li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
     </div>
 </header>
 
@@ -50,32 +73,11 @@
 </main>
 
 <footer class="container">
-    <div class="grid">
-        <nav>
+    <nav>
         <ul>
-            {% if user.is_authenticated %}
-              <li><small>Hi {{ user.username }}!</small></li>
-            {% endif %}
+            <li><a href="https://github.com/Cybernetic-Ransomware">Credits</a></li>
         </ul>
-        <ul>
-           <li><a href="https://github.com/Cybernetic-Ransomware">Credits</a></li>
-        </ul>
-        <ul>
-            {% if user.is_authenticated %}
-            <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
-            <li>
-                <form method="post" action="{% url 'logout' %}" style="margin:0;display:contents">
-                    {% csrf_token %}
-                    <button type="submit" class="secondary outline">Logout</button>
-                </form>
-            </li>
-            {% else %}
-            <li><a role="button" class="secondary outline" href="{% url 'login' %}">Login</a></li>
-            <li><a role="button" class="secondary outline" href="{% url 'register' %}">Register</a></li>
-            {% endif %}
-        </ul>
-        </nav>
-    </div>
+    </nav>
 </footer>
 
 <dialog id="ahc-modal">
