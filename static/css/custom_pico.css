@@ -108,11 +108,13 @@ h1, h2, h3, h4, h5, h6 {
 /* Site header: 3-col grid (brand | banner | user-nav); height clipped to 72px */
 .site-header {
   padding-block: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--pico-muted-border-color);
 }
 
 .site-header__inner {
   min-height: 72px;
-  overflow: visible;
+  overflow: hidden;
   align-items: center;
   grid-template-columns: auto minmax(0, 1fr) max-content;
 }
