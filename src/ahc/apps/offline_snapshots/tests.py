@@ -7,6 +7,7 @@ portable SQLite database.
 
 import json
 import logging
+import os
 import sqlite3
 import uuid
 from datetime import date, timedelta
@@ -34,7 +35,7 @@ from ahc.apps.offline_snapshots.services.driver_parity import (
     read_snapshot_libsql,
     read_snapshot_sqlite3,
 )
-from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
+from ahc.apps.offline_snapshots.services.exporter import build_export_plan, export_animal_snapshot, write_snapshot_file
 from ahc.apps.offline_snapshots.services.lifecycle import (
     get_or_create_snapshot,
     request_snapshot_build,
@@ -1553,3 +1554,37 @@ class TestInspectCommandDriverFlag:
         assert str(animal.id) in output
         assert f"Schema version: {SCHEMA_VERSION}" in output
         assert "Snapshot OK" in output
+
+
+@pytest.mark.integration
+class TestAtomicReplaceReadWhileOpen:
+    """Document observed behaviour: a read-only sqlite3 connection survives os.replace().
+
+    On POSIX, os.replace() swaps the directory entry; open file descriptors keep
+    pointing at the old inode. On Windows, SQLite opens snapshot files with
+    FILE_SHARE_DELETE, so os.replace() succeeds without PermissionError, but the
+    old connection may or may not read from the new file depending on the OS page
+    cache. The assertion is intentionally weak — "no crash, no lock error" — which
+    is the safe cross-platform contract. A stricter revision-identity check would
+    be POSIX-only.
+    """
+
+    def test_old_connection_remains_readable_after_atomic_replace(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        plan = build_export_plan(animal, profile)
+        snap_path = tmp_path / "snap.db"
+        write_snapshot_file(animal, profile, plan, snap_path)
+
+        conn = sqlite3.connect(f"file:{snap_path.as_posix()}?mode=ro", uri=True)
+        conn.execute("SELECT source_revision FROM snapshot_manifest").fetchone()
+
+        replacement = tmp_path / "snap_new.db"
+        write_snapshot_file(animal, profile, plan, replacement)
+        os.replace(replacement, snap_path)
+
+        conn.execute("SELECT source_revision FROM snapshot_manifest").fetchone()
+        conn.close()
+
+        new_conn = sqlite3.connect(f"file:{snap_path.as_posix()}?mode=ro", uri=True)
+        new_conn.execute("SELECT source_revision FROM snapshot_manifest").fetchone()
+        new_conn.close()
