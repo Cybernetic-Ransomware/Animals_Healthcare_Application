@@ -47,6 +47,7 @@ celerybeat.pid
 .claude/
 CLAUDE.md
 /.mcp.json
+/.playwright-mcp/
 
 # IDE
 .idea/

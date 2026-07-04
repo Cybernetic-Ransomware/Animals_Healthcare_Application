@@ -181,6 +181,7 @@ h1, h2, h3, h4, h5, h6 {
 .site-header__user-nav nav ul li a[role="button"],
 .site-header__user-nav nav ul li button {
   margin-bottom: 0;
+  padding: calc(var(--pico-nav-link-spacing-vertical) - var(--pico-border-width) * 2) var(--pico-nav-link-spacing-horizontal);
 }
 
 .site-header__greeting {
