@@ -105,15 +105,16 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
 }
 
-/* Site header: Pico's .grid provides the 2-col layout; we add height + clip */
+/* Site header: 3-col grid (brand | banner | user-nav); height clipped to 72px */
 .site-header {
   padding-block: 0;
 }
 
 .site-header__inner {
-  height: 120px;
+  height: 72px;
   overflow: hidden;
   align-items: center;
+  grid-template-columns: auto 1fr auto;
 }
 
 .site-header__brand {
@@ -132,17 +133,59 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .site-header__banner {
-  height: 120px;
+  height: 72px;
   overflow: hidden;
 }
 
-/* height: 120px beats Pico's img { height: auto } (higher specificity: 0,1,1 vs 0,0,1) */
+/* height: 72px beats Pico's img { height: auto } (higher specificity: 0,1,1 vs 0,0,1) */
 .site-header__banner img {
   width: 100%;
-  height: 120px;
+  height: 72px;
   object-fit: cover;
   object-position: 50% 30%;
   display: block;
+}
+
+.site-header__user-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.site-header__user-nav > nav {
+  margin-bottom: 0;
+}
+
+.site-header__user-nav nav ul {
+  margin-bottom: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.site-header__user-nav nav ul li {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+}
+
+.site-header__user-nav nav ul li > a[role="button"],
+.site-header__user-nav nav ul li > button {
+  padding-block: 0.35rem;
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .site-header__inner {
+    height: auto;
+    padding-block: 0.75rem;
+    grid-template-columns: 1fr;
+  }
+  .site-header__banner {
+    display: none;
+  }
 }
 
 /* Animal profile hero: image left, info right */
@@ -365,4 +408,25 @@ footer nav ul li > a[role="button"],
 footer nav ul li > button {
   display: flex;
   align-items: center;
+}
+
+.ops-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pico-spacing);
+  align-items: center;
+  margin-bottom: var(--pico-spacing);
+}
+
+.animals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--pico-spacing);
+}
+
+.empty-state {
+  color: var(--pico-muted-color);
+  font-style: italic;
+  padding: 1.5rem 0;
+  text-align: center;
 }

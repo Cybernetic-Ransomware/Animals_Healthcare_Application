@@ -3,7 +3,7 @@
 
     <h3>Ownership</h3>
     <p>Current owner: <strong>{{ animal.owner }}</strong></p>
-    <a role="button" class="secondary outline" href="{% url 'animal_ownership' pk=animal.id %}">Change owner</a>
+    <a role="button" href="{% url 'animal_ownership' pk=animal.id %}">Change owner</a>
 
     <br><br>
     <h4>Keepers</h4>
@@ -41,9 +41,9 @@
         {% endfor %}
     </ul>
     {% else %}
-    <p>No keepers assigned yet.</p>
+    <p class="empty-state">No keepers assigned yet.</p>
     {% endif %}
 
-    <a role="button" class="secondary outline" href="{% url 'manage_keepers' pk=animal.id %}">Add a keeper</a>
+    <a role="button" href="{% url 'manage_keepers' pk=animal.id %}">Add a keeper</a>
 
 </section>

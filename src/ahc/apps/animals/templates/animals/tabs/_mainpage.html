@@ -14,7 +14,7 @@
 
     <br>
     <div class="grid">
-        <a role="button" class="secondary outline"
+        <a role="button"
            href="{% url 'note_create' pk=animal.id %}?type_of_event=fast_note"
            hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=fast_note"
            hx-target="#modal-body"

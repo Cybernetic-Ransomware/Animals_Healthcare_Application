@@ -6,7 +6,7 @@
     {% if "medications" in allowed_categories %}
 
     <div class="records-actions">
-        <a role="button" class="secondary outline"
+        <a role="button"
            href="{% url 'note_create' pk=animal.id %}?type_of_event=medicament_note"
            hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=medicament_note"
            hx-target="#modal-body"
@@ -38,7 +38,7 @@
         </ol>
     </section>
     {% else %}
-    <p>No medication notes recorded yet.</p>
+    <p class="empty-state">No medication notes recorded yet.</p>
     {% endif %}
 
     {% else %}

@@ -6,7 +6,7 @@
     <section class="timeline">
         <div class="info">
             <div class="records-actions">
-                <a role="button" class="secondary outline"
+                <a role="button"
                    href="{% url 'note_create' pk=animal.id %}"
                    hx-get="{% url 'note_create' pk=animal.id %}"
                    hx-target="#modal-body"
@@ -68,7 +68,7 @@
             <li></li>
         </ol>
         {% else %}
-        <p>No notes recorded yet.</p>
+        <p class="empty-state">No notes recorded yet.</p>
         {% endif %}
     </section>
     {% endif %}
@@ -90,7 +90,7 @@
         </ol>
     </section>
     {% else %}
-    <p>No biometric records yet.</p>
+    <p class="empty-state">No biometric records yet.</p>
     {% endif %}
     {% endif %}
 
