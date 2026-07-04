@@ -102,6 +102,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase owner
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Build and push ahc-app
         uses: docker/build-push-action@v6
         with:
@@ -109,5 +112,5 @@ jobs:
           file: docker/Dockerfile-app
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ahc-app:prod
-            ghcr.io/${{ github.repository_owner }}/ahc-app:sha-${{ github.sha }}
+            ghcr.io/${{ env.OWNER }}/ahc-app:prod
+            ghcr.io/${{ env.OWNER }}/ahc-app:sha-${{ github.sha }}
