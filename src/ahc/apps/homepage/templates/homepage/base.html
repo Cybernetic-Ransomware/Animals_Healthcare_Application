@@ -32,13 +32,13 @@
             <a href="{% url 'Homepage' %}"><h2>Homepage</h2></a>
         </div>
         <div class="site-header__banner">
+            {% if user.is_authenticated %}<span class="site-header__greeting">Hi {{ user.username }}!</span>{% endif %}
             <img src="{% static 'media/background/lizard2.jpg' %}" alt="">
         </div>
         <div class="site-header__user-nav">
             {% if user.is_authenticated %}
             <nav>
                 <ul>
-                    <li><small class="site-header__greeting">Hi {{ user.username }}!</small></li>
                     <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
                     <li>
                         <form method="post" action="{% url 'logout' %}" style="margin:0">

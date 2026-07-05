@@ -135,6 +135,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .site-header__banner {
+  position: relative;
   height: 72px;
   overflow: hidden;
   min-width: 0;
@@ -145,7 +146,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   height: 72px;
   object-fit: cover;
-  object-position: 0% 30%;
+  object-position: 0% 25%;
   display: block;
 }
 
@@ -194,11 +195,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .site-header__greeting {
-  display: inline-block;
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
   max-width: 14ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
 }
 
 @media (max-width: 767px) {
