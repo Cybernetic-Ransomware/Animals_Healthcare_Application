@@ -178,8 +178,16 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
 }
 
+.site-header__user-nav nav ul li > form {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
 .site-header__user-nav nav ul li a[role="button"],
 .site-header__user-nav nav ul li button {
+  margin-top: 0;
   margin-bottom: 0;
   box-sizing: border-box;
   padding: calc(var(--pico-nav-link-spacing-vertical) - var(--pico-border-width) * 2) var(--pico-nav-link-spacing-horizontal) !important;

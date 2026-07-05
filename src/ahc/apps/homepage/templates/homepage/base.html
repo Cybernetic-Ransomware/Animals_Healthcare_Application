@@ -41,7 +41,7 @@
                     <li><small class="site-header__greeting">Hi {{ user.username }}!</small></li>
                     <li><a role="button" class="secondary outline" href="{% url 'profile' %}">Profile</a></li>
                     <li>
-                        <form method="post" action="{% url 'logout' %}" style="margin:0;display:contents">
+                        <form method="post" action="{% url 'logout' %}" style="margin:0">
                             {% csrf_token %}
                             <button type="submit" class="secondary outline">Logout</button>
                         </form>
