@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ahc-minikube-test
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Cybernetic-Ransomware/Animals_Healthcare_Application.git
+    targetRevision: feat/argocd
+    path: kubernetes/overlays/minikube-argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ahc
+  # Deliberately no automated sync policy: syncs are manual, without prune
+  # and without selfHeal, until drift/prune/sealed-secret-recovery tests
+  # pass on minikube. Automation belongs to ahc-home after the merge.
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
