@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# GitOps test overlay: SealedSecrets encrypted with the sealed-secrets
+# controller key of the local minikube cluster. Used by the
+# ahc-minikube-test ArgoCD Application to rehearse the full sync flow
+# (waves, hooks, sealed secrets) before touching the home cluster.
+#
+# The files under sealed/ must be generated with kubeseal against the
+# minikube cluster before this overlay can build — see kubernetes/README.md.
+
+resources:
+  - ../../base
+  - sealed/app-sealedsecret.yaml
+  - sealed/postgres-sealedsecret.yaml
+  - sealed/couchdb-sealedsecret.yaml
+  - sealed/flower-sealedsecret.yaml
+
+patches:
+  - path: ingress-patch.yaml
+
+images:
+  - name: ghcr.io/cybernetic-ransomware/ahc-app
+    newTag: prod

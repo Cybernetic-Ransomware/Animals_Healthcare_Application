@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ahc-app-backend
+  labels:
+    app: ahc-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ahc-web
+  template:
+    metadata:
+      labels:
+        app: ahc-web
+    spec:
+      initContainers:
+        - name: collectstatic
+          image: ghcr.io/cybernetic-ransomware/ahc-app:prod
+          command: ["python", "manage.py", "collectstatic", "--noinput"]
+          envFrom:
+            - configMapRef:
+                name: ahc-app-config
+            - secretRef:
+                name: ahc-app-secrets
+            - secretRef:
+                name: couchdb-credentials
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_DB
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: static-collected
+              mountPath: /app/static_collected
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      containers:
+        - name: ahc-app-backend
+          image: ghcr.io/cybernetic-ransomware/ahc-app:prod
+          envFrom:
+            - configMapRef:
+                name: ahc-app-config
+            - secretRef:
+                name: ahc-app-secrets
+            - secretRef:
+                name: couchdb-credentials
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_DB
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - name: static-collected
+              mountPath: /app/static_collected
+            - name: app-media
+              mountPath: /app/static/media/animal_pic
+              subPath: animal_pic
+            - name: app-media
+              mountPath: /app/static/media/attachments
+              subPath: attachments
+            - name: app-media
+              mountPath: /app/static/media/profile_pics
+              subPath: profile_pics
+            - name: app-private
+              mountPath: /app/private
+          startupProbe:
+            httpGet:
+              path: /livez
+              port: 8000
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 8000
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: static-collected
+          emptyDir: {}
+        - name: app-media
+          persistentVolumeClaim:
+            claimName: app-media-pvc
+        - name: app-private
+          persistentVolumeClaim:
+            claimName: app-private-pvc

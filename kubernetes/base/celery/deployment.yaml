@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  labels:
+    app: celery-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+        - name: celery-worker
+          image: ghcr.io/cybernetic-ransomware/ahc-app:prod
+          # Explicit concurrency: the default equals the node CPU count,
+          # which forks more Django processes than the memory limit can hold.
+          command: ["celery", "-A", "celery_notifications.config:celery_obj", "worker", "-l", "info", "--concurrency=2"]
+          envFrom:
+            - configMapRef:
+                name: ahc-app-config
+            - secretRef:
+                name: ahc-app-secrets
+            - secretRef:
+                name: couchdb-credentials
+          env:
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_DB
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: app-private
+              mountPath: /app/private
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - celery -A celery_notifications.config:celery_obj inspect ping -d "celery@$HOSTNAME" --timeout 10
+            initialDelaySeconds: 30
+            periodSeconds: 120
+            timeoutSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "384Mi"
+              cpu: "300m"
+      volumes:
+        - name: app-private
+          persistentVolumeClaim:
+            claimName: app-private-pvc

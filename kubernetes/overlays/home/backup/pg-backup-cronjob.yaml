@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: pg-dump
+              image: postgres:18-alpine
+              envFrom:
+                - secretRef:
+                    name: postgres-credentials
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  export PGPASSWORD="$POSTGRES_PASSWORD"
+                  f="/backup/pg-$(date +%Y%m%d-%H%M%S).dump"
+                  pg_dump -h postgres-service -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f "$f"
+                  echo "written $f"
+                  find /backup -name 'pg-*.dump' -mtime +14 -delete
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "50m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: backup-data

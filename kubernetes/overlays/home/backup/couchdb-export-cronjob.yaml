@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: couchdb-export
+spec:
+  # Diagnostic document export, NOT a full backup: attachments and internal
+  # state are not fully covered by _all_docs. The real backup strategy is
+  # one-way replication to a second CouchDB instance or a PVC snapshot —
+  # see kubernetes/README.md.
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: couchdb-export
+              image: curlimages/curl:8.10.1
+              envFrom:
+                - secretRef:
+                    name: couchdb-credentials
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  f="/backup/couchdb-appendixes-$(date +%Y%m%d-%H%M%S).json.gz"
+                  curl -fsS "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@appendixes-db:5982/appendixes/_all_docs?include_docs=true&attachments=true" \
+                    -H "Accept: application/json" | gzip > "$f"
+                  echo "written $f"
+                  find /backup -name 'couchdb-*.json.gz' -mtime +14 -delete
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+              resources:
+                requests:
+                  memory: "32Mi"
+                  cpu: "25m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "200m"
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: backup-data

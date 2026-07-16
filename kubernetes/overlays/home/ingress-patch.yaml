@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-service
+spec:
+  # k3s ships Traefik as the default ingress controller.
+  ingressClassName: traefik
+  rules:
+    # TODO: replace with the real AHC_DOMAIN before the first home sync.
+    - host: ahc.example.home
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ahc-app-backend-service
+                port:
+                  number: 8000

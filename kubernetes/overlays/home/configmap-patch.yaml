@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ahc-app-config
+data:
+  # TODO: replace ahc.example.home with the real AHC_DOMAIN before the
+  # first home sync. localhost must stay in ALLOWED_HOSTS for kubelet probes.
+  ALLOWED_HOSTS: "localhost,127.0.0.1,ahc.example.home"
+  CSRF_TRUSTED_ORIGINS: "https://ahc.example.home"
