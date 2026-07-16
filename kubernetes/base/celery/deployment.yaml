@@ -30,7 +30,7 @@ spec:
             - -c
             - |
               set -eu
-              [ "$(stat -c %u /mnt/private)" = "1000" ] || chown -R 1000:1000 /mnt/private
+              chown -R 1000:1000 /mnt/private
           volumeMounts:
             - name: app-private
               mountPath: /mnt/private

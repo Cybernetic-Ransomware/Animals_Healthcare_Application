@@ -32,8 +32,7 @@ spec:
             - |
               set -eu
               mkdir -p /mnt/media/animal_pic /mnt/media/attachments /mnt/media/profile_pics
-              [ "$(stat -c %u /mnt/media)" = "1000" ] || chown -R 1000:1000 /mnt/media
-              [ "$(stat -c %u /mnt/private)" = "1000" ] || chown -R 1000:1000 /mnt/private
+              chown -R 1000:1000 /mnt/media /mnt/private
           volumeMounts:
             - name: app-media
               mountPath: /mnt/media
