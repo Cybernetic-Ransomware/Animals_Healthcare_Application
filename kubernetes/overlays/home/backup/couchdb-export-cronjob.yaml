@@ -8,6 +8,7 @@ spec:
   # one-way replication to a second CouchDB instance or a PVC snapshot —
   # see kubernetes/README.md.
   schedule: "30 3 * * *"
+  timeZone: "Europe/Warsaw"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3

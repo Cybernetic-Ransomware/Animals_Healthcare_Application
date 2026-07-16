@@ -4,6 +4,7 @@ metadata:
   name: pg-backup
 spec:
   schedule: "0 3 * * *"
+  timeZone: "Europe/Warsaw"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3

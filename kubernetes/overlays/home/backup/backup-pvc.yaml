@@ -4,9 +4,12 @@ metadata:
   name: backup-data
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      # 14-day retention of nightly pg dumps + couchdb exports + full tars
+      # of two PVCs adds up fast; size accordingly rather than optimistically.
+      storage: 20Gi

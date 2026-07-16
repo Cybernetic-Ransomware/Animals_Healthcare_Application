@@ -4,6 +4,7 @@ metadata:
   name: app-media-pvc
   annotations:
     argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec:
   accessModes:
     - ReadWriteOnce

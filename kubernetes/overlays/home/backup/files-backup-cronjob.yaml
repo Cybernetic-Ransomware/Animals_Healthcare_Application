@@ -4,6 +4,7 @@ metadata:
   name: files-backup
 spec:
   schedule: "0 4 * * *"
+  timeZone: "Europe/Warsaw"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3

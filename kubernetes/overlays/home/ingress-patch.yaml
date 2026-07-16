@@ -5,6 +5,14 @@ metadata:
 spec:
   # k3s ships Traefik as the default ingress controller.
   ingressClassName: traefik
+  # TODO(bootstrap): CSRF_TRUSTED_ORIGINS uses https://, so TLS must be
+  # terminated here. Uncomment once a certificate exists (cert-manager or a
+  # manually created ahc-tls Secret); until then Traefik serves its default
+  # self-signed certificate.
+  # tls:
+  #   - hosts:
+  #       - ahc.example.home
+  #     secretName: ahc-tls
   rules:
     # TODO: replace with the real AHC_DOMAIN before the first home sync.
     - host: ahc.example.home
