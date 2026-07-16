@@ -95,6 +95,19 @@ Sync manually from the ArgoCD UI/CLI and verify waves and hooks. Before enabling
 home, pass the drift tests: `kubectl edit` a resource → diff shows drift; delete a Deployment →
 re-sync restores it; delete a Secret → controller re-creates it from the SealedSecret.
 
+**Testing branch code through ArgoCD (the honest path):** manifests come from the branch, but
+`newTag: prod` points at an image built from an older `main` — a hybrid test proves nothing.
+Publish and pin the branch image first:
+
+1. `gh workflow run "AHC CI|CD" --ref <branch>` (workflow_dispatch publishes `sha-<commit>`
+   without moving `prod`).
+2. Wait for the publish job, note the `sha-<commit>` tag.
+3. Set it in `overlays/minikube-argocd/kustomization.yaml` (`newTag: sha-<commit>`).
+4. Commit and push to the branch — ArgoCD only sees what is in git.
+
+Revert the pinned tag before merging. The `minikube image build` + `newTag: dev` shortcut from the
+local-run section only applies to `minikube-local` (kubectl path), not to ArgoCD.
+
 ## Home cluster bootstrap (first time)
 
 1. Install k3s (keeps default Traefik ingress and local-path default StorageClass).

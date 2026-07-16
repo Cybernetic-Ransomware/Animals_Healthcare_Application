@@ -33,4 +33,6 @@ patches:
 
 images:
   - name: ghcr.io/cybernetic-ransomware/ahc-app
-    newTag: prod
+    # Pinned to the branch image for the ArgoCD rehearsal (see README,
+    # "Testing branch code through ArgoCD"). Revert to prod before merging.
+    newTag: sha-d515554252e936a41ee9a6d559732a284d788686
