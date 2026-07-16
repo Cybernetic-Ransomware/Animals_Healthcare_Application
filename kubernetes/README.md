@@ -1,0 +1,138 @@
+# Kubernetes deployment — ops runbook
+
+GitOps layout for ArgoCD (see [ADR-13](../doc/13_adr_gitops_argocd.md)). All app images come from
+`ghcr.io/cybernetic-ransomware/ahc-app`; the tag is rewritten per overlay.
+
+## Layout
+
+| Path | Purpose | Secrets | Applied by |
+|---|---|---|---|
+| `base/` | all workloads, config, PVCs, jobs | none (referenced only) | — |
+| `overlays/minikube-local/` | local dev loop | plain Secrets, git-ignored | `kubectl apply -k` only — **never ArgoCD** |
+| `overlays/minikube-argocd/` | GitOps rehearsal | SealedSecrets (minikube key) | `argocd/ahc-minikube-test.yaml`, manual sync |
+| `overlays/home/` | production (k3s) | SealedSecrets (home key) | `argocd/ahc-home.yaml`, auto sync from `main` |
+
+Sync waves: `-3` ConfigMap/Secrets/PVCs → `-2` Postgres/CouchDB/Redis → `-1` Sync hooks
+(`ahc-migrate`, `couchdb-init`) → `0` web/celery/beat/flower → `1` Ingress → PostSync smoke test.
+Migrations are a **Sync-phase** hook (not PreSync): ArgoCD orders by phase before wave, and PreSync
+would run before the databases exist on a fresh cluster.
+
+## Local run (minikube-local)
+
+```powershell
+# 1. Fill secrets from templates (once); the filled .yaml files are git-ignored
+Copy-Item kubernetes/overlays/minikube-local/secrets/app-secret.yaml.template `
+          kubernetes/overlays/minikube-local/secrets/app-secret.yaml
+# ...same for postgres/couchdb/flower; generate SECRET_KEY with:
+uv run python -c "import secrets; print(secrets.token_urlsafe(50))"
+
+# 2. Render check, then apply
+kubectl kustomize kubernetes/overlays/minikube-local
+kubectl apply -k kubernetes/overlays/minikube-local
+
+# 3. Watch
+kubectl -n ahc get pods -w
+kubectl -n ahc wait --for=condition=complete job/ahc-migrate --timeout=300s
+kubectl -n ahc rollout status deploy/ahc-app-backend --timeout=300s
+
+# 4. Smoke
+kubectl -n ahc port-forward svc/ahc-app-backend-service 18000:8000
+curl.exe -f -H "Host: localhost" http://127.0.0.1:18000/livez
+curl.exe -f -H "Host: localhost" http://127.0.0.1:18000/readyz
+```
+
+**Job immutability caveat:** a plain re-apply after an image-tag change fails on the immutable Job
+spec. Delete the hook jobs first (ArgoCD's `BeforeHookCreation` policy does this automatically):
+
+```powershell
+kubectl -n ahc delete job ahc-migrate couchdb-init --ignore-not-found
+kubectl apply -k kubernetes/overlays/minikube-local
+```
+
+**Local image iteration:** the GHCR `prod` tag must contain the gunicorn CMD and health endpoints.
+To test unmerged code, build straight into minikube and temporarily switch the overlay tag
+(never commit `newTag: dev`):
+
+```powershell
+minikube image build -t ghcr.io/cybernetic-ransomware/ahc-app:dev -f docker/Dockerfile-app .
+# set newTag: dev in overlays/minikube-local/kustomization.yaml, apply, revert before committing
+```
+
+## Sealing secrets (kubeseal)
+
+Install once: `winget install kubeseal`. A SealedSecret decrypts only on the cluster whose
+controller key encrypted it — minikube and home have separate `sealed/` directories, sealed from
+the same plain files (keep an off-repo copy of those in a password manager).
+
+```powershell
+# against the target cluster context:
+kubeseal --controller-namespace kube-system --fetch-cert > cluster.pem   # *.pem is git-ignored
+Get-Content kubernetes/overlays/minikube-local/secrets/app-secret.yaml |
+  kubeseal --cert cluster.pem --format yaml |
+  Set-Content kubernetes/overlays/<overlay>/sealed/app-sealedsecret.yaml
+# repeat for postgres-secret, couchdb-secret, flower-secret
+```
+
+If the cluster is rebuilt, the controller key is gone: re-seal everything from the plain files.
+
+## GitOps rehearsal on minikube (minikube-argocd)
+
+```powershell
+kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.3/controller.yaml
+# seal the four secrets into overlays/minikube-argocd/sealed/ (see above), commit them
+kubectl create ns argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -f argocd/ahc-minikube-test.yaml
+```
+
+Sync manually from the ArgoCD UI/CLI and verify waves and hooks. Before enabling automation on
+home, pass the drift tests: `kubectl edit` a resource → diff shows drift; delete a Deployment →
+re-sync restores it; delete a Secret → controller re-creates it from the SealedSecret.
+
+## Home cluster bootstrap (first time)
+
+1. Install k3s (keeps default Traefik ingress and local-path default StorageClass).
+2. Install ArgoCD (`kubectl apply -n argocd -f .../install.yaml`).
+3. `kubectl apply -f argocd/sealed-secrets.yaml` and wait for the controller.
+4. Seal the four secrets against the home cluster into `overlays/home/sealed/`, commit to `main`.
+5. Replace `ahc.example.home` in `overlays/home/{ingress-patch,configmap-patch}.yaml` with the real
+   domain, commit.
+6. `kubectl apply -f argocd/ahc-home.yaml` — first sync starts with **empty databases**; migrating
+   data from the compose stack is a manual dump/restore.
+7. Cutover note: `celery-beat` is pinned to 0 replicas in the home overlay until the
+   compose/Watchtower stack is retired (two beats = duplicate Discord notifications).
+
+## CI / image flow
+
+`django.yml` publishes `ghcr.io/<owner>/ahc-app:prod` + `:sha-<commit>`, then the `bump` job commits
+`kustomize edit set image ...:sha-<commit>` to `overlays/home/` (`[skip ci]`, serialized by a
+concurrency group). ArgoCD polls `main` and syncs. The `deploy-workflow` job (Argo Workflows submit)
+stays disabled until `vars.ARGO_SERVER_URL` is set — requires a self-hosted runner or tunnel.
+Manual workflow run: `kubectl apply -f workflows/` then
+`argo submit --from workflowtemplate/ahc-deploy-smoke -n argo`.
+
+If GHCR packages are private, add a `dockerconfigjson` pull secret (sealed for home) and
+`imagePullSecrets:` on every pod spec including the hook jobs.
+
+## Backups (home overlay)
+
+| CronJob | Schedule | What | Retention |
+|---|---|---|---|
+| `pg-backup` | 03:00 | `pg_dump -Fc` to `backup-data` PVC | 14 days |
+| `couchdb-export` | 03:30 | `_all_docs` JSON dump — **diagnostic export, not a full backup** | 14 days |
+| `files-backup` | 04:00 | tar of `app-media-pvc` + `app-private-pvc` | 14 days |
+
+Restore: `pg_restore -h postgres-service -U $POSTGRES_USER -d $POSTGRES_DB /backup/pg-<stamp>.dump`;
+CouchDB — re-PUT documents from the export or replicate back from a second instance; files —
+untar into the PVCs.
+
+Limitations (deliberate, documented): backups land on the same disk as the data (protects against
+user error, not disk failure) and the CouchDB export is not attachment-complete. Follow-ups after
+the testing phase: one-way CouchDB replication or PVC snapshots, and shipping copies off-host with
+restic/rclone to a NAS.
+
+## Credential hygiene
+
+The legacy plaintext secret files contained a live Discord token and Mailtrap credentials —
+**rotate both** before the first exposed deployment, and generate a fresh `SECRET_KEY` for home
+(do not reuse the minikube one).
