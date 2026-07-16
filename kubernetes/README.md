@@ -86,22 +86,28 @@ rehearsal).
 ```powershell
 kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.3/controller.yaml
 # seal the four secrets into overlays/minikube-argocd/sealed/ (see above), commit them
-kubectl create ns argocd
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+# Pinned to the exact version this runbook was rehearsed with — a floating
+# "stable" URL would change behavior without any change in this repo.
 # --server-side is required: the applicationsets CRD exceeds the 256 KiB
 # last-applied-configuration annotation limit of client-side apply.
-kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+$ArgoCdVersion = "v3.4.5"
+kubectl apply -n argocd --server-side --force-conflicts -f "https://raw.githubusercontent.com/argoproj/argo-cd/$ArgoCdVersion/manifests/install.yaml"
 kubectl apply -f argocd/ahc-minikube-test.yaml
 ```
 
-Triggering a sync without the argocd CLI (equivalent of the Sync button):
+Triggering a sync without the argocd CLI (equivalent of the Sync button; setting the
+`operation` field is the documented kubectl-level interface):
 
 ```powershell
-kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"operation":{"initiatedBy":{"username":"manual"},"sync":{"revision":"<branch>"}}}'
+kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"operation":{"initiatedBy":{"username":"manual"},"sync":{"revision":"<branch>","syncStrategy":{"hook":{}}}}}'
 ```
 
 A sync stuck waiting on resources that can never become healthy will not stop when the
-`operation` field is removed — terminate it explicitly (the Application CRD has no status
-subresource, so this patches the main object):
+`operation` field is removed. The preferred method is `argocd app terminate-op
+ahc-minikube-test`. Without the argocd CLI there is an **emergency workaround**, tested on the
+pinned version above — note it reaches into the controller's internal state, not a public
+interface (the Application CRD has no status subresource, so it patches the main object):
 
 ```powershell
 kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"status":{"operationState":{"phase":"Terminating"}}}'
@@ -127,8 +133,8 @@ local-run section only applies to `minikube-local` (kubectl path), not to ArgoCD
 ## Home cluster bootstrap (first time)
 
 1. Install k3s (keeps default Traefik ingress and local-path default StorageClass).
-2. Install ArgoCD (`kubectl apply -n argocd --server-side -f .../install.yaml` — see the
-   rehearsal section for why `--server-side`).
+2. Install ArgoCD pinned to the rehearsed version (see the rehearsal section for the exact
+   command, the version variable and why `--server-side`).
 3. `kubectl apply -f argocd/sealed-secrets.yaml` and wait for the controller.
 4. Seal the four secrets against the home cluster into `overlays/home/sealed/`, commit to `main`.
 5. Replace `ahc.example.home` in `overlays/home/{ingress-patch,configmap-patch}.yaml` with the real
