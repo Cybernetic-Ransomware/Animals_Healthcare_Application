@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -83,11 +84,50 @@ jobs:
       - name: Run tests (pytest)
         run: uv run pytest -m "not slow"
 
+  manifests:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_VERSION: "5.8.1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned kustomize
+        run: |
+          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar xz -C /usr/local/bin kustomize
+          kustomize version
+
+      - name: Render base
+        run: kustomize build kubernetes/base > /tmp/base.yaml
+
+      - name: Render ArgoCD test overlay
+        run: kustomize build kubernetes/overlays/minikube-argocd > /tmp/minikube-argocd.yaml
+
+      # overlays/home joins once its sealed/ files exist (requires the home
+      # cluster's sealed-secrets controller key).
+
+      - name: Assert sync-wave present on SealedSecrets
+        run: |
+          python3 - <<'EOF'
+          import sys, yaml
+          docs = list(yaml.safe_load_all(open("/tmp/minikube-argocd.yaml")))
+          sealed = [d for d in docs if d and d.get("kind") == "SealedSecret"]
+          assert sealed, "no SealedSecrets rendered"
+          for d in sealed:
+              wave = d["metadata"].get("annotations", {}).get("argocd.argoproj.io/sync-wave")
+              assert wave == "-3", f"{d['metadata']['name']}: sync-wave={wave!r}, expected '-3'"
+          print(f"OK: {len(sealed)} SealedSecrets at wave -3")
+          EOF
+
   publish:
     name: Publish app image to GHCR
     runs-on: ubuntu-latest
-    needs: [test, lint]
-    if: github.event_name == 'push'
+    needs: [test, lint, manifests]
+    # workflow_dispatch allows publishing a sha- tag from a feature branch
+    # (e.g. to test the branch on minikube before merge).
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
       packages: write
@@ -105,21 +145,29 @@ jobs:
       - name: Set lowercase owner
         run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
+      - name: Set image tags
+        # The prod tag moves ONLY on main: Watchtower deploys whatever prod
+        # points at, so a branch dispatch must never touch it.
+        run: |
+          TAGS="ghcr.io/${OWNER}/ahc-app:sha-${{ github.sha }}"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TAGS="${TAGS},ghcr.io/${OWNER}/ahc-app:prod"
+          fi
+          echo "TAGS=${TAGS}" >> $GITHUB_ENV
+
       - name: Build and push ahc-app
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile-app
           push: true
-          tags: |
-            ghcr.io/${{ env.OWNER }}/ahc-app:prod
-            ghcr.io/${{ env.OWNER }}/ahc-app:sha-${{ github.sha }}
+          tags: ${{ env.TAGS }}
 
   bump:
     name: Bump image tag in home overlay
     runs-on: ubuntu-latest
     needs: publish
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
     concurrency:
