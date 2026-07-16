@@ -48,7 +48,14 @@ single-node k3s cluster on the home server, with local minikube used for rehears
 8. **CI → cluster reachability**: GitHub-hosted runners cannot reach the home server, so the deploy
    signal is ArgoCD polling git (option A). The `ahc-deploy-smoke` Argo WorkflowTemplate is committed
    for manual runs, and the CI submit step is gated on `vars.ARGO_SERVER_URL` (self-disabled until a
-   self-hosted runner or tunnel exists).
+   self-hosted runner or tunnel exists). The workflow first waits until the Deployment references
+   the expected `image-tag` — otherwise a CI-triggered run could bless a stale rollout that ArgoCD
+   has not synced yet.
+9. **Data-loss guards**: the `ahc` Namespace carries `Prune=confirm,Delete=confirm` and the data
+   PVCs (`app-media-pvc`, `app-private-pvc`, `backup-data`) carry `Prune=false,Delete=false`, so
+   automated prune cannot silently remove them. The app image runs as uid 1000, and hostPath-backed
+   provisioners ignore `fsGroup`, so web/celery pods run a root `prepare-storage` initContainer
+   (mkdir + guarded chown) before the app touches the volumes.
 
 Rejected alternatives: Helm (kustomize already in place, no templating need), ArgoCD Image Updater
 (extra controller; CI commit is simpler and auditable), External Secrets Operator (requires an

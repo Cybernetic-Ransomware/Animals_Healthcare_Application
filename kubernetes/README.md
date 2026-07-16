@@ -114,7 +114,8 @@ re-sync restores it; delete a Secret → controller re-creates it from the Seale
 `kustomize edit set image ...:sha-<commit>` to `overlays/home/` (`[skip ci]`, serialized by a
 concurrency group). ArgoCD polls `main` and syncs. The `deploy-workflow` job (Argo Workflows submit)
 stays disabled until `vars.ARGO_SERVER_URL` is set — requires a self-hosted runner or tunnel.
-Manual workflow run: `kubectl apply -f workflows/` then
+The `workflows/` directory is synced by the `ahc-workflows` Application (`argocd/ahc-workflows.yaml`);
+without ArgoCD apply it manually with `kubectl apply -f workflows/`. Manual workflow run:
 `argo submit --from workflowtemplate/ahc-deploy-smoke -n argo`.
 
 If GHCR packages are private, add a `dockerconfigjson` pull secret (sealed for home) and
