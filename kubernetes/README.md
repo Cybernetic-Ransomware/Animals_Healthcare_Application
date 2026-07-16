@@ -87,8 +87,24 @@ rehearsal).
 kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.27.3/controller.yaml
 # seal the four secrets into overlays/minikube-argocd/sealed/ (see above), commit them
 kubectl create ns argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# --server-side is required: the applicationsets CRD exceeds the 256 KiB
+# last-applied-configuration annotation limit of client-side apply.
+kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl apply -f argocd/ahc-minikube-test.yaml
+```
+
+Triggering a sync without the argocd CLI (equivalent of the Sync button):
+
+```powershell
+kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"operation":{"initiatedBy":{"username":"manual"},"sync":{"revision":"<branch>"}}}'
+```
+
+A sync stuck waiting on resources that can never become healthy will not stop when the
+`operation` field is removed — terminate it explicitly (the Application CRD has no status
+subresource, so this patches the main object):
+
+```powershell
+kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"status":{"operationState":{"phase":"Terminating"}}}'
 ```
 
 Sync manually from the ArgoCD UI/CLI and verify waves and hooks. Before enabling automation on
@@ -111,7 +127,8 @@ local-run section only applies to `minikube-local` (kubectl path), not to ArgoCD
 ## Home cluster bootstrap (first time)
 
 1. Install k3s (keeps default Traefik ingress and local-path default StorageClass).
-2. Install ArgoCD (`kubectl apply -n argocd -f .../install.yaml`).
+2. Install ArgoCD (`kubectl apply -n argocd --server-side -f .../install.yaml` — see the
+   rehearsal section for why `--server-side`).
 3. `kubectl apply -f argocd/sealed-secrets.yaml` and wait for the controller.
 4. Seal the four secrets against the home cluster into `overlays/home/sealed/`, commit to `main`.
 5. Replace `ahc.example.home` in `overlays/home/{ingress-patch,configmap-patch}.yaml` with the real
