@@ -114,3 +114,69 @@ jobs:
           tags: |
             ghcr.io/${{ env.OWNER }}/ahc-app:prod
             ghcr.io/${{ env.OWNER }}/ahc-app:sha-${{ github.sha }}
+
+  bump:
+    name: Bump image tag in home overlay
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+    concurrency:
+      group: ahc-home-image-bump
+      cancel-in-progress: false
+    env:
+      KUSTOMIZE_VERSION: "5.8.1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install pinned kustomize
+        run: |
+          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar xz -C /usr/local/bin kustomize
+          kustomize version
+
+      - name: Set lowercase owner
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
+      - name: Set image tag in home overlay
+        run: |
+          cd kubernetes/overlays/home
+          kustomize edit set image "ghcr.io/${OWNER}/ahc-app=ghcr.io/${OWNER}/ahc-app:sha-${{ github.sha }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add kubernetes/overlays/home/kustomization.yaml
+          if git diff --cached --quiet; then
+            echo "No image tag change to commit."
+            exit 0
+          fi
+          git commit -m "chore(deploy): bump ahc-app to sha-${{ github.sha }} [skip ci]"
+          git push
+
+  deploy-workflow:
+    name: Submit deploy-smoke Argo Workflow
+    runs-on: ubuntu-latest
+    needs: bump
+    # Self-disabled until an Argo Server is reachable from CI (self-hosted
+    # runner or tunnel). ArgoCD auto-sync remains the primary deploy path.
+    if: github.event_name == 'push' && vars.ARGO_SERVER_URL != ''
+    steps:
+      - name: Submit workflow via Argo Server API
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.ARGO_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "${{ vars.ARGO_SERVER_URL }}/api/v1/workflows/argo/submit" \
+            -d '{
+              "resourceKind": "WorkflowTemplate",
+              "resourceName": "ahc-deploy-smoke",
+              "submitOptions": {
+                "parameters": ["image-tag=sha-${{ github.sha }}"]
+              }
+            }'
