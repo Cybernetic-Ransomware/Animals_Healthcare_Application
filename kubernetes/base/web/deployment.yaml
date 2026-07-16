@@ -14,7 +14,38 @@ spec:
       labels:
         app: ahc-web
     spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       initContainers:
+        # The app image runs as appuser (uid/gid 1000). hostPath-backed
+        # provisioners (minikube standard, k3s local-path) do not honor
+        # fsGroup, and kubelet creates subPath directories as root, so the
+        # volumes must be prepared explicitly before the app writes to them.
+        - name: prepare-storage
+          image: busybox:1.37
+          securityContext:
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              mkdir -p /mnt/media/animal_pic /mnt/media/attachments /mnt/media/profile_pics
+              [ "$(stat -c %u /mnt/media)" = "1000" ] || chown -R 1000:1000 /mnt/media
+              [ "$(stat -c %u /mnt/private)" = "1000" ] || chown -R 1000:1000 /mnt/private
+          volumeMounts:
+            - name: app-media
+              mountPath: /mnt/media
+            - name: app-private
+              mountPath: /mnt/private
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
         - name: collectstatic
           image: ghcr.io/cybernetic-ransomware/ahc-app:prod
           command: ["python", "manage.py", "collectstatic", "--noinput"]

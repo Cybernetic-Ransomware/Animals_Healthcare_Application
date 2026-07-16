@@ -14,6 +14,33 @@ spec:
       labels:
         app: celery-worker
     spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+        # Same rationale as in the web Deployment: the worker writes offline
+        # snapshots to the shared PVC as uid 1000, and the worker can start
+        # before the web pod has prepared the volume.
+        - name: prepare-storage
+          image: busybox:1.37
+          securityContext:
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              [ "$(stat -c %u /mnt/private)" = "1000" ] || chown -R 1000:1000 /mnt/private
+          volumeMounts:
+            - name: app-private
+              mountPath: /mnt/private
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
       containers:
         - name: celery-worker
           image: ghcr.io/cybernetic-ransomware/ahc-app:prod
