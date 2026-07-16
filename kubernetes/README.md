@@ -75,6 +75,12 @@ Get-Content kubernetes/overlays/minikube-local/secrets/app-secret.yaml |
 
 If the cluster is rebuilt, the controller key is gone: re-seal everything from the plain files.
 
+Note: kubeseal copies the input Secret's annotations into `spec.template.metadata` (the future
+unsealed Secret), not onto the SealedSecret object itself. The overlays therefore carry a kustomize
+patch stamping `argocd.argoproj.io/sync-wave: "-3"` on every SealedSecret — without it they would
+sync at wave 0, after the databases that need them (found the hard way during the minikube
+rehearsal).
+
 ## GitOps rehearsal on minikube (minikube-argocd)
 
 ```powershell

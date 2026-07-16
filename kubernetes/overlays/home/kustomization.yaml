@@ -25,6 +25,18 @@ patches:
   - path: ingress-patch.yaml
   - path: configmap-patch.yaml
   - path: celery-beat-patch.yaml
+  # kubeseal copies input Secret annotations into spec.template.metadata
+  # (the unsealed Secret), not onto the SealedSecret itself — without this
+  # patch SealedSecrets land in wave 0, after the databases that need them.
+  - target:
+      kind: SealedSecret
+    patch: |-
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: placeholder-overridden-by-target
+        annotations:
+          argocd.argoproj.io/sync-wave: "-3"
 
 images:
   - name: ghcr.io/cybernetic-ransomware/ahc-app
