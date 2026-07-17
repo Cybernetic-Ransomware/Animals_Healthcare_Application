@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: files-backup
+spec:
+  schedule: "0 4 * * *"
+  timeZone: "Europe/Warsaw"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: files-backup
+              image: alpine:3.21
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  stamp=$(date +%Y%m%d-%H%M%S)
+                  tar czf "/backup/media-$stamp.tar.gz" -C /data media
+                  tar czf "/backup/private-$stamp.tar.gz" -C /data private
+                  echo "written media-$stamp.tar.gz private-$stamp.tar.gz"
+                  find /backup -name 'media-*.tar.gz' -mtime +14 -delete
+                  find /backup -name 'private-*.tar.gz' -mtime +14 -delete
+              volumeMounts:
+                - name: app-media
+                  mountPath: /data/media
+                  readOnly: true
+                - name: app-private
+                  mountPath: /data/private
+                  readOnly: true
+                - name: backup
+                  mountPath: /backup
+              resources:
+                requests:
+                  memory: "32Mi"
+                  cpu: "25m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "200m"
+          volumes:
+            - name: app-media
+              persistentVolumeClaim:
+                claimName: app-media-pvc
+            - name: app-private
+              persistentVolumeClaim:
+                claimName: app-private-pvc
+            - name: backup
+              persistentVolumeClaim:
+                claimName: backup-data

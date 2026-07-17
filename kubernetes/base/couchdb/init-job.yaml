@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: couchdb-init
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  backoffLimit: 4
+  activeDeadlineSeconds: 300
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-couchdb
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - until nc -z appendixes-db 5982; do echo "waiting for couchdb"; sleep 2; done
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+            limits:
+              memory: "32Mi"
+              cpu: "50m"
+      containers:
+        - name: init
+          image: curlimages/curl:8.10.1
+          envFrom:
+            - secretRef:
+                name: couchdb-credentials
+          command:
+            - sh
+            - -c
+            - |
+              set -u
+              for db in _users _replicator appendixes; do
+                code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
+                  "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@appendixes-db:5982/${db}")
+                case "$code" in
+                  201|202|412) echo "$db: $code (ok)" ;;
+                  *) echo "$db: $code (fail)"; exit 1 ;;
+                esac
+              done
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"

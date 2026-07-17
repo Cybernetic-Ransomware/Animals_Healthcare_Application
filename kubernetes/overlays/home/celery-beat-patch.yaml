@@ -1,0 +1,9 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+spec:
+  # Kept at 0 until the cutover from the docker-compose/Watchtower stack:
+  # two live beat schedulers would send duplicate Discord notifications.
+  # Set to 1 when this cluster becomes the only production instance.
+  replicas: 0

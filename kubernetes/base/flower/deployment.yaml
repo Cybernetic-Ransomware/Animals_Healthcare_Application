@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-flower
+  labels:
+    app: flower
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flower
+  template:
+    metadata:
+      labels:
+        app: flower
+    spec:
+      containers:
+        - name: celery-flower
+          image: mher/flower:2.0.1
+          envFrom:
+            - configMapRef:
+                name: ahc-app-config
+            - secretRef:
+                name: flower-secrets
+          ports:
+            - containerPort: 5555
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 5555
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 5555
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

@@ -1,6 +1,0 @@
-#apiVersion: v1
-#kind: ConfigMap
-#metadata:
-#  name: couchdb-config
-#data:
-#  COUCHDB_PORT: "5982"
