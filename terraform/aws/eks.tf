@@ -12,6 +12,13 @@ module "eks" {
 
   cluster_endpoint_public_access = true # kubectl from a laptop; no bastion for a demo cluster
 
+  # The module defaults this to false and defines no access_entries, which
+  # leaves the cluster creator with zero API access after `apply` —
+  # `kubectl get nodes` would fail with Unauthorized. Simplicity is
+  # appropriate for a single-operator demo cluster; a longer-lived,
+  # multi-operator cluster should use explicit access_entries instead.
+  enable_cluster_creator_admin_permissions = true
+
   eks_managed_node_groups = {
     default = {
       # Pinned to one AZ/subnet: StatefulSets (postgres, couchdb) and the
