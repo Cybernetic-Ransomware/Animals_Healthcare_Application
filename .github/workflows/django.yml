@@ -13,7 +13,15 @@ on:
 # job-level concurrency on bump alone would still process B's bump before
 # A's, letting A's bump overwrite B's newer image tag — an unintended
 # GitOps rollback. Keying by ref keeps PRs on different branches from
-# blocking each other while pushes to the same branch queue in order.
+# blocking each other.
+#
+# GitHub does not guarantee strict FIFO ordering across every trigger in a
+# concurrency group: with cancel-in-progress: false, the currently running
+# workflow is protected, but only the single most recently queued run is
+# kept — an older *queued* run is cancelled outright when a newer one
+# arrives, rather than waiting its turn. For this race that is actually the
+# property we want: a stale intermediate push never runs its bump after a
+# newer one, it just never runs at all.
 concurrency:
   group: ahc-ci-${{ github.ref }}
   cancel-in-progress: false
