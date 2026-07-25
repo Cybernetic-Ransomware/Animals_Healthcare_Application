@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ahc-aws
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Cybernetic-Ransomware/Animals_Healthcare_Application.git
+    targetRevision: main
+    path: kubernetes/overlays/aws
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ahc
+  # Deliberately no automated sync policy: this is a new cluster type (EKS +
+  # ALB Controller + EBS CSI) with its own untested failure modes. Syncs are
+  # manual until a full drift/prune/sealed-secret-recovery pass has been
+  # done here, same bar ahc-home was held to before it got automation
+  # (see argocd/ahc-minikube-test.yaml for the precedent).
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

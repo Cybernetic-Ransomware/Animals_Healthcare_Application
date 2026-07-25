@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# AWS EKS overlay, synced by the ahc-aws ArgoCD Application (manual sync
+# only — see argocd/ahc-aws.yaml). Secrets are SealedSecrets encrypted with
+# this cluster's controller key. Unlike overlays/home, the image tag is NOT
+# managed by CI: this cluster is spun up/torn down per demo (see ADR-14 and
+# kubernetes/README-aws.md), so bumps are a manual
+# `kustomize edit set image` run before a demo, not an automated main-branch
+# side effect.
+#
+# The files under sealed/ must be generated with kubeseal against a real
+# EKS cluster before the first sync — see kubernetes/README-aws.md. Until
+# then `kustomize build` on this overlay fails, exactly like
+# overlays/home does today before its own sealed/ exists.
+#
+# No backup CronJobs here (unlike overlays/home): this cluster is
+# ephemeral by design — `terraform destroy` removes any backup PVC along
+# with everything else, so a same-cluster backup provides no protection.
+
+resources:
+  - ../../base
+  - sealed/app-sealedsecret.yaml
+  - sealed/postgres-sealedsecret.yaml
+  - sealed/couchdb-sealedsecret.yaml
+  - sealed/flower-sealedsecret.yaml
+  - storageclass-gp3.yaml
+  - smoke-test-job.yaml
+
+patches:
+  - path: ingress-patch.yaml
+  - path: configmap-patch.yaml
+  # kubeseal copies input Secret annotations into spec.template.metadata
+  # (the unsealed Secret), not onto the SealedSecret itself — without this
+  # patch SealedSecrets land in wave 0, after the databases that need them.
+  - target:
+      kind: SealedSecret
+    patch: |-
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: placeholder-overridden-by-target
+        annotations:
+          argocd.argoproj.io/sync-wave: "-3"
+
+images:
+  - name: ghcr.io/cybernetic-ransomware/ahc-app
+    newTag: prod

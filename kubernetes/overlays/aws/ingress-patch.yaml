@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-service
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/healthcheck-path: /livez
+    # TODO: replace with the real ACM certificate ARN (terraform output
+    # acm_certificate_arn, or a manually requested cert) before the first
+    # aws sync — the ALB Controller will fail to provision the listener
+    # without a valid certificate ARN here.
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:REGION:ACCOUNT_ID:certificate/REPLACE_ME"
+spec:
+  # Unlike nginx/Traefik, the ALB terminates TLS at the load balancer via
+  # the certificate-arn annotation above, not a k8s `tls:` block — there is
+  # no equivalent of the home overlay's commented-out `tls:` section to
+  # uncomment later; the annotation IS the TLS wiring.
+  ingressClassName: alb
+  rules:
+    # TODO: replace with the real AHC_DOMAIN before the first aws sync.
+    - host: ahc.example-aws-placeholder.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ahc-app-backend-service
+                port:
+                  number: 8000

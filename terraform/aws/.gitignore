@@ -1,0 +1,16 @@
+# Local state (deliberate — see versions.tf and ADR-14)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# Real variable values — only the .example file is committed
+*.tfvars
+!terraform.tfvars.example
+*.tfvars.json
+
+# Plan output files (may contain resolved secrets)
+*.tfplan
+tfplan

@@ -11,6 +11,7 @@ GitOps layout for ArgoCD (see [ADR-13](../doc/13_adr_gitops_argocd.md)). All app
 | `overlays/minikube-local/` | local dev loop | plain Secrets, git-ignored | `kubectl apply -k` only — **never ArgoCD** |
 | `overlays/minikube-argocd/` | GitOps rehearsal | SealedSecrets (minikube key) | `argocd/ahc-minikube-test.yaml`, manual sync |
 | `overlays/home/` | production (k3s) | SealedSecrets (home key) | `argocd/ahc-home.yaml`, auto sync from `main` |
+| `overlays/aws/` | AWS EKS demo (real cost — see [README-aws.md](README-aws.md)) | SealedSecrets (aws key) | `argocd/ahc-aws.yaml`, manual sync |
 
 Sync waves: `-3` ConfigMap/Secrets/PVCs → `-2` Postgres/CouchDB/Redis → `-1` Sync hooks
 (`ahc-migrate`, `couchdb-init`) → `0` web/celery/beat/flower → `1` Ingress → PostSync smoke test.
