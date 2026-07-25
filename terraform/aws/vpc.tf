@@ -17,8 +17,8 @@ module "vpc" {
   public_subnets  = [cidrsubnet(var.vpc_cidr, 4, 0), cidrsubnet(var.vpc_cidr, 4, 1)]
   private_subnets = [cidrsubnet(var.vpc_cidr, 4, 8), cidrsubnet(var.vpc_cidr, 4, 9)]
 
-  enable_nat_gateway = true
-  single_nat_gateway = true # one NAT gateway total, not one per AZ — cost guard
+  enable_nat_gateway   = true
+  single_nat_gateway   = true # one NAT gateway total, not one per AZ — cost guard
   enable_dns_hostnames = true
 
   # Required for the AWS Load Balancer Controller's subnet auto-discovery.
