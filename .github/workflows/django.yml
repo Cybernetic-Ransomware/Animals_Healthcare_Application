@@ -7,6 +7,17 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# Serializes the whole test -> lint -> manifests -> publish -> bump chain per
+# ref, not just the bump job. Without this, two pushes to main can race:
+# if commit A's pipeline starts first but commit B's finishes publish first,
+# job-level concurrency on bump alone would still process B's bump before
+# A's, letting A's bump overwrite B's newer image tag — an unintended
+# GitOps rollback. Keying by ref keeps PRs on different branches from
+# blocking each other while pushes to the same branch queue in order.
+concurrency:
+  group: ahc-ci-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -170,9 +181,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
-    concurrency:
-      group: ahc-home-image-bump
-      cancel-in-progress: false
     env:
       KUSTOMIZE_VERSION: "5.8.1"
     steps:
