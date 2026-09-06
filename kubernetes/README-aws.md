@@ -170,6 +170,12 @@ created by controllers running *inside* the cluster, outside Terraform's state. 
 VPC/EKS cluster out from under them orphans the ALB and EBS volumes: they keep billing
 indefinitely with nothing left able to delete them through the normal path.
 
+**If you ran a domainless rehearsal, first revert every live-only change** (HTTP-only Ingress,
+`ALLOWED_HOSTS="*"`, any temporary `nodeSelector`) — see "Running the rehearsal without a
+domain" below. They are live-cluster edits that never went into Git, so nothing else removes
+them, and an HTTP-only Ingress rebuilt from stale state leaves a misleading `OutOfSync`
+Application.
+
 ```powershell
 # 1. Let ArgoCD/kubectl clean up cluster-created AWS resources FIRST, while
 #    the ALB Controller and EBS CSI driver are still alive to process the
@@ -192,6 +198,106 @@ aws ec2 describe-volumes --region <region> --filters "Name=status,Values=availab
 If step 1 is skipped, or the cluster is already gone before it runs, the ALB and EBS volumes must
 be deleted manually via the AWS console/CLI — they will not disappear on their own and will
 continue billing.
+
+## AWS overlay specifics & rehearsal learnings
+
+Everything below is EKS-specific and was found (or confirmed) during the PR #28 rehearsal on a
+real cluster. The base manifests are unchanged; the AWS behaviour lives in
+`kubernetes/overlays/aws/` patches.
+
+### Storage: gp3, `WaitForFirstConsumer`, and sync-wave ordering
+
+- `storageclass-gp3.yaml` sets `volumeBindingMode: WaitForFirstConsumer`. An EBS volume is not
+  provisioned or bound until a Pod that mounts the PVC is scheduled — the opposite of the
+  hostPath provisioners the minikube/k3s overlays use, which bind immediately.
+- Consequence: **an app PVC must not sit in an earlier ArgoCD sync-wave than the workload that
+  consumes it.** The base puts `app-media-pvc` / `app-private-pvc` at wave `-3` (correct for
+  hostPath). On EKS that deadlocks: ArgoCD blocks on wave `-3` until the PVCs are `Bound`, but
+  nothing binds them until their consumers (`ahc-app-backend`, `celery-worker`, wave `0`) run.
+- Fix: `pvc-sync-wave-patch.yaml` moves both PVCs to wave `0` **in this overlay only**, so they
+  land alongside their consumers. Strategic-merge merges `metadata.annotations`, so the base's
+  `argocd.argoproj.io/sync-options: Prune=false,Delete=false` carries through to the rendered
+  PVC regardless; the patch also restates it so the file shows the full annotation set.
+
+### Single-node co-location of web + worker
+
+- `app-private-pvc` is `ReadWriteOnce`. gp3 EBS enforces that literally — the volume attaches to
+  one node. `ahc-app-backend` and `celery-worker` both mount it, so if the scheduler places them
+  on different nodes the second Pod fails with `Multi-Attach error for volume`.
+- The rehearsal's throwaway fix was a hardcoded `nodeSelector` on a specific
+  `kubernetes.io/hostname`. **That must never reach the repo** — the hostname is different on
+  every cluster.
+- Repo fix: `colocation-patch.yaml` gives both Pod templates the dedicated label
+  `colocation-group: app-private-rwo` and both declare the **same**
+  `requiredDuringSchedulingIgnoredDuringExecution` pod affinity selecting that label, keyed on
+  `topologyKey: kubernetes.io/hostname`. Node-name agnostic, works on any cluster.
+- Symmetric required self-affinity does not deadlock at cold start: the scheduler special-cases
+  the first Pod of an affinity group — with no Pod yet matching the selector, the Pod matching
+  its own selector, and a node satisfying the topologyKey, it places that first Pod anyway. The
+  rest of the group then has a Pod to attract to and converges onto the same node.
+- Single replica each in this demo architecture. If either workload is scaled past one replica,
+  or moved off the shared RWO volume, revisit this patch.
+
+### EBS CSI needs `ec2:DescribeInstanceTypes`
+
+- `terraform/aws/irsa.tf` sets `attach_ebs_csi_policy = true`. In iam module 5.x that attaches a
+  **module-bundled JSON snapshot** of `AmazonEBSCSIDriverPolicy`, not the live AWS-managed
+  policy — and the snapshot lags: it lacks `ec2:DescribeInstanceTypes`, which the current driver
+  calls to learn the per-instance-type volume attachment limit.
+- Denied, the driver logs `UnauthorizedOperation` and falls back to a hardcoded limit table —
+  degraded, not broken. `irsa.tf` adds a one-action inline role policy
+  (`aws_iam_role_policy.ebs_csi_describe_instance_types`) rather than bumping the iam module to
+  6.x (which would force AWS provider >= 6.28, incompatible with the eks/vpc modules here).
+
+### Production still assumes a real domain + ACM certificate
+
+The committed AWS manifests are the production shape: `ingress-patch.yaml` carries a
+`certificate-arn` placeholder and HTTPS listener, `configmap-patch.yaml` carries a placeholder
+`AHC_DOMAIN` in `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS`. With `manage_dns = false` and the
+placeholders left in place, the ALB never gets a valid listener — a safe resting state, but not
+a running app.
+
+### Running the rehearsal without a domain
+
+To exercise the full sync on a cluster with no owned domain, the rehearsal applied **live-only**
+changes directly to the running cluster (`kubectl edit` / `patch`), never committed:
+
+- **HTTP-only ALB** — on the live `ingress-service`: drop the
+  `alb.ingress.kubernetes.io/certificate-arn` and `.../ssl-redirect` annotations and set
+  `alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'`. The ALB then provisions a plain
+  port-80 listener and serves on its `*.elb.amazonaws.com` hostname.
+- **`ALLOWED_HOSTS="*"`** — on the live `ahc-app-config` ConfigMap, so Django accepts requests
+  with the ALB hostname as `Host` (which is not known ahead of time), then
+  `kubectl -n ahc rollout restart deploy/ahc-app-backend`.
+
+> **`ALLOWED_HOSTS="*"` is a rehearsal shortcut, not a production recommendation.** It disables
+> Django's Host-header validation entirely. Production must list the real domain(s).
+
+Because these live-only edits diverge from Git, ArgoCD shows the Application as `OutOfSync`.
+That is expected during a rehearsal; do not "fix" it by committing the shortcuts.
+
+### Validating the overlay locally
+
+```powershell
+# Render the overlay (needs kubernetes/overlays/aws/sealed/ to exist)
+kubectl kustomize kubernetes/overlays/aws | Out-Null
+
+# Spot-check the rehearsal invariants in the rendered output
+kubectl kustomize kubernetes/overlays/aws |
+  Select-String 'sync-wave|colocation-group|topologyKey|Multi-Attach' -Context 0,1
+
+# Terraform (no cloud credentials, no state mutation)
+terraform -chdir=terraform/aws fmt -check -recursive
+terraform -chdir=terraform/aws validate   # after `terraform -chdir=terraform/aws init -backend=false`
+
+git diff --check
+```
+
+CI (`.github/workflows/django.yml`, `manifests` job) renders this overlay and asserts the four
+SealedSecrets at wave `-3`, both app PVCs at wave `0` with `Prune=false,Delete=false` intact, the
+shared `colocation-group` label plus a matching `requiredDuringSchedulingIgnoredDuringExecution`
+pod-affinity term keyed on `kubernetes.io/hostname` on both `ahc-app-backend` and `celery-worker`,
+and that no workload pins a literal node name.
 
 ## Troubleshooting
 

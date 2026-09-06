@@ -30,6 +30,12 @@ resources:
 patches:
   - path: ingress-patch.yaml
   - path: configmap-patch.yaml
+  # gp3 is WaitForFirstConsumer, so the app PVCs must share a wave with
+  # their consumers instead of the base's wave "-3" — see the patch file.
+  - path: pvc-sync-wave-patch.yaml
+  # app-private-pvc is RWO EBS; pin web + worker to one node without a
+  # hardcoded hostname — see the patch file.
+  - path: colocation-patch.yaml
   # kubeseal copies input Secret annotations into spec.template.metadata
   # (the unsealed Secret), not onto the SealedSecret itself — without this
   # patch SealedSecrets land in wave 0, after the databases that need them.
