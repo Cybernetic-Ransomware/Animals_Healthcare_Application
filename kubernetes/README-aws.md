@@ -83,7 +83,27 @@ kubectl -n argocd port-forward svc/argocd-server 8080:443   # separate terminal
 # 6. Bootstrap sealed-secrets, then seal the 4 secrets for THIS cluster
 kubectl apply -f argocd/sealed-secrets.yaml
 kubectl -n kube-system rollout status deploy/sealed-secrets-controller
-kubeseal --controller-namespace kube-system --fetch-cert > aws.pem
+
+# 6a. Fetch the controller's PUBLIC sealing certificate.
+#     `kubeseal --controller-namespace kube-system --fetch-cert` needs a
+#     network route from your workstation to the controller Service; on an
+#     EKS cluster where that isn't reachable, kubeseal (0.39.1 observed)
+#     falls back to dialing the controller pod IP directly (e.g.
+#     10.60.x.x:8080) and times out. Read the same public cert straight
+#     from the active sealing-key Secret through the Kubernetes API instead
+#     — this pulls only `tls.crt`, the public half of the key pair; the
+#     private key never leaves the cluster:
+$CertB64 = kubectl -n kube-system get secret `
+  -l sealedsecrets.bitnami.com/sealed-secrets-key=active `
+  -o jsonpath='{.items[0].data.tls\.crt}'
+[IO.File]::WriteAllBytes(
+  (Join-Path (Get-Location) "aws.pem"),
+  [Convert]::FromBase64String($CertB64)
+)
+Get-Content .\aws.pem -TotalCount 2   # sanity check: -----BEGIN CERTIFICATE-----
+
+# 6b. Seal each secret against that cert. aws.pem holds only the public
+#     certificate, but it is git-ignored (*.pem) and stays out of the repo.
 Get-Content kubernetes/overlays/minikube-local/secrets/app-secret.yaml |
   kubeseal --cert aws.pem --format yaml |
   Set-Content kubernetes/overlays/aws/sealed/app-sealedsecret.yaml
