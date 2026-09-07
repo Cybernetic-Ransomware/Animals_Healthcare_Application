@@ -21,8 +21,12 @@ from django.urls import include, path
 from django.views.generic.base import RedirectView
 from django.views.static import serve
 
+from ahc.views import livez, readyz
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("livez", livez, name="livez"),
+    path("readyz", readyz, name="readyz"),
     path("", include("ahc.apps.homepage.urls")),
     path("user/", include("ahc.apps.users.urls")),
     path("pet/", include("ahc.apps.animals.urls")),

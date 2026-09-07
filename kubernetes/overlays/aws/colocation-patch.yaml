@@ -1,0 +1,63 @@
+# AWS-only co-location of the web and Celery worker Pods on one node.
+#
+# app-private-pvc is ReadWriteOnce, and gp3 EBS honours that literally: the
+# volume attaches to exactly one node. ahc-app-backend and celery-worker
+# both mount it, so if the scheduler spreads them across nodes the second
+# Pod stuck on "Multi-Attach error for volume". During the PR #28 rehearsal
+# this was worked around with a hardcoded nodeSelector on a specific
+# kubernetes.io/hostname — fine for a throwaway cluster, wrong for the
+# repo, because that hostname does not exist on the next cluster.
+#
+# Instead both Pods carry the dedicated label `colocation-group:
+# app-private-rwo` and both declare the SAME
+# requiredDuringSchedulingIgnoredDuringExecution pod affinity that selects
+# it, keyed on kubernetes.io/hostname. Node-name agnostic, works on any
+# cluster.
+#
+# Symmetric required self-affinity does not deadlock on a cold cluster: the
+# scheduler special-cases the first Pod of an affinity group — when no Pod
+# yet matches the selector in the term's namespace, the Pod matches its own
+# selector, and a node satisfies the topologyKey, that first Pod is placed.
+# Every later Pod in the group then has a matching Pod to attract to, so all
+# of them converge onto the same node.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ahc-app-backend
+spec:
+  template:
+    metadata:
+      labels:
+        colocation-group: app-private-rwo
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: colocation-group
+                    operator: In
+                    values:
+                      - app-private-rwo
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+spec:
+  template:
+    metadata:
+      labels:
+        colocation-group: app-private-rwo
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: colocation-group
+                    operator: In
+                    values:
+                      - app-private-rwo
+              topologyKey: kubernetes.io/hostname

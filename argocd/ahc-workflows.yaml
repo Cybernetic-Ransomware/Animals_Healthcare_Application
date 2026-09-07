@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ahc-workflows
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Cybernetic-Ransomware/Animals_Healthcare_Application.git
+    targetRevision: main
+    path: workflows
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ahc-aws
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Cybernetic-Ransomware/Animals_Healthcare_Application.git
+    targetRevision: main
+    path: kubernetes/overlays/aws
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ahc
+  # No automated sync policy, and kept that way deliberately after the
+  # 2026-09-06/07 EKS rehearsal: the target is ephemeral and costs real money,
+  # so every rollout stays a deliberate operator act. Rationale: ADR-14
+  # decision 9 and kubernetes/README-aws.md "AWS safety contract".
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

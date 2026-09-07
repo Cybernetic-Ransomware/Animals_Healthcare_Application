@@ -1,0 +1,17 @@
+# Copy to terraform.tfvars and fill in real values before `terraform apply`.
+# terraform.tfvars is git-ignored (see .gitignore) — never commit it.
+
+aws_region      = "eu-central-1"
+cluster_name    = "ahc-eks-demo"
+cluster_version = "1.34"
+vpc_cidr        = "10.60.0.0/16"
+
+node_instance_types = ["t3.medium"]
+node_desired_size   = 2
+node_min_size       = 1
+node_max_size       = 3
+
+# Leave manage_dns = false until you have a real, owned domain for
+# ACM/Route53 validation — see kubernetes/README-aws.md.
+manage_dns  = false
+domain_name = ""

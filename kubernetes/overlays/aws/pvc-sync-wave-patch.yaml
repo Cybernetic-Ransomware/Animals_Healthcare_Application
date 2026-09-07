@@ -1,0 +1,37 @@
+# AWS-only sync-wave override for the two app PVCs.
+#
+# The base manifests put app-media-pvc / app-private-pvc at sync-wave "-3"
+# so hostPath-backed clusters (minikube "standard", k3s local-path) bind
+# them immediately, well before any workload. gp3 on EKS behaves the
+# opposite way: storageclass-gp3.yaml sets volumeBindingMode
+# WaitForFirstConsumer, so the EBS volume is not provisioned or bound
+# until a consuming Pod is scheduled. Those consumers (ahc-app-backend,
+# celery-worker) run at the default wave "0", three waves later, and
+# ArgoCD will not advance past wave "-3" until its resources report
+# Healthy — a PVC that can never bind without a consumer that can never
+# start. Observed as a hard deadlock during the PR #28 EKS rehearsal.
+#
+# Moving both PVCs to wave "0" lands them in the same wave as their
+# consumers, letting WaitForFirstConsumer resolve normally.
+#
+# A strategic-merge patch merges metadata.annotations, so the base's
+# argocd.argoproj.io/sync-options survives even if this patch only touched
+# sync-wave. It is restated here purely so this file reads as the complete
+# annotation set the rendered PVC must carry — the render must keep
+# argocd.argoproj.io/sync-options: Prune=false,Delete=false so ArgoCD
+# never prunes the PVC or its backing EBS volume.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-media-pvc
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-private-pvc
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false

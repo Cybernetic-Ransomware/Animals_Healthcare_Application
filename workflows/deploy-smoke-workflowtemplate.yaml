@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: ahc-deploy-smoke
+  namespace: argo
+spec:
+  entrypoint: main
+  serviceAccountName: ahc-deployer
+  arguments:
+    parameters:
+      - name: image-tag
+        value: "prod"
+  templates:
+    - name: main
+      steps:
+        - - name: verify-image
+            template: verify-image
+        - - name: wait-rollout
+            template: rollout-status
+        - - name: smoke
+            template: smoke-test
+
+    # Guard against blessing a stale deployment: after a CI-triggered submit
+    # ArgoCD may not have synced the bump commit yet, and rollout status of
+    # the previous revision would succeed. Wait until the Deployment actually
+    # references the expected image tag first.
+    - name: verify-image
+      container:
+        image: bitnami/kubectl:1.31
+        command: [sh, -c]
+        args:
+          - >-
+            kubectl -n ahc wait deployment/ahc-app-backend
+            --for=jsonpath='{.spec.template.spec.containers[0].image}'=ghcr.io/cybernetic-ransomware/ahc-app:{{workflow.parameters.image-tag}}
+            --timeout=600s
+
+    - name: rollout-status
+      container:
+        image: bitnami/kubectl:1.31
+        command: [sh, -c]
+        args:
+          - kubectl -n ahc rollout status deployment/ahc-app-backend --timeout=300s
+
+    - name: smoke-test
+      container:
+        image: curlimages/curl:8.10.1
+        command: [sh, -c]
+        args:
+          - |
+            set -eu
+            curl -fsS -H "Host: localhost" http://ahc-app-backend-service.ahc.svc:8000/livez
+            curl -fsS -H "Host: localhost" http://ahc-app-backend-service.ahc.svc:8000/readyz

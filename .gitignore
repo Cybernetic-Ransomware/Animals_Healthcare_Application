@@ -65,6 +65,10 @@ CLAUDE.md
 /tars/
 /kubernetes/**/*.tar
 secret.yaml
+# Filled plain Secrets (templates stay tracked; SealedSecrets in sealed/ stay tracked)
+kubernetes/overlays/*/secrets/*.yaml
+# Fetched sealed-secrets controller certificates
+*.pem
 
 # Volumes
 /db/

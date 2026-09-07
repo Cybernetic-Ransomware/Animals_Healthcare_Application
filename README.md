@@ -81,11 +81,20 @@ The stack exposes: Django app on `:8000`, Flower (Celery monitor) on `:5555`.
    uv run python manage.py runserver
    ```
 
-### Kubernetes Deploy (alternative)
+### Kubernetes Deploy (GitOps via ArgoCD)
 
-An alternative to Docker Compose for production-like environments.
-See [`kubernetes/`](kubernetes/) for kustomization files and secret templates.
-Build and load images, then apply with `kubectl apply -k kubernetes/`.
+Kubernetes manifests live in `kubernetes/` as a kustomize base with four overlays
+(`minikube-local` for a plain `kubectl apply -k` dev loop, `minikube-argocd` for the GitOps
+rehearsal, `home` for the production k3s cluster synced by ArgoCD, `aws` for an EKS demo target
+provisioned by Terraform). Images are pulled from GHCR; the deployed tag for `home` is committed
+to git by CI, other overlays are bumped manually.
+
+- Operational runbook (local run, sealing secrets, rehearsal, home bootstrap, backups):
+  [`kubernetes/README.md`](kubernetes/README.md)
+- AWS EKS runbook (Terraform bootstrap, cost, **mandatory teardown**):
+  [`kubernetes/README-aws.md`](kubernetes/README-aws.md)
+- Architecture decision records: [`doc/13_adr_gitops_argocd.md`](doc/13_adr_gitops_argocd.md),
+  [`doc/14_adr_aws_eks_deployment.md`](doc/14_adr_aws_eks_deployment.md)
 
 ## Testing
 

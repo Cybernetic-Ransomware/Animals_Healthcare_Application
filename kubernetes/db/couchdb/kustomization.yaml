@@ -1,7 +1,0 @@
-resources:
-  - storage-class.yaml
-  - pv.yaml
-  - pvc.yaml
-  - secret.yaml
-  - deployment.yaml
-  - service.yaml

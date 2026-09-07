@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: appendixes-db
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  type: ClusterIP
+  selector:
+    app: couchdb
+  ports:
+    # The app expects COUCHDB_PORT=5982 (legacy custom port); the official
+    # couchdb image listens on 5984, so the Service translates 5982 -> 5984.
+    - port: 5982
+      targetPort: 5984
+      protocol: TCP
