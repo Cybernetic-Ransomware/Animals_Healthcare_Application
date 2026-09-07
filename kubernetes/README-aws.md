@@ -217,6 +217,8 @@ sections above; it is a checklist for someone who already knows the repo.
 8. Pin the image tag: `cd kubernetes/overlays/aws; kustomize edit set image
    "ghcr.io/<owner>/ahc-app=ghcr.io/<owner>/ahc-app:sha-<commit>"`.
 9. `kubectl apply -f argocd/ahc-aws.yaml`, then the manual sync patch (First sync, step 8).
+   No domain? Apply the HTTP-only Application patch from "Running the rehearsal without a
+   domain" before that first sync.
 
 **Verify**
 
@@ -255,12 +257,17 @@ had the chance to delete what they created.** Hand-deleting an `in-use` EBS volu
 last-resort recovery path, not part of this procedure — the ordered steps below exist so it
 never comes to that.
 
-**0. Revert any live-only rehearsal edits first** (domainless run: HTTP-only Ingress,
-`ALLOWED_HOSTS="*"`, any temporary `nodeSelector`) — see "Running the rehearsal without a
-domain". These are live-cluster edits that never went into Git; nothing else removes them.
+Live-only rehearsal edits need **no separate revert step**. The HTTP-only Ingress patch, the
+`ALLOWED_HOSTS="*"` ConfigMap edit and any throwaway `nodeSelector` (see "Running the rehearsal
+without a domain") all sit on resources this procedure deletes anyway: the Ingress patch goes
+with the `ahc-aws` Application at step 8, the ConfigMap value with the namespace's workloads at
+steps 3–5, a `nodeSelector` with its Deployment at step 3. Restoring the placeholder TLS
+annotations moments before the ALB is deleted would be busywork.
 
 ```powershell
-$Region = terraform -chdir=terraform/aws output -raw region
+$Region      = terraform -chdir=terraform/aws output -raw region
+$ClusterName = terraform -chdir=terraform/aws output -raw cluster_name
+$VpcId       = terraform -chdir=terraform/aws output -raw vpc_id
 
 # 1. Delete the Ingress — this is what tells the ALB Controller to delete the ALB
 kubectl -n ahc delete ingress ingress-service --ignore-not-found
@@ -306,18 +313,39 @@ kubectl delete -f argocd/ahc-aws.yaml --ignore-not-found
 # 9. Only now tear down the infrastructure
 terraform -chdir=terraform/aws destroy
 
-# 10. Post-destroy audit — every line below must come back empty
-terraform -chdir=terraform/aws state list
-aws eks list-clusters --region $Region
-aws elbv2 describe-load-balancers --region $Region --query "LoadBalancers[].LoadBalancerName"
-aws ec2 describe-nat-gateways --region $Region --filter "Name=state,Values=available" --query "NatGateways[].NatGatewayId"
-aws ec2 describe-addresses --region $Region --query "Addresses[].AllocationId"
-aws ec2 describe-volumes --region $Region --filters "Name=status,Values=available" --query "Volumes[].VolumeId"
+# 10. Post-destroy audit. "Clean" means nothing is left that belonged to THIS
+#     cluster / VPC — not that the account has zero resources. An unrelated EKS
+#     cluster, ALB, NAT gateway or Elastic IP in the same account and region is
+#     normal; leave it alone. Never delete a resource just to make a line here
+#     come back empty. Each query is scoped where a safe filter exists.
+terraform -chdir=terraform/aws state list                       # our state file — must be empty
+
+aws eks describe-cluster --name $ClusterName --region $Region    # expect: ResourceNotFoundException
+
+aws elbv2 describe-load-balancers --region $Region `
+  --query "LoadBalancers[?starts_with(LoadBalancerName, 'k8s-ahc')].LoadBalancerName"   # ALB Controller LBs for ns ahc
+
+aws ec2 describe-nat-gateways --region $Region `
+  --filter "Name=vpc-id,Values=$VpcId" "Name=state,Values=available" `
+  --query "NatGateways[].NatGatewayId"                          # NAT still live in the (now-destroyed) VPC
+
+aws ec2 describe-volumes --region $Region `
+  --filters "Name=tag:kubernetes.io/created-for/pvc/namespace,Values=ahc" `
+  --query "Volumes[].VolumeId"                                  # CSI volumes for ns ahc (same filter as step 7)
+
+# Elastic IPs carry no reliable AHC-specific tag from the VPC module, so this
+# one stays account-wide: it lists only *unassociated* addresses (the shape a
+# leaked NAT EIP takes). Do NOT release an address you cannot tie to this
+# stack — cross-check against the NAT gateway(s) above and the destroyed VPC.
+aws ec2 describe-addresses --region $Region `
+  --query "Addresses[?AssociationId==null].[AllocationId,PublicIp,Tags]"
 ```
 
 The 2026-09-06/07 rehearsal teardown ran clean this way: `terraform destroy` reported **65
-resources destroyed**, `terraform state list` was empty afterwards, and the EKS / ELBv2 / NAT
-gateway / Elastic IP / available-EBS audits all returned nothing.
+resources destroyed**, `terraform state list` was empty afterwards, `aws eks describe-cluster`
+returned `ResourceNotFoundException`, and the ALB / NAT-gateway / CSI-volume / unassociated-EIP
+checks showed nothing left for this cluster or its VPC. The account still held unrelated
+resources — expected; the audit is scoped, not an account-wide emptiness assertion.
 
 If steps 1–7 are skipped, or the cluster is destroyed before they finish, the ALB and EBS
 volumes must be cleaned up by hand via the AWS console/CLI — they do not disappear on their own
@@ -393,31 +421,67 @@ untested end to end. Everything below is how the rehearsal reached a working `/l
 
 ### Running the rehearsal without a domain
 
-The 2026-09-06/07 rehearsal ran **HTTP-only, no ACM, no domain**. The two changes that made that
-possible were applied **live-only** to the running cluster and were never committed — the
-production manifests stay HTTPS-shaped:
+The 2026-09-06/07 rehearsal ran **HTTP-only, no ACM, no domain**. Two changes made that
+possible. Neither was committed — `overlays/aws` stays HTTPS-shaped — and the Ingress change is
+**not** a `kubectl edit`/`annotate` on the live resource: the next manual ArgoCD sync re-renders
+the overlay from Git and would revert that. It goes on the `ahc-aws` **Application** instead, as
+an inline kustomize patch ArgoCD re-applies on every sync.
 
 ```powershell
-# HTTP-only ALB: strip the TLS annotations, listen on port 80 only. The ALB
-# then serves on its own *.elb.amazonaws.com hostname.
-kubectl -n ahc annotate ingress ingress-service `
-  alb.ingress.kubernetes.io/certificate-arn- alb.ingress.kubernetes.io/ssl-redirect-
-kubectl -n ahc annotate --overwrite ingress ingress-service `
-  "alb.ingress.kubernetes.io/listen-ports=[{`"HTTP`":80}]"
+# 1. HTTP-only Ingress: add a kustomize patch to the Application itself, not to
+#    the overlay in Git. It flips listen-ports to HTTP:80, drops the two TLS
+#    annotations, and removes the placeholder host so the rule matches the
+#    *.elb.amazonaws.com name the ALB answers on. --type merge deep-merges
+#    spec.source, so repoURL/targetRevision/path are kept; it only adds
+#    spec.source.kustomize (absent on this Application until now).
+@'
+spec:
+  source:
+    kustomize:
+      patches:
+        - target:
+            kind: Ingress
+            name: ingress-service
+          patch: |-
+            - op: replace
+              path: /metadata/annotations/alb.ingress.kubernetes.io~1listen-ports
+              value: '[{"HTTP":80}]'
+            - op: remove
+              path: /metadata/annotations/alb.ingress.kubernetes.io~1ssl-redirect
+            - op: remove
+              path: /metadata/annotations/alb.ingress.kubernetes.io~1certificate-arn
+            - op: remove
+              path: /spec/rules/0/host
+'@ | Set-Content patch-ahc-aws-http.yaml
+kubectl -n argocd patch application ahc-aws --type merge --patch-file patch-ahc-aws-http.yaml
 
-# ALLOWED_HOSTS="*": the ALB hostname is not known ahead of time, so Django
-# has to accept any Host header for the smoke test.
+# 2. Re-sync so ArgoCD renders the overlay with that patch applied
+kubectl -n argocd patch application ahc-aws --type merge `
+  -p '{"operation":{"initiatedBy":{"username":"manual"},"sync":{"revision":"main","syncStrategy":{"hook":{}}}}}'
+
+# 3. ALLOWED_HOSTS="*": the ALB hostname is not known ahead of time, so Django
+#    must accept any Host header for the smoke test. Nothing in the sync path
+#    rewrites this ConfigMap value, so a direct patch is fine here.
 kubectl -n ahc patch configmap ahc-app-config --type merge -p '{"data":{"ALLOWED_HOSTS":"*"}}'
 kubectl -n ahc rollout restart deploy/ahc-app-backend
+
+# 4. Smoke over plain HTTP
+kubectl -n ahc get ingress ingress-service          # note the *.elb.amazonaws.com hostname
+curl.exe -f http://<alb-hostname>/livez
+curl.exe -f http://<alb-hostname>/readyz
 ```
 
 > **`ALLOWED_HOSTS="*"` is a rehearsal shortcut, not a production recommendation.** It disables
 > Django's Host-header validation entirely. Production must list the real domain(s), and the ALB
-> must terminate TLS with a real ACM certificate.
+> must terminate TLS with a real ACM certificate — a path **not exercised** in this rehearsal
+> (see the section above).
 
-Because these live-only edits diverge from Git, ArgoCD reports the Application as `OutOfSync`
-during the rehearsal — expected. Do **not** "fix" it by committing the shortcuts into
-`overlays/aws`, and revert them before teardown (Teardown step 0).
+The `ahc-aws` Application stays `Synced` with the inline patch (it is part of the desired state
+ArgoCD renders); only the `kubectl patch` on the ConfigMap shows as `OutOfSync`, which is
+expected. Do **not** "resolve" that by committing `ALLOWED_HOSTS="*"` or the HTTP-only
+annotations into `overlays/aws`. Both changes are undone by teardown — the Application (and its
+inline patch) at "Teardown" step 8, the ConfigMap with its namespace — so there is nothing to
+revert by hand.
 
 ### Node instance type & account limits
 
