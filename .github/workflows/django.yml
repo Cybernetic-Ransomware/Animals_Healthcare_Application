@@ -197,6 +197,49 @@ jobs:
           print("OK: AWS overlay sync-waves, co-location affinity, and no node pinning")
           EOF
 
+      - name: Assert AWS deploy stays manual (cost guardrail)
+        run: |
+          python3 - <<'EOF'
+          import re, yaml
+
+          # ahc-aws must never gain an automated sync policy: the EKS target is
+          # ephemeral and cost-bearing (see README "AWS safety contract").
+          app = yaml.safe_load(open("argocd/ahc-aws.yaml"))
+          sync_policy = (app.get("spec") or {}).get("syncPolicy") or {}
+          assert "automated" not in sync_policy, \
+              "argocd/ahc-aws.yaml has spec.syncPolicy.automated -- AWS deploy must stay manual"
+
+          # ...and this workflow must not itself mutate AWS or bump the aws overlay.
+          wf = yaml.safe_load(open(".github/workflows/django.yml"))
+          jobs = wf.get("jobs", {})
+
+          def run_scripts(job):
+              for step in job.get("steps", []):
+                  if step.get("run"):
+                      yield step.get("name", "<unnamed>"), step["run"]
+
+          def code_lines(script):
+              # strip comments so a clarifying "# ...terraform apply" line can't trip the check
+              for line in script.splitlines():
+                  s = line.split(" #", 1)[0].strip()
+                  if s and not s.startswith("#"):
+                      yield s
+
+          # terraform apply/destroy in command position; anchored so this step's own source can't self-match
+          forbidden = re.compile(r"^(cd\s+\S+\s*(&&|;)\s*)?terraform\b[^#]*\b(apply|destroy)\b")
+          for jname, job in jobs.items():
+              for sname, script in run_scripts(job):
+                  for line in code_lines(script):
+                      assert not forbidden.match(line), \
+                          f"{jname}/{sname}: workflow runs a terraform apply/destroy -- forbidden"
+
+          for sname, script in run_scripts(jobs.get("bump", {})):
+              assert "overlays/aws" not in script, \
+                  f"bump/{sname}: bump job touches overlays/aws -- bump is home-only"
+
+          print("OK: ahc-aws manual-sync-only; no terraform apply/destroy in workflow; bump is home-only")
+          EOF
+
       # Terraform is validated separately below — it needs neither AWS
       # credentials nor sealed secrets.
       - name: Setup Terraform

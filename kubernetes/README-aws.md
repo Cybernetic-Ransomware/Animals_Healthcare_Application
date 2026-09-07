@@ -6,13 +6,45 @@ See [ADR-14](../doc/14_adr_aws_eks_deployment.md) for the decisions behind this 
 ⚠️ **Unlike every other target in this repo, this one costs real money while running.** Read
 "Cost" and "Teardown" before running `terraform apply`.
 
+## AWS safety contract
+
+AWS/EKS is a **cost-bearing, ephemeral** target: it is created for a demo and destroyed
+immediately after (see "Teardown"). Nothing in this repo brings it up on its own — treat the
+following as a contract, not a description of current wiring that might drift:
+
+- **CI never touches AWS.** `.github/workflows/django.yml` runs no `terraform apply`, no
+  `terraform destroy`, creates no EKS cluster, and never syncs the `ahc-aws` ArgoCD
+  Application. No job configures AWS credentials.
+- **What CI *does* do for this target:** renders and validates the `overlays/aws` kustomize
+  overlay, runs `terraform -chdir=terraform/aws fmt -check` / `validate` / `init -backend=false`
+  (no cloud, no state), and — on `push` to `main` or `workflow_dispatch` — publishes a
+  `sha-<commit>` image to GHCR.
+- **`workflow_dispatch` from a branch cannot move `prod`.** The `prod` tag is pushed only on
+  `refs/heads/main`; a branch dispatch publishes `sha-<commit>` only.
+- **An AWS deployment is two separate, deliberate operator actions:** (1) a local
+  `terraform apply` in `terraform/aws/`, then (2) a manual ArgoCD sync of `ahc-aws`.
+  Neither happens from a merge, a push, or CI.
+- **`argocd/ahc-aws.yaml` is manual-sync-only by design** (no `spec.syncPolicy.automated`),
+  and stays that way — see the comment in that file.
+- **Merge/push to `main` runs the HOME CD path, never AWS.** CI's `bump` job rewrites the image
+  tag in `kubernetes/overlays/home` only; the home k3s cluster's ArgoCD auto-syncs that. The
+  `aws` overlay's image tag is only ever bumped by hand before a demo.
+
+| | HOME CD (automatic) | AWS deployment (manual) |
+|---|---|---|
+| Trigger | push / merge to `main` | operator runs `terraform apply`, then a manual sync |
+| Image tag bump | CI `bump` job, `overlays/home` | `kustomize edit set image` by hand, `overlays/aws` |
+| ArgoCD sync | `ahc-home`, `automated: {prune, selfHeal}` | `ahc-aws`, manual only |
+| Cluster lifetime | long-running home server | created per demo, destroyed after |
+| Cost | electricity | ~$180–200/month while up |
+
 ## Layout
 
 | Path | Purpose |
 |---|---|
 | `terraform/aws/` | Provisions the EKS cluster itself: VPC, control plane, managed node group, IRSA roles, EKS addons |
 | `kubernetes/overlays/aws/` | Kustomize overlay: ALB ingress, gp3 StorageClass, SealedSecrets for this cluster |
-| `argocd/ahc-aws.yaml` | ArgoCD Application, manual sync only (new cluster type, unrehearsed) |
+| `argocd/ahc-aws.yaml` | ArgoCD Application, manual sync only (deliberate — ephemeral, cost-bearing target; see "AWS safety contract") |
 
 Terraform's scope is AWS-API-only (VPC, EKS, node group, IRSA, EKS-native addons). It does **not**
 install the AWS Load Balancer Controller or ArgoCD — both are manual, version-pinned steps below,
@@ -162,48 +194,145 @@ git push
 # then repeat the manual sync command from "First sync" step 8
 ```
 
+## Next rehearsal (short path)
+
+The full first-time bootstrap is above. Once you have done it once, this is the condensed
+loop — bring the cluster up, verify, tear it straight back down. It does not replace the
+sections above; it is a checklist for someone who already knows the repo.
+
+**Bring up**
+
+1. `aws configure` / select the SSO profile; confirm the region (`eu-central-1` in
+   `terraform.tfvars`).
+2. `cd terraform/aws; terraform init; terraform plan -out=tfplan; terraform apply tfplan`.
+3. `terraform output -raw configure_kubectl | Invoke-Expression`.
+4. `kubectl get nodes` — the managed node group is `Ready`.
+5. Install the AWS Load Balancer Controller (Bootstrap step 3 — the `helm install` block).
+6. Install ArgoCD and port-forward the UI (Bootstrap step 5).
+7. Bootstrap sealed-secrets and **reseal the 4 secrets for THIS cluster** (Bootstrap steps
+   6 / 6a / 6b). A `SealedSecret` is bound to the sealing key of the controller that encrypted
+   it — after a `terraform destroy` the ciphertexts in `kubernetes/overlays/aws/sealed/` can no
+   longer be decrypted by the new cluster's controller. Every fresh ephemeral EKS needs its own
+   4 files sealed against the new key.
+8. Pin the image tag: `cd kubernetes/overlays/aws; kustomize edit set image
+   "ghcr.io/<owner>/ahc-app=ghcr.io/<owner>/ahc-app:sha-<commit>"`.
+9. `kubectl apply -f argocd/ahc-aws.yaml`, then the manual sync patch (First sync, step 8).
+
+**Verify**
+
+10. ArgoCD `ahc-aws`: `Synced` / `Healthy` / last operation `Succeeded`, at the expected
+    revision.
+11. `kubectl -n ahc get pvc` — `app-media-pvc` and `app-private-pvc` reach `Bound` with **no
+    bootstrap Pod**; `WaitForFirstConsumer` binds them once `ahc-app-backend` / `celery-worker`
+    schedule.
+12. `kubectl -n ahc get pod -o wide` — `ahc-app-backend` and `celery-worker` land on the **same
+    node** on their own.
+13. `kubectl -n ahc get deploy ahc-app-backend celery-worker -o jsonpath='{range .items[*]}{.metadata.name}{" nodeSelector="}{.spec.template.spec.nodeSelector}{"\n"}{end}'`
+    — `nodeSelector` empty for both; co-location comes only from the
+    `requiredDuringSchedulingIgnoredDuringExecution` pod affinity on
+    `topologyKey: kubernetes.io/hostname` (label `colocation-group: app-private-rwo`).
+14. `kubectl -n kube-system logs deploy/ebs-csi-controller -c csi-provisioner --tail=50` (and
+    `-c ebs-plugin`) — no `UnauthorizedOperation` / `ec2:DescribeInstanceTypes` denials after
+    new volumes are provisioned.
+
+**Smoke**
+
+15. `kubectl -n ahc get ingress ingress-service` — note the ALB hostname, then
+    `curl.exe -f http(s)://<host>/livez` and `/readyz`.
+16. Optional: trigger one real Celery task, confirm producer → Redis → worker → success.
+
+**Then tear down immediately** — do not leave the cluster running. Follow "Teardown" below in
+full.
+
 ## Teardown
 
-**Read this before running `terraform destroy`.** Terraform has no idea an `Ingress` provisioned
-an ALB, or that a `PersistentVolumeClaim` provisioned an EBS volume — those are AWS resources
-created by controllers running *inside* the cluster, outside Terraform's state. Destroying the
-VPC/EKS cluster out from under them orphans the ALB and EBS volumes: they keep billing
-indefinitely with nothing left able to delete them through the normal path.
+**Read this before running `terraform destroy`.** The ALB and every EBS volume were created by
+controllers running *inside* the cluster (the AWS Load Balancer Controller, the EBS CSI driver),
+not by Terraform — they are invisible to Terraform state. Destroy the VPC/EKS cluster while they
+still exist and they are orphaned: they keep billing and nothing is left that can delete them
+through the normal path. **Do not run `terraform destroy` until the in-cluster controllers have
+had the chance to delete what they created.** Hand-deleting an `in-use` EBS volume is a
+last-resort recovery path, not part of this procedure — the ordered steps below exist so it
+never comes to that.
 
-**If you ran a domainless rehearsal, first revert every live-only change** (HTTP-only Ingress,
+**0. Revert any live-only rehearsal edits first** (domainless run: HTTP-only Ingress,
 `ALLOWED_HOSTS="*"`, any temporary `nodeSelector`) — see "Running the rehearsal without a
-domain" below. They are live-cluster edits that never went into Git, so nothing else removes
-them, and an HTTP-only Ingress rebuilt from stale state leaves a misleading `OutOfSync`
-Application.
+domain". These are live-cluster edits that never went into Git; nothing else removes them.
 
 ```powershell
-# 1. Let ArgoCD/kubectl clean up cluster-created AWS resources FIRST, while
-#    the ALB Controller and EBS CSI driver are still alive to process the
-#    deletions (this is the step that actually removes the ALB and EBS
-#    volumes, via their controllers' finalizers)
-kubectl delete -f argocd/ahc-aws.yaml
+$Region = terraform -chdir=terraform/aws output -raw region
+
+# 1. Delete the Ingress — this is what tells the ALB Controller to delete the ALB
 kubectl -n ahc delete ingress ingress-service --ignore-not-found
+
+# 2. Wait until the ALB is really gone (Controller deletion is async). Adjust
+#    the name filter to match your cluster if needed (ALB names look like
+#    k8s-ahc-ingressse-<hash>).
+do {
+  $albs = aws elbv2 describe-load-balancers --region $Region `
+    --query "LoadBalancers[?starts_with(LoadBalancerName, 'k8s-ahc')].LoadBalancerArn" --output text
+  if ($albs) { Write-Host "ALB still present, waiting..."; Start-Sleep 15 }
+} while ($albs)
+
+# 3. Remove the workloads that hold storage, so the EBS CSI driver can detach
+#    and delete the volumes while it is still running
+kubectl -n ahc delete deploy --all
+kubectl -n ahc delete statefulset --all
+kubectl -n ahc delete job --all --ignore-not-found
+
+# 4. Confirm nothing is left mounting a volume
+kubectl -n ahc get pods
+
+# 5. Delete the PVCs (gp3 reclaimPolicy is Delete → the CSI driver deletes the
+#    backing EBS volume)
 kubectl -n ahc delete pvc --all
-kubectl -n ahc get ingress,pvc                  # confirm empty before proceeding
 
-# 2. THEN tear down the infrastructure
-cd terraform/aws
-terraform destroy
+# 6. Confirm the cluster side is empty
+kubectl -n ahc get pvc
+kubectl get pv
+kubectl get volumeattachment
 
-# 3. Verify no orphans (belt-and-suspenders — check even after step 1)
-aws elbv2 describe-load-balancers --region <region> | findstr <cluster-name>
-aws ec2 describe-volumes --region <region> --filters "Name=status,Values=available"
+# 7. Wait until the CSI-created EBS volumes are really gone
+do {
+  $vols = aws ec2 describe-volumes --region $Region `
+    --filters "Name=tag:kubernetes.io/created-for/pvc/namespace,Values=ahc" `
+    --query "Volumes[].VolumeId" --output text
+  if ($vols) { Write-Host "EBS volumes still present, waiting..."; Start-Sleep 15 }
+} while ($vols)
+
+# 8. Only now remove the ArgoCD Application (nothing left for it to prune)
+kubectl delete -f argocd/ahc-aws.yaml --ignore-not-found
+
+# 9. Only now tear down the infrastructure
+terraform -chdir=terraform/aws destroy
+
+# 10. Post-destroy audit — every line below must come back empty
+terraform -chdir=terraform/aws state list
+aws eks list-clusters --region $Region
+aws elbv2 describe-load-balancers --region $Region --query "LoadBalancers[].LoadBalancerName"
+aws ec2 describe-nat-gateways --region $Region --filter "Name=state,Values=available" --query "NatGateways[].NatGatewayId"
+aws ec2 describe-addresses --region $Region --query "Addresses[].AllocationId"
+aws ec2 describe-volumes --region $Region --filters "Name=status,Values=available" --query "Volumes[].VolumeId"
 ```
 
-If step 1 is skipped, or the cluster is already gone before it runs, the ALB and EBS volumes must
-be deleted manually via the AWS console/CLI — they will not disappear on their own and will
-continue billing.
+The 2026-09-06/07 rehearsal teardown ran clean this way: `terraform destroy` reported **65
+resources destroyed**, `terraform state list` was empty afterwards, and the EKS / ELBv2 / NAT
+gateway / Elastic IP / available-EBS audits all returned nothing.
+
+If steps 1–7 are skipped, or the cluster is destroyed before they finish, the ALB and EBS
+volumes must be cleaned up by hand via the AWS console/CLI — they do not disappear on their own
+and keep billing.
 
 ## AWS overlay specifics & rehearsal learnings
 
 Everything below is EKS-specific and was found (or confirmed) during the PR #28 rehearsal on a
-real cluster. The base manifests are unchanged; the AWS behaviour lives in
+real cluster in `eu-central-1`. The base manifests are unchanged; the AWS behaviour lives in
 `kubernetes/overlays/aws/` patches.
+
+The 2026-09-06/07 rehearsal ran the full path end to end on commit `30c8948` — CI green, ArgoCD
+`Synced` / `Healthy` / `Succeeded`, then a fresh-storage test (scale `ahc-app-backend` and
+`celery-worker` to 0, delete both app PVCs, re-sync) that confirmed the fixes below, followed by
+a clean teardown (65 Terraform resources destroyed, no orphaned AWS resources).
 
 ### Storage: gp3, `WaitForFirstConsumer`, and sync-wave ordering
 
@@ -252,29 +381,56 @@ real cluster. The base manifests are unchanged; the AWS behaviour lives in
 ### Production still assumes a real domain + ACM certificate
 
 The committed AWS manifests are the production shape: `ingress-patch.yaml` carries a
-`certificate-arn` placeholder and HTTPS listener, `configmap-patch.yaml` carries a placeholder
+`certificate-arn` placeholder and an HTTPS listener, `configmap-patch.yaml` carries a placeholder
 `AHC_DOMAIN` in `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS`. With `manage_dns = false` and the
 placeholders left in place, the ALB never gets a valid listener — a safe resting state, but not
 a running app.
 
+**TLS/HTTPS against a real ACM certificate and a real domain was not exercised** in the
+2026-09-06/07 rehearsal (no owned domain was available). That path — `manage_dns = true`,
+`domain_name` set, `dns.tf` active, the real `certificate-arn` in `ingress-patch.yaml` — remains
+untested end to end. Everything below is how the rehearsal reached a working `/livez` without it.
+
 ### Running the rehearsal without a domain
 
-To exercise the full sync on a cluster with no owned domain, the rehearsal applied **live-only**
-changes directly to the running cluster (`kubectl edit` / `patch`), never committed:
+The 2026-09-06/07 rehearsal ran **HTTP-only, no ACM, no domain**. The two changes that made that
+possible were applied **live-only** to the running cluster and were never committed — the
+production manifests stay HTTPS-shaped:
 
-- **HTTP-only ALB** — on the live `ingress-service`: drop the
-  `alb.ingress.kubernetes.io/certificate-arn` and `.../ssl-redirect` annotations and set
-  `alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'`. The ALB then provisions a plain
-  port-80 listener and serves on its `*.elb.amazonaws.com` hostname.
-- **`ALLOWED_HOSTS="*"`** — on the live `ahc-app-config` ConfigMap, so Django accepts requests
-  with the ALB hostname as `Host` (which is not known ahead of time), then
-  `kubectl -n ahc rollout restart deploy/ahc-app-backend`.
+```powershell
+# HTTP-only ALB: strip the TLS annotations, listen on port 80 only. The ALB
+# then serves on its own *.elb.amazonaws.com hostname.
+kubectl -n ahc annotate ingress ingress-service `
+  alb.ingress.kubernetes.io/certificate-arn- alb.ingress.kubernetes.io/ssl-redirect-
+kubectl -n ahc annotate --overwrite ingress ingress-service `
+  "alb.ingress.kubernetes.io/listen-ports=[{`"HTTP`":80}]"
+
+# ALLOWED_HOSTS="*": the ALB hostname is not known ahead of time, so Django
+# has to accept any Host header for the smoke test.
+kubectl -n ahc patch configmap ahc-app-config --type merge -p '{"data":{"ALLOWED_HOSTS":"*"}}'
+kubectl -n ahc rollout restart deploy/ahc-app-backend
+```
 
 > **`ALLOWED_HOSTS="*"` is a rehearsal shortcut, not a production recommendation.** It disables
-> Django's Host-header validation entirely. Production must list the real domain(s).
+> Django's Host-header validation entirely. Production must list the real domain(s), and the ALB
+> must terminate TLS with a real ACM certificate.
 
-Because these live-only edits diverge from Git, ArgoCD shows the Application as `OutOfSync`.
-That is expected during a rehearsal; do not "fix" it by committing the shortcuts.
+Because these live-only edits diverge from Git, ArgoCD reports the Application as `OutOfSync`
+during the rehearsal — expected. Do **not** "fix" it by committing the shortcuts into
+`overlays/aws`, and revert them before teardown (Teardown step 0).
+
+### Node instance type & account limits
+
+`terraform.tfvars.example` defaults `node_instance_types` to `["t3.medium"]`. During the
+2026-09-06/07 rehearsal AWS rejected `t3.medium` for this account (a Free-plan / new-account
+capacity or eligibility limit, not a repo problem); the run used `c7i-flex.large` set in the
+**local, git-ignored** `terraform/aws/terraform.tfvars`.
+
+- The workable instance type depends on the AWS account's limits and eligibility — expect to
+  override it.
+- If the default type is rejected, set `node_instance_types` in your local `terraform.tfvars`
+  and re-`apply`. Do **not** commit an account-specific size into `terraform.tfvars.example`
+  (and don't change that file's default without a repo-wide reason).
 
 ### Validating the overlay locally
 
@@ -298,6 +454,11 @@ SealedSecrets at wave `-3`, both app PVCs at wave `0` with `Prune=false,Delete=f
 shared `colocation-group` label plus a matching `requiredDuringSchedulingIgnoredDuringExecution`
 pod-affinity term keyed on `kubernetes.io/hostname` on both `ahc-app-backend` and `celery-worker`,
 and that no workload pins a literal node name.
+
+A second static check in the same job — "Assert AWS deploy stays manual (cost guardrail)" —
+fails CI if `argocd/ahc-aws.yaml` ever gains a `spec.syncPolicy.automated` block, if this
+workflow ever runs `terraform apply` / `terraform destroy`, or if the `bump` job ever touches
+`kubernetes/overlays/aws`. It renders and validates the overlay; it never deploys it.
 
 ## Troubleshooting
 

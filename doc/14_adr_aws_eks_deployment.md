@@ -4,7 +4,9 @@
 `2026-07-25`
 
 ### Status
-Proposed
+Done — design implemented and rehearsed end to end on a real EKS cluster in `eu-central-1`
+on 2026-09-06/07 (commit `30c8948`), including a clean `terraform destroy`. Manual sync is a
+kept, deliberate safety property, not a pre-automation phase (decision 9).
 
 ### Context
 ADR-13 covers two GitOps targets — local minikube and the home k3s cluster — both assuming a
@@ -43,9 +45,11 @@ overlays had to solve (k3s ships Traefik and local-path storage out of the box).
    annotations) over ingress-nginx + cert-manager. Native AWS integration, ACM handles certificate
    renewal automatically, and it avoids running an extra ingress controller plus cert-manager pair
    on a small demo node group. IAM policies are attached via the module's
-   `attach_load_balancer_controller_policy` / `attach_ebs_csi_policy` flags rather than vendoring
-   AWS's published JSON policy documents — the module tracks upstream policy changes across its
-   own releases.
+   `attach_load_balancer_controller_policy` / `attach_ebs_csi_policy` flags rather than
+   hand-writing role policies. Note (rehearsal finding): those flags attach a JSON **snapshot the
+   iam module bundles**, not the live AWS-managed policy, and the snapshot can lag upstream — the
+   EBS CSI role needed a one-action supplement for `ec2:DescribeInstanceTypes` (see Consequences
+   and `terraform/aws/irsa.tf`).
 6. **`gp3` StorageClass** shipped as a plain kustomize resource inside `overlays/aws` (wave `-3`,
    `is-default-class: "true"`), not a per-PVC `storageClassName` patch and not Terraform-managed.
    No PVC or `volumeClaimTemplate` in `kubernetes/base` sets `storageClassName` — this keeps base
@@ -63,19 +67,23 @@ overlays had to solve (k3s ships Traefik and local-path storage out of the box).
    harmless no-op. Removing it would need a JSON-patch deleting an initContainer array element from
    a shared base Deployment, which is more overlay complexity than the no-op it would avoid, and it
    would make the pod spec structurally diverge between overlays.
-9. **`argocd/ahc-aws.yaml` starts manual-sync-only** (no `automated:` block), mirroring the
-   precedent `ahc-minikube-test` set for `ahc-home`: a new, unrehearsed cluster type gets observed
-   step by step before any automation, promoted only after a drift/prune/secret-recovery pass.
-10. **Not wired into CI's `bump`/`publish` flow.** `django.yml`'s `bump` job stays scoped to
-    `overlays/home` only. Automating deploys to a cluster that is intermittently created and
-    destroyed is actively wasteful and risky — a bump commit landing while the cluster doesn't
-    exist just means a future `terraform apply` and first sync silently pick up whatever tag
-    happens to be pinned. The image tag for `overlays/aws` is bumped manually
-    (`kustomize edit set image`) before each demo, the same way `overlays/minikube-argocd` is
-    pinned manually via `gh workflow run ... --ref <branch>` today. For the same reason, the CI
-    `manifests` job does not render `overlays/aws` yet — it already skips `overlays/home` today
-    for the identical reason (`sealed/` doesn't exist until a real cluster has sealed it); adding
-    the aws render is a follow-up once its `sealed/` exists.
+9. **`argocd/ahc-aws.yaml` is manual-sync-only** (no `automated:` block). This began as the
+   same "observe a new cluster type before automating" bar `ahc-minikube-test` set for
+   `ahc-home`; after the 2026-09-06/07 rehearsal it is **kept manual on purpose**, not promoted.
+   The EKS target is ephemeral and cost-bearing — created per demo with `terraform apply`,
+   destroyed straight after, absent in between. Auto-syncing a cluster that usually does not
+   exist buys nothing and adds a path for a routine `main` push to read as an AWS deploy. Every
+   AWS rollout stays two deliberate operator acts: a local `terraform apply`, then a manual sync.
+10. **Not wired into CI's `bump`/`publish` deploy flow.** `django.yml`'s `bump` job stays scoped
+    to `overlays/home` only, and no job runs `terraform apply`/`destroy` or syncs `ahc-aws` —
+    automating deploys to an intermittently-existing cluster is wasteful and risky. The
+    `overlays/aws` image tag is bumped by hand (`kustomize edit set image`) before each demo,
+    like `overlays/minikube-argocd`. CI **does** now render and statically validate
+    `overlays/aws` in the `manifests` job (its `sealed/` files exist as of PR #28): assertions
+    cover the rehearsal invariants (SealedSecret waves, PVC waves, co-location affinity, no node
+    pinning) plus a guardrail that fails if `ahc-aws` gains `automated:`, if the workflow gains a
+    `terraform apply`/`destroy`, or if `bump` starts touching `overlays/aws`. Render/validate
+    only — never deploy.
 11. **No backup CronJobs on this overlay.** `overlays/home`'s `pg-backup`/`couchdb-export`/
     `files-backup` protect a long-running cluster; this cluster is explicitly spin-up/tear-down —
     `terraform destroy` removes any backup PVC along with everything else, so a same-cluster backup
@@ -112,6 +120,21 @@ ALB Controller (kept manual, decision 4); S3 remote state (local state, delibera
   demo/rehearsal environment, not a second production system.
 - CI never deploys here automatically; every rollout is a deliberate manual act — slower than
   `overlays/home`'s auto-sync, which is the point.
+- **The design was rehearsed end to end on a real EKS cluster (2026-09-06/07, `eu-central-1`,
+  commit `30c8948`)** and torn down cleanly (`terraform destroy` — 65 resources; no orphaned
+  ALB / EBS / NAT / EIP). Three EKS-only behaviours surfaced and are now folded into the
+  `overlays/aws` design (details in `kubernetes/README-aws.md`):
+  - *gp3 `WaitForFirstConsumer` vs sync-wave* — the base app PVCs at wave `-3` deadlock ArgoCD
+    on EKS (nothing binds them until a consumer schedules at wave `0`); the overlay patches
+    both PVCs to wave `0`.
+  - *ReadWriteOnce co-location* — `app-private-pvc` is RWO and mounted by both `ahc-app-backend`
+    and `celery-worker`; the overlay co-locates them with a `colocation-group` label +
+    `requiredDuringSchedulingIgnoredDuringExecution` pod affinity on
+    `topologyKey: kubernetes.io/hostname`, no hardcoded node name.
+  - *EBS CSI IAM gap* — the iam module's bundled EBS CSI policy snapshot lacks
+    `ec2:DescribeInstanceTypes`; `irsa.tf` adds a one-action inline supplement.
+- TLS/HTTPS against a real ACM certificate + owned domain was **not** exercised (the rehearsal
+  ran HTTP-only, domainless, with live-only `ALLOWED_HOSTS="*"`); that path remains untested.
 
 ### Keywords
 - EKS,
