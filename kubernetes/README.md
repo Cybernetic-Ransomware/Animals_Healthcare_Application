@@ -123,9 +123,12 @@ re-sync restores it; delete a Secret → controller re-creates it from the Seale
 
 ### v3.5.2 rehearsal (2026-09-08)
 
-`v3.4.5 → v3.5.2` in-place upgrade on minikube (Kubernetes v1.31.0; ArgoCD 3.5 is upstream-tested
-on 1.34, so re-check on the home k3s version too) via the `kubectl apply -n argocd --server-side
---force-conflicts` command above. Results:
+`v3.4.5 → v3.5.2` in-place upgrade on minikube via the `kubectl apply -n argocd --server-side
+--force-conflicts` command above. ArgoCD 3.5 is upstream-tested with Kubernetes 1.33–1.36; the
+minikube cluster used here runs **v1.31.0**, one minor below that matrix — the rehearsal passed
+regardless, but that is not an upstream-supported combination. Confirm the target's Kubernetes
+version is in 1.33–1.36 before applying this bump anywhere else (see the home-cluster note
+below). Results:
 
 - All seven ArgoCD components rolled to `quay.io/argoproj/argocd:v3.5.2` and returned Ready;
   `argocd-dex-server` moved `v2.45.0 → v2.45.1` as part of the upstream manifest (not a repo
@@ -150,6 +153,12 @@ on 1.34, so re-check on the home k3s version too) via the `kubectl apply -n argo
   `kubectl apply -f argocd/ahc-minikube-test.yaml`.
 - AWS/EKS was **not** re-rehearsed (see `README-aws.md`); only the `overlays/aws` render and the
   cost guardrails were re-checked statically.
+- **Home k3s not yet checked.** The home cluster is not bootstrapped (`overlays/home/sealed/`
+  absent, no `home` kube-context on the workstation), so its server version could not be read.
+  Before installing/upgrading ArgoCD to v3.5.2 on home: `kubectl --context <home> version` and
+  confirm the server is in **1.33–1.36**. If home k3s is older than 1.33, upgrade k3s first —
+  do **not** put ArgoCD 3.5 on an out-of-matrix Kubernetes on the production target (minikube's
+  1.31 result does not transfer).
 
 **Testing branch code through ArgoCD (the honest path):** manifests come from the branch, but
 `newTag: prod` points at an image built from an older `main` — a hybrid test proves nothing.
