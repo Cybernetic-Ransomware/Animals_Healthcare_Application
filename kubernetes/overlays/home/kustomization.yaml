@@ -10,34 +10,35 @@ kind: Kustomization
 # home cluster before the first sync — see kubernetes/README.md.
 
 resources:
-  - ../../base
-  - sealed/app-sealedsecret.yaml
-  - sealed/postgres-sealedsecret.yaml
-  - sealed/couchdb-sealedsecret.yaml
-  - sealed/flower-sealedsecret.yaml
-  - backup/backup-pvc.yaml
-  - backup/pg-backup-cronjob.yaml
-  - backup/couchdb-export-cronjob.yaml
-  - backup/files-backup-cronjob.yaml
-  - smoke-test-job.yaml
+- ../../base
+- sealed/app-sealedsecret.yaml
+- sealed/postgres-sealedsecret.yaml
+- sealed/couchdb-sealedsecret.yaml
+- sealed/flower-sealedsecret.yaml
+- backup/backup-pvc.yaml
+- backup/pg-backup-cronjob.yaml
+- backup/couchdb-export-cronjob.yaml
+- backup/files-backup-cronjob.yaml
+- smoke-test-job.yaml
 
-patches:
-  - path: ingress-patch.yaml
-  - path: configmap-patch.yaml
-  - path: celery-beat-patch.yaml
   # kubeseal copies input Secret annotations into spec.template.metadata
   # (the unsealed Secret), not onto the SealedSecret itself — without this
   # patch SealedSecrets land in wave 0, after the databases that need them.
-  - target:
-      kind: SealedSecret
-    patch: |-
-      apiVersion: bitnami.com/v1alpha1
-      kind: SealedSecret
-      metadata:
-        name: placeholder-overridden-by-target
-        annotations:
-          argocd.argoproj.io/sync-wave: "-3"
+patches:
+- path: ingress-patch.yaml
+- path: configmap-patch.yaml
+- path: celery-beat-patch.yaml
+- patch: |-
+    apiVersion: bitnami.com/v1alpha1
+    kind: SealedSecret
+    metadata:
+      name: placeholder-overridden-by-target
+      annotations:
+        argocd.argoproj.io/sync-wave: "-3"
+  target:
+    kind: SealedSecret
 
 images:
-  - name: ghcr.io/cybernetic-ransomware/ahc-app
-    newTag: prod
+- name: ghcr.io/cybernetic-ransomware/ahc-app
+  newName: ghcr.io/cybernetic-ransomware/ahc-app
+  newTag: sha-c41d7b1a2196b222143b20932040930167de3639
