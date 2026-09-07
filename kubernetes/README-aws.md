@@ -106,9 +106,12 @@ kubectl get storageclass
 
 # 5. Install ArgoCD — same pinned version/flags as the minikube/home rehearsal
 #    (deliberately NO Ingress for ArgoCD itself: reach the UI via port-forward,
-#    sidestepping the ALB Controller/ArgoCD chicken-and-egg entirely)
+#    sidestepping the ALB Controller/ArgoCD chicken-and-egg entirely).
+#    v3.5.2 was rehearsed on minikube only (see kubernetes/README.md "v3.5.2
+#    rehearsal"); this EKS path was last run end to end on the 2026-09-06/07
+#    v3.4.5-era rehearsal and not re-exercised for the version bump.
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-$ArgoCdVersion = "v3.4.5"   # keep in sync with kubernetes/README.md's pinned version
+$ArgoCdVersion = "v3.5.2"   # keep in sync with kubernetes/README.md's pinned version (exact-version pin, never "stable")
 kubectl apply -n argocd --server-side --force-conflicts -f "https://raw.githubusercontent.com/argoproj/argo-cd/$ArgoCdVersion/manifests/install.yaml"
 kubectl -n argocd port-forward svc/argocd-server 8080:443   # separate terminal
 

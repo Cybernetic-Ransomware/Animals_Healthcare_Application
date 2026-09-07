@@ -90,9 +90,12 @@ kubectl apply -f https://github.com/bitnami-labs/sealed-secrets/releases/downloa
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 # Pinned to the exact version this runbook was rehearsed with — a floating
 # "stable" URL would change behavior without any change in this repo.
+# ArgoCD 3.5's repo-server bundles Helm 4.2.x (was Helm 3 in 3.4.x); the
+# argo-workflows Helm chart render was re-checked under Helm 4 during the
+# v3.5.2 rehearsal (see "GitOps rehearsal" notes below).
 # --server-side is required: the applicationsets CRD exceeds the 256 KiB
 # last-applied-configuration annotation limit of client-side apply.
-$ArgoCdVersion = "v3.4.5"
+$ArgoCdVersion = "v3.5.2"
 kubectl apply -n argocd --server-side --force-conflicts -f "https://raw.githubusercontent.com/argoproj/argo-cd/$ArgoCdVersion/manifests/install.yaml"
 kubectl apply -f argocd/ahc-minikube-test.yaml
 ```
@@ -106,9 +109,9 @@ kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"operati
 
 A sync stuck waiting on resources that can never become healthy will not stop when the
 `operation` field is removed. The preferred method is `argocd app terminate-op
-ahc-minikube-test`. Without the argocd CLI there is an **emergency workaround**, tested on the
-pinned version above — note it reaches into the controller's internal state, not a public
-interface (the Application CRD has no status subresource, so it patches the main object):
+ahc-minikube-test`. Without the argocd CLI there is an **emergency workaround** (first verified
+on v3.4.5, still applies on v3.5.2) — note it reaches into the controller's internal state, not
+a public interface (the Application CRD has no status subresource, so it patches the main object):
 
 ```powershell
 kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"status":{"operationState":{"phase":"Terminating"}}}'
@@ -117,6 +120,45 @@ kubectl -n argocd patch application ahc-minikube-test --type merge -p '{"status"
 Sync manually from the ArgoCD UI/CLI and verify waves and hooks. Before enabling automation on
 home, pass the drift tests: `kubectl edit` a resource → diff shows drift; delete a Deployment →
 re-sync restores it; delete a Secret → controller re-creates it from the SealedSecret.
+
+### v3.5.2 rehearsal (2026-09-08)
+
+`v3.4.5 → v3.5.2` in-place upgrade on minikube via the `kubectl apply -n argocd --server-side
+--force-conflicts` command above. ArgoCD 3.5 is upstream-tested with Kubernetes 1.33–1.36; the
+minikube cluster used here runs **v1.31.0**, one minor below that matrix — the rehearsal passed
+regardless, but that is not an upstream-supported combination. Confirm the target's Kubernetes
+version is in 1.33–1.36 before applying this bump anywhere else (see the home-cluster note
+below). Results:
+
+- All seven ArgoCD components rolled to `quay.io/argoproj/argocd:v3.5.2` and returned Ready;
+  `argocd-dex-server` moved `v2.45.0 → v2.45.1` as part of the upstream manifest (not a repo
+  change). The `applications.argoproj.io` CRD is unchanged (`v1alpha1` served/stored); the
+  existing `ahc-minikube-test` Application survived the upgrade.
+- **repo-server now bundles Helm `v4.2.1`** (was Helm 3 on 3.4.x). `argocd/argo-workflows.yaml`
+  (`argo-workflows` chart `0.45.11` from `https://argoproj.github.io/argo-helm`) renders and
+  syncs clean under Helm 4 — Application `Synced` / `Healthy`, `workflow-controller` and
+  `server` Deployments up, and a hard refresh after settling shows **no manifest drift** from
+  the Helm-3 → Helm-4 change. `ahc-workflows` (Git + plain manifests) also `Synced` / `Healthy`.
+- `ahc-minikube-test`: manual sync → `Synced` / `Healthy`. Sync-wave order preserved
+  (`-3` config/PVC/SealedSecrets → `-2` data stores → `-1` **Sync-phase** `ahc-migrate` /
+  `couchdb-init` hooks → `0` app workloads → `1` Ingress). Drift detection, deleted-Deployment
+  restore-on-sync, and SealedSecret → Secret re-creation all still pass. `automated`
+  `prune` + `selfHeal` semantics (as on `ahc-home`) verified on the auto-sync Applications.
+- **Gotcha:** a stale in-flight `.operation` left on an Application by an earlier rehearsal
+  survives the upgrade and makes every subsequent manual sync a no-op that reports
+  `Succeeded` while the app stays `OutOfSync` (the operation carries the old
+  `source`/`targetRevision`). Clear it by re-applying the Application fresh:
+  `kubectl -n argocd delete application ahc-minikube-test --cascade=orphan` (no
+  `resources-finalizer` → the `ahc` workloads are left running), then
+  `kubectl apply -f argocd/ahc-minikube-test.yaml`.
+- AWS/EKS was **not** re-rehearsed (see `README-aws.md`); only the `overlays/aws` render and the
+  cost guardrails were re-checked statically.
+- **Home k3s not yet checked.** The home cluster is not bootstrapped (`overlays/home/sealed/`
+  absent, no `home` kube-context on the workstation), so its server version could not be read.
+  Before installing/upgrading ArgoCD to v3.5.2 on home: `kubectl --context <home> version` and
+  confirm the server is in **1.33–1.36**. If home k3s is older than 1.33, upgrade k3s first —
+  do **not** put ArgoCD 3.5 on an out-of-matrix Kubernetes on the production target (minikube's
+  1.31 result does not transfer).
 
 **Testing branch code through ArgoCD (the honest path):** manifests come from the branch, but
 `newTag: prod` points at an image built from an older `main` — a hybrid test proves nothing.
