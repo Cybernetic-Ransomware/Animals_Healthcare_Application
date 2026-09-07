@@ -14,7 +14,7 @@ dependencies = [
     "discord",
     "python-decouple",
     "pillow>=12.3.0",
-    "cryptography>=43",
+    "cryptography>=50",
     "cffi>=1.17",
     "django-taggit",
     "django-timezone-field>=6.1",
