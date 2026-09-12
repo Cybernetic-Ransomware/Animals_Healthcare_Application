@@ -44,6 +44,18 @@ Scheduled reminders for upcoming visits and vaccinations are delivered via Disco
 
 Copy `.env.template` to `.env` and fill in the values — all required variables and their descriptions are documented in the template file.
 
+## Deployment model
+
+**Current always-on deployment:** Docker Compose + GHCR + Watchtower (`docker/docker-compose-traefik.yml`
++ `docker/docker-compose.cd.yml`, `just watchtower-deploy` skill / `Makefile`). This is the cheap,
+continuously-running production path and stays that way.
+
+Kubernetes / ArgoCD / Argo Workflows are a **test, learning, and rehearsal track** — validating GitOps,
+manifests, and future deployment options — not a required production target today. AWS/EKS is an
+**ephemeral demo/rehearsal** environment with no standing deployment. A HOME k3s cluster is an
+**optional future migration**, not yet bootstrapped, and not required to keep developing the
+application. See [`kubernetes/README.md`](kubernetes/README.md) for the full breakdown.
+
 ## Getting Started
 
 ### Docker Deploy
@@ -81,13 +93,14 @@ The stack exposes: Django app on `:8000`, Flower (Celery monitor) on `:5555`.
    uv run python manage.py runserver
    ```
 
-### Kubernetes Deploy (GitOps via ArgoCD)
+### Kubernetes Deploy (GitOps via ArgoCD) — rehearsal / learning track
 
+This is not the current production path — see [Deployment model](#deployment-model) above.
 Kubernetes manifests live in `kubernetes/` as a kustomize base with four overlays
 (`minikube-local` for a plain `kubectl apply -k` dev loop, `minikube-argocd` for the GitOps
-rehearsal, `home` for the production k3s cluster synced by ArgoCD, `aws` for an EKS demo target
-provisioned by Terraform). Images are pulled from GHCR; the deployed tag for `home` is committed
-to git by CI, other overlays are bumped manually.
+rehearsal, `home` for a future k3s cluster synced by ArgoCD (not yet bootstrapped), `aws` for an
+EKS demo target provisioned by Terraform). Images are pulled from GHCR; the deployed tag for
+`home` is committed to git by CI, other overlays are bumped manually.
 
 - Operational runbook (local run, sealing secrets, rehearsal, home bootstrap, backups):
   [`kubernetes/README.md`](kubernetes/README.md)

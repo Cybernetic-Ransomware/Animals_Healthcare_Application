@@ -6,6 +6,11 @@
 ### Status
 In-building
 
+**2026-09 update:** the "target" language below describes this ADR's own goal for the Kubernetes
+track, not the current deployment reality. The actual always-on production deployment remains
+Docker Compose + GHCR + Watchtower; the home k3s cluster this ADR targets is not yet bootstrapped.
+This track stays a GitOps rehearsal/learning effort until that migration is deliberately executed.
+
 ### Context
 Production deployment is pull-based Watchtower polling the `prod` image tag on a docker-compose stack.
 The `kubernetes/` manifests were a leftover from a local minikube workflow: `imagePullPolicy: Never`,
