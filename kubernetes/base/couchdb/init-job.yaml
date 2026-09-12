@@ -28,7 +28,7 @@ spec:
               cpu: "50m"
       containers:
         - name: init
-          image: curlimages/curl:8.10.1
+          image: curlimages/curl:8.22.0
           envFrom:
             - secretRef:
                 name: couchdb-credentials
@@ -38,8 +38,8 @@ spec:
             - |
               set -u
               for db in _users _replicator appendixes; do
-                code=$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
-                  "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@appendixes-db:5982/${db}")
+                code=$(curl -s --user "${COUCHDB_USER}:${COUCHDB_PASSWORD}" -o /dev/null -w '%{http_code}' -X PUT \
+                  "http://appendixes-db:5982/${db}")
                 case "$code" in
                   201|202|412) echo "$db: $code (ok)" ;;
                   *) echo "$db: $code (fail)"; exit 1 ;;

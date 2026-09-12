@@ -2,9 +2,10 @@
 *.tfstate
 *.tfstate.*
 .terraform/
-.terraform.lock.hcl
 crash.log
 crash.*.log
+
+# .terraform.lock.hcl is committed deliberately -- pins provider versions so CI's -lockfile=readonly fails on drift.
 
 # Real variable values — only the .example file is committed
 *.tfvars

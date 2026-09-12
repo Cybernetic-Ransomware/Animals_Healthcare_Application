@@ -1,7 +1,5 @@
 FROM couchdb:3.5.2
 
-ARG COUCHDB_USER
-ARG COUCHDB_PASSWORD
-
+# No ARG/ENV credentials here -- docker history --no-trunc leaked them in plaintext before; runtime-only now, see setup_couchdb.sh.
 COPY docker/setup_couchdb.sh setup_couchdb.sh
 RUN chmod +x setup_couchdb.sh && sh setup_couchdb.sh

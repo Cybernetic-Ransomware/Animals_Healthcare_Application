@@ -7,6 +7,10 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# Least-privilege default; publish/bump declare their own broader permissions below.
+permissions:
+  contents: read
+
 # Serializes the whole test -> lint -> manifests -> publish -> bump chain per
 # ref, not just the bump job. Without this, two pushes to main can race:
 # if commit A's pipeline starts first but commit B's finishes publish first,
@@ -31,11 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup uv
-        # setup-uv publishes no moving major tag past v7; pin the exact release.
-        uses: astral-sh/setup-uv@v10.0.1
+        # SHA-pinned to v10.1.0; the trailing comment only labels the SHA, it isn't the pin.
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -86,11 +90,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup uv
-        # setup-uv publishes no moving major tag past v7; pin the exact release.
-        uses: astral-sh/setup-uv@v10.0.1
+        # SHA-pinned to v10.1.0; the trailing comment only labels the SHA, it isn't the pin.
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -112,12 +116,17 @@ jobs:
       KUSTOMIZE_VERSION: "5.8.1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install pinned kustomize
+      - name: Install pinned kustomize (checksum-verified)
+        env:
+          # sha256 for kustomize_v5.8.1_linux_amd64.tar.gz, per the release's checksums.txt.
+          KUSTOMIZE_SHA256: "029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d"
         run: |
-          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
-            | tar xz -C /usr/local/bin kustomize
+          curl -fsSL -o kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          echo "${KUSTOMIZE_SHA256}  kustomize.tar.gz" | sha256sum -c -
+          tar xz -C /usr/local/bin -f kustomize.tar.gz kustomize
+          rm kustomize.tar.gz
           kustomize version
 
       - name: Render base
@@ -245,7 +254,7 @@ jobs:
       # Terraform is validated separately below — it needs neither AWS
       # credentials nor sealed secrets.
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "1.9.8"
 
@@ -253,10 +262,60 @@ jobs:
         run: terraform -chdir=terraform/aws fmt -check -recursive
 
       - name: Terraform init (no backend, no cloud credentials needed)
-        run: terraform -chdir=terraform/aws init -backend=false
+        # -lockfile=readonly: fail instead of silently re-resolving provider versions.
+        run: terraform -chdir=terraform/aws init -backend=false -lockfile=readonly
 
       - name: Terraform validate
         run: terraform -chdir=terraform/aws validate
+
+  compose-validate:
+    name: Validate production Compose stack
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Render combined Compose config
+        # Fictitious values only; catches broken YAML/interpolation before merge, no daemon needed.
+        env:
+          AHC_DOMAIN: "ahc.example.test"
+          APP_IMAGE_TAG: "sha-0000000000000000000000000000000000000000"
+          POSTGRES_DB: "ahc_test"
+          POSTGRES_USER: "ahc_test"
+          POSTGRES_PASSWORD: "test-password"
+          COUCHDB_USER: "ahc_test"
+          COUCHDB_PASSWORD: "test-password"
+          COUCHDB_PORT: "5982"
+          CELERY_BROKER_URL: "redis://redis:6379/0"
+          FLOWER_PORT: "5555"
+          FLOWER_BASIC_AUTH: "test:test-password"
+          DB_VOLUMEN_POSTGRES: "/tmp/ahc-ci-fake/postgres"
+          DB_VOLUMEN_COUCH: "/tmp/ahc-ci-fake/couchdb"
+          VOLUMEN_PRIVATE_STORAGE: "/tmp/ahc-ci-fake/private"
+        run: |
+          mkdir -p /tmp/ahc-ci-fake/postgres /tmp/ahc-ci-fake/couchdb /tmp/ahc-ci-fake/private
+          # web/queue/celery_beat load env_file: ../.env; a real checkout has none.
+          touch .env
+          docker compose \
+            -f docker/docker-compose-traefik.yml \
+            -f docker/docker-compose.cd.yml \
+            config
+
+  build-validate:
+    name: Build ahc-app image (validation only, no push)
+    runs-on: ubuntu-latest
+    # publish (below) already builds+pushes on push/dispatch; this just gives PRs a build signal.
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build ahc-app (no push)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: docker/Dockerfile-app
+          push: false
 
   publish:
     name: Publish app image to GHCR
@@ -270,10 +329,10 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -293,7 +352,7 @@ jobs:
           echo "TAGS=${TAGS}" >> $GITHUB_ENV
 
       - name: Build and push ahc-app
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: docker/Dockerfile-app
@@ -311,14 +370,19 @@ jobs:
       KUSTOMIZE_VERSION: "5.8.1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
 
-      - name: Install pinned kustomize
+      - name: Install pinned kustomize (checksum-verified)
+        env:
+          # sha256 for kustomize_v5.8.1_linux_amd64.tar.gz, per the release's checksums.txt.
+          KUSTOMIZE_SHA256: "029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d"
         run: |
-          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
-            | tar xz -C /usr/local/bin kustomize
+          curl -fsSL -o kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          echo "${KUSTOMIZE_SHA256}  kustomize.tar.gz" | sha256sum -c -
+          tar xz -C /usr/local/bin -f kustomize.tar.gz kustomize
+          rm kustomize.tar.gz
           kustomize version
 
       - name: Set lowercase owner

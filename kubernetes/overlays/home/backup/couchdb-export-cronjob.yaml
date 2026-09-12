@@ -20,7 +20,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: couchdb-export
-              image: curlimages/curl:8.10.1
+              image: curlimages/curl:8.22.0
               envFrom:
                 - secretRef:
                     name: couchdb-credentials
@@ -30,7 +30,8 @@ spec:
                 - |
                   set -eu
                   f="/backup/couchdb-appendixes-$(date +%Y%m%d-%H%M%S).json.gz"
-                  curl -fsS "http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@appendixes-db:5982/appendixes/_all_docs?include_docs=true&attachments=true" \
+                  curl -fsS --user "${COUCHDB_USER}:${COUCHDB_PASSWORD}" \
+                    "http://appendixes-db:5982/appendixes/_all_docs?include_docs=true&attachments=true" \
                     -H "Accept: application/json" | gzip > "$f"
                   echo "written $f"
                   find /backup -name 'couchdb-*.json.gz' -mtime +14 -delete

@@ -1,5 +1,12 @@
 # Kubernetes deployment — ops runbook
 
+**Scope note:** everything in this document is the GitOps/Kubernetes **rehearsal and learning**
+track. The current always-on production deployment is Docker Compose + GHCR + Watchtower (see the
+root [`README.md`](../README.md#deployment-model)); this runbook does not describe it. `overlays/home`
+targets a HOME k3s cluster that is an optional future migration and is **not yet bootstrapped** —
+treat any "production" wording below in that light. `overlays/aws` is an ephemeral demo/rehearsal
+target with no standing deployment (see [README-aws.md](README-aws.md)).
+
 GitOps layout for ArgoCD (see [ADR-13](../doc/13_adr_gitops_argocd.md)). All app images come from
 `ghcr.io/cybernetic-ransomware/ahc-app`; the tag is rewritten per overlay.
 
@@ -10,7 +17,7 @@ GitOps layout for ArgoCD (see [ADR-13](../doc/13_adr_gitops_argocd.md)). All app
 | `base/` | all workloads, config, PVCs, jobs | none (referenced only) | — |
 | `overlays/minikube-local/` | local dev loop | plain Secrets, git-ignored | `kubectl apply -k` only — **never ArgoCD** |
 | `overlays/minikube-argocd/` | GitOps rehearsal | SealedSecrets (minikube key) | `argocd/ahc-minikube-test.yaml`, manual sync |
-| `overlays/home/` | production (k3s) | SealedSecrets (home key) | `argocd/ahc-home.yaml`, auto sync from `main` |
+| `overlays/home/` | future home k3s target (not yet bootstrapped) | SealedSecrets (home key) | `argocd/ahc-home.yaml`, auto sync from `main` |
 | `overlays/aws/` | AWS EKS demo (real cost — see [README-aws.md](README-aws.md)) | SealedSecrets (aws key) | `argocd/ahc-aws.yaml`, manual sync |
 
 Sync waves: `-3` ConfigMap/Secrets/PVCs → `-2` Postgres/CouchDB/Redis → `-1` Sync hooks
@@ -200,7 +207,7 @@ without ArgoCD apply it manually with `kubectl apply -f workflows/`. Manual work
 If GHCR packages are private, add a `dockerconfigjson` pull secret (sealed for home) and
 `imagePullSecrets:` on every pod spec including the hook jobs.
 
-## Backups (home overlay)
+## Backups (home overlay — future k3s target)
 
 | CronJob | Schedule | What | Retention |
 |---|---|---|---|
@@ -216,6 +223,59 @@ Limitations (deliberate, documented): backups land on the same disk as the data 
 user error, not disk failure) and the CouchDB export is not attachment-complete. Follow-ups after
 the testing phase: one-way CouchDB replication or PVC snapshots, and shipping copies off-host with
 restic/rclone to a NAS.
+
+**These CronJobs only run once the home overlay is deployed — they protect a future cluster, not
+today's Compose deployment.** See below for the actual production path.
+
+## Backups (Compose — the actual production deployment)
+
+Audited 2026-09: **before this pass there was no documented backup/restore path for the Compose
+stack** — the CronJobs above only ever protect a future k3s cluster that doesn't exist yet. This is
+the operational gap; `docker/backup.sh` and `docker/restore-check.sh` (added in this pass) are a
+minimal, deliberately small fix, not a full backup platform.
+
+| Data | Where it lives (host) | Backup |
+|---|---|---|
+| Postgres | named volume `animals_db`, bind-mounted at `${DB_VOLUMEN_POSTGRES}` | `pg_dump -Fc` via `docker exec ahc-postgres`, same format as the k8s `pg-backup` CronJob |
+| CouchDB | named volume `couchdb_data`, bind-mounted at `${DB_VOLUMEN_COUCH}` | `_all_docs` JSON export via `docker exec ahc-couchdb` — **diagnostic export, not attachment-complete**, same caveat as the k8s `couchdb-export` CronJob |
+| Private storage (offline snapshots, ADR-12) | named volume `private_storage`, bind-mounted at `${VOLUMEN_PRIVATE_STORAGE}` | `tar` of the host bind-mount directory |
+| Media (user uploads) | host directory `static/media` (bind-mounted directly, not a named volume) | `tar` of the host directory |
+
+Run on the production host, from the repo root:
+
+```bash
+./docker/backup.sh              # writes timestamped files under ./backups/
+```
+
+Restore (manual, deliberately not scripted against the live stack — see "Never" below):
+
+```bash
+# Postgres
+docker exec -i ahc-postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists < backups/pg-<stamp>.dump
+
+# CouchDB: re-PUT each document from the _all_docs export, or replicate from a second instance
+# Private storage / media: untar into the bind-mounted host directory
+```
+
+`docker/restore-check.sh` verifies a `pg_dump` archive is actually restorable **without touching
+production**: it restores into a disposable, throwaway `postgres:18-alpine` container on a
+scratch port, checks the expected tables exist, then tears the container down. Run it against a
+freshly made backup file before trusting it:
+
+```bash
+./docker/restore-check.sh backups/pg-<stamp>.dump
+```
+
+**Never** run `restore-check.sh` — or a manual `pg_restore`/CouchDB re-PUT — against the live
+production containers or volumes; a backup that has never been proven restorable is not a backup.
+
+Limitations (same spirit as the k8s CronJobs above, kept deliberately small in this pass):
+- No scheduling built in — cron the host (e.g. a nightly `crontab` entry calling `backup.sh`) is a
+  manual follow-up, not automated by this branch.
+- No retention/pruning — old files accumulate under `./backups/`; add rotation as a follow-up.
+- Backups land on the same disk as the data — protects against operator error, not disk failure.
+  Shipping copies off-host (restic/rclone to a NAS) is the same documented follow-up as the k8s side.
+- CouchDB export is diagnostic only, not attachment-complete — identical caveat to `couchdb-export`.
 
 ## Credential hygiene
 

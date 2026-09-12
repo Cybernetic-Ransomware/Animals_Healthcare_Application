@@ -3,8 +3,9 @@ data "aws_availability_zones" "available" {
 }
 
 module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  source = "terraform-aws-modules/vpc/aws"
+  # Exact pin, not "~> 5.0" -- see eks.tf; 5.21.0 is the last 5.x release before the module's 6.x major.
+  version = "5.21.0"
 
   name = "${var.cluster_name}-vpc"
   cidr = var.vpc_cidr

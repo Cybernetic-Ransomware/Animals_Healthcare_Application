@@ -20,6 +20,8 @@ services:
         condition: service_started
       couch_db:
         condition: service_healthy
+      couchdb_init:
+        condition: service_completed_successfully
     volumes:
       - ../static/media:/app/static/media
       # Shared with queue: the worker writes snapshot files, the web app
@@ -65,10 +67,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile-couchdb
-      args:
-        COUCHDB_USER: ${COUCHDB_USER}
-        COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     container_name: ahc-couchdb
+    # Credentials come from the entrypoint at runtime, never as build args (see Dockerfile-couchdb).
     environment:
       - COUCHDB_USER=${COUCHDB_USER}
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
@@ -83,6 +83,32 @@ services:
     networks:
       - ahc_net
     restart: unless-stopped
+
+  # One-shot DB creation once the server is authenticated -- mirrors kubernetes/base/couchdb/init-job.yaml.
+  couchdb_init:
+    image: curlimages/curl:8.22.0
+    depends_on:
+      couch_db:
+        condition: service_healthy
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+      - COUCHDB_PORT=${COUCHDB_PORT}
+    command:
+      - sh
+      - -c
+      - |
+        set -u
+        for db in _users _replicator appendixes; do
+          code=$$(curl -s --user "$$COUCHDB_USER:$$COUCHDB_PASSWORD" -o /dev/null -w '%{http_code}' -X PUT \
+            "http://couch_db:$$COUCHDB_PORT/$$db")
+          case "$$code" in
+            201|202|412) echo "$$db: $$code (ok)" ;;
+            *) echo "$$db: $$code (fail)"; exit 1 ;;
+          esac
+        done
+    networks:
+      - ahc_net
 
   queue:
     image: ahc-app:latest
@@ -103,6 +129,8 @@ services:
         condition: service_healthy
       couch_db:
         condition: service_healthy
+      couchdb_init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "celery -A celery_notifications.config:celery_obj inspect ping -d celery@$$HOSTNAME --timeout 5 2>&1 | grep -q pong"]
       interval: 30s
@@ -144,7 +172,7 @@ services:
     restart: unless-stopped
 
   celery_flower:
-    image: mher/flower:2.0.1
+    image: mher/flower:2.1.0
     container_name: ahc-flower
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
