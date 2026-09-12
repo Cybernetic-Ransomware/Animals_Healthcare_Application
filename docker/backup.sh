@@ -21,8 +21,8 @@ docker exec "$POSTGRES_CONTAINER" pg_dump -Fc -U "$POSTGRES_USER" "$POSTGRES_DB"
   > "$BACKUP_DIR/pg-$stamp.dump"
 
 echo "==> CouchDB: _all_docs diagnostic export from $COUCHDB_CONTAINER (not attachment-complete)"
-docker exec "$COUCHDB_CONTAINER" curl -fsS \
-  "http://$COUCHDB_USER:$COUCHDB_PASSWORD@localhost:$COUCHDB_PORT/appendixes/_all_docs?include_docs=true" \
+docker exec "$COUCHDB_CONTAINER" curl -fsS --user "$COUCHDB_USER:$COUCHDB_PASSWORD" \
+  "http://localhost:$COUCHDB_PORT/appendixes/_all_docs?include_docs=true" \
   > "$BACKUP_DIR/couchdb-appendixes-$stamp.json"
 
 if [ -d "$MEDIA_DIR" ]; then
