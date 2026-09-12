@@ -181,7 +181,7 @@ services:
     restart: unless-stopped
 
   celery_flower:
-    image: mher/flower:2.0.1
+    image: mher/flower:2.1.0
     ports:
       - "5555:5555"
     environment:
