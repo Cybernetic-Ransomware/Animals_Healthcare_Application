@@ -21,7 +21,8 @@ services:
       com.centurylinklabs.watchtower.scope: ahc
 
   watchtower:
-    image: containrrr/watchtower:1.7.1
+    # containrrr/watchtower archived 2025-12-17; nicholas-fedor/watchtower is the maintained fork, same label namespace and flags.
+    image: ghcr.io/nicholas-fedor/watchtower:1.22.1
     command: --label-enable --cleanup --rolling-restart --interval 300 --scope ahc
     environment:
       DOCKER_API_VERSION: "1.41"
