@@ -294,6 +294,8 @@ jobs:
           VOLUMEN_PRIVATE_STORAGE: "/tmp/ahc-ci-fake/private"
         run: |
           mkdir -p /tmp/ahc-ci-fake/postgres /tmp/ahc-ci-fake/couchdb /tmp/ahc-ci-fake/private
+          # web/queue/celery_beat load env_file: ../.env; a real checkout has none.
+          touch .env
           docker compose \
             -f docker/docker-compose-traefik.yml \
             -f docker/docker-compose.cd.yml \
