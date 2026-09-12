@@ -17,7 +17,7 @@
 
 module "alb_controller_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.60.0" # exact pin — see the matching note on the eks module in eks.tf
+  version = "6.8.1" # exact pin — see the matching note on the eks module in eks.tf
 
   role_name                              = "${var.cluster_name}-alb-controller"
   attach_load_balancer_controller_policy = true
@@ -32,7 +32,7 @@ module "alb_controller_irsa" {
 
 module "ebs_csi_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.60.0" # exact pin — see the matching note on the eks module in eks.tf
+  version = "6.8.1" # exact pin — see the matching note on the eks module in eks.tf
 
   role_name             = "${var.cluster_name}-ebs-csi"
   attach_ebs_csi_policy = true # module-bundled snapshot of AmazonEBSCSIDriverPolicy; supplemented below
