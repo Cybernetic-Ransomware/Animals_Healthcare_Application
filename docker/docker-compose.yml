@@ -26,6 +26,8 @@ services:
         condition: service_started
       couch_db:
         condition: service_healthy
+      couchdb_init:
+        condition: service_completed_successfully
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -61,10 +63,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile-couchdb
-      args:
-        COUCHDB_USER: ${COUCHDB_USER}
-        COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
     container_name: appendixes-db
+    # Credentials come from the entrypoint at runtime, never as build args (see Dockerfile-couchdb).
     environment:
       - COUCHDB_USER=${COUCHDB_USER}
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
@@ -81,6 +81,32 @@ services:
     networks:
       - ahc_net
     restart: unless-stopped
+
+  # One-shot DB creation once the server is authenticated -- mirrors kubernetes/base/couchdb/init-job.yaml.
+  couchdb_init:
+    image: curlimages/curl:8.22.0
+    depends_on:
+      couch_db:
+        condition: service_healthy
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+      - COUCHDB_PORT=${COUCHDB_PORT}
+    command:
+      - sh
+      - -c
+      - |
+        set -u
+        for db in _users _replicator appendixes; do
+          code=$$(curl -s -o /dev/null -w '%{http_code}' -X PUT \
+            "http://$$COUCHDB_USER:$$COUCHDB_PASSWORD@couch_db:$$COUCHDB_PORT/$$db")
+          case "$$code" in
+            201|202|412) echo "$$db: $$code (ok)" ;;
+            *) echo "$$db: $$code (fail)"; exit 1 ;;
+          esac
+        done
+    networks:
+      - ahc_net
 
   queue:
     build:
@@ -106,6 +132,8 @@ services:
         condition: service_healthy
       couch_db:
         condition: service_healthy
+      couchdb_init:
+        condition: service_completed_successfully
     ports:
       - "5000:5000"
     healthcheck:
