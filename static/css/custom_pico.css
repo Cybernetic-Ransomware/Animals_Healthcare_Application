@@ -210,7 +210,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 767px) {
+  .site-header {
+    overflow: visible;
+  }
   .site-header__inner {
+    height: auto;
+    min-height: 72px;
+    overflow: visible;
     padding-block: 0.75rem;
     grid-template-columns: 1fr;
   }
