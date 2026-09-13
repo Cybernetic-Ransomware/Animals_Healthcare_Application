@@ -1,21 +1,31 @@
 version: 2
 
-# Informational only, no auto-merge. Majors are left out of every group so they land as their own PR.
+# Informational only, no auto-merge.
+# Major updates are ignored for uv/docker/docker-compose/terraform to avoid repeat
+# infra-breaking PR spam (see closed majors: Redis 7->8, redis-py 7->8, Terraform
+# IAM 5->6, EKS 20->21, VPC 5->6). Django and DRF are excluded from the general
+# Python minor/patch group so framework upgrades land as their own reviewable PRs
+# instead of being buried in a wide dependency-sweep group.
 updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 4
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       python-minor-patch:
+        patterns: ["*"]
+        exclude-patterns: ["django", "djangorestframework"]
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
       actions-minor-patch:
         update-types: ["minor", "patch"]
@@ -24,7 +34,10 @@ updates:
     directory: "/docker"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       docker-images-minor-patch:
         update-types: ["minor", "patch"]
@@ -33,7 +46,10 @@ updates:
     directory: "/docker"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       compose-images-minor-patch:
         update-types: ["minor", "patch"]
@@ -42,4 +58,7 @@ updates:
     directory: "/terraform/aws"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
