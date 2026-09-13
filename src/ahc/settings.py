@@ -224,18 +224,30 @@ OFFLINE_SNAPSHOT_ROOT = PRIVATE_STORAGE_ROOT / "offline_snapshots"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-CELERY_BROKER_URL = config("CELERY_BROKER_URL")
-CELERY_BACKEND = config("CELERY_BACKEND")
+if _is_test_run():
+    CELERY_BROKER_URL = "memory://"
+    CELERY_BACKEND = "cache+memory://"
 
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    EMAIL_HOST = "localhost"
+    EMAIL_PORT = 25
+    EMAIL_USE_TLS = False
+    EMAIL_HOST_USER = ""
+    EMAIL_HOST_PASSWORD = ""  # nosec B105
 
-EMAIL_BACKEND = config("EMAIL_BACKEND")
-EMAIL_HOST = config("EMAIL_HOST")
-EMAIL_PORT = config("EMAIL_PORT", cast=int)
-EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
-EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+    DISCORD_TOKEN = "test-discord-token"  # nosec B105
+else:
+    CELERY_BROKER_URL = config("CELERY_BROKER_URL")
+    CELERY_BACKEND = config("CELERY_BACKEND")
 
-DISCORD_TOKEN = config("DISCORD_TOKEN")
+    EMAIL_BACKEND = config("EMAIL_BACKEND")
+    EMAIL_HOST = config("EMAIL_HOST")
+    EMAIL_PORT = config("EMAIL_PORT", cast=int)
+    EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
+    EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+
+    DISCORD_TOKEN = config("DISCORD_TOKEN")
 
 TEST_RUNNER = "django.test.runner.DiscoverRunner"
 
