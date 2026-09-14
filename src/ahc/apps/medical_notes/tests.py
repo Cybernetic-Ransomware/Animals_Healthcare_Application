@@ -1324,3 +1324,120 @@ class TestCreateNoteFormViewBiometricGate:
 
         response = client.get(f"/note/{animal.id}/create/?type_of_event=fast_note")
         assert response.status_code == 200
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestRelatedAnimalsLabels:
+    """Regression for D-02: animal choice widgets must show full_name, not the model repr."""
+
+    @pytest.fixture
+    def two_owned_animals_for_notes(self, db, user_profile):
+        from ahc.apps.animals.models import Animal
+
+        _, profile = user_profile
+        primary = Animal.objects.create(full_name="Maru", owner=profile)
+        other = Animal.objects.create(full_name="Chilli", owner=profile)
+        return primary, other, profile
+
+    def test_create_note_form_shows_animal_full_name(self, client, user_profile, two_owned_animals_for_notes):
+        user, _ = user_profile
+        primary, other, _ = two_owned_animals_for_notes
+        client.force_login(user)
+
+        response = client.get(f"/note/{primary.id}/create/", HTTP_HX_REQUEST="true")
+
+        assert response.status_code == 200
+        assert other.full_name.encode() in response.content
+        assert b"Animal object" not in response.content
+
+    def test_edit_related_animals_shows_animal_full_name(self, client, user_profile, two_owned_animals_for_notes):
+        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+
+        user, profile = user_profile
+        primary, other, _ = two_owned_animals_for_notes
+        note = MedicalRecord.objects.create(
+            animal=primary, author=profile, type_of_event="fast_note", short_description="x"
+        )
+        client.force_login(user)
+
+        response = client.get(reverse("note_animals_edit", kwargs={"pk": note.id}))
+
+        assert response.status_code == 200
+        assert primary.full_name.encode() in response.content
+        assert other.full_name.encode() in response.content
+        assert b"Animal object" not in response.content
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestNotificationListEmptyState:
+    """Regression for D-03: notification_list.html must show an empty state, not a blank page."""
+
+    def test_shows_empty_state_when_no_notifications(self, client, user_profile):
+        import uuid
+
+        user, _ = user_profile
+        client.force_login(user)
+
+        response = client.get(reverse("note_related_notifications"), {"mednote_uuid": str(uuid.uuid4())})
+
+        assert response.status_code == 200
+        assert b"No notifications set for this record yet." in response.content
+
+    def test_shows_notifications_when_present(self, client, user_profile, diet_note_shell):
+        """Stubs the queryset — EmailNotification.days_of_week (ArrayField) can't be written via SQLite."""
+        user, _ = user_profile
+        fake_notification = SimpleNamespace(
+            pk=1,
+            description="Feed reminder",
+            is_active=True,
+            daily_timestamp=None,
+            timezone="Europe/London",
+            start_date=_date(2026, 1, 1),
+            end_date=None,
+            days_of_week=[False] * 7,
+            receiver_name="Owner",
+            message="Time to feed",
+            last_modification=None,
+        )
+        client.force_login(user)
+
+        with patch(
+            "ahc.apps.medical_notes.views.type_feeding_notes.notifications_for_mednote",
+            return_value=[fake_notification],
+        ):
+            response = client.get(reverse("note_related_notifications"), {"mednote_uuid": str(diet_note_shell.id)})
+
+        assert response.status_code == 200
+        assert b"No notifications set for this record yet." not in response.content
+        assert b"Feed reminder" in response.content
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestCreateNoteFormViewLegend:
+    """Regression for F-01: the modal fieldset legend must not repeat the dialog title."""
+
+    @pytest.fixture
+    def owned_animal(self, db, user_profile):
+        from ahc.apps.animals.models import Animal
+
+        _, profile = user_profile
+        return Animal.objects.create(full_name="Maru", owner=profile)
+
+    @pytest.mark.parametrize(
+        "type_of_event",
+        ["", "medical_visit", "diet_note", "medicament_note", "fast_note"],
+    )
+    def test_legend_is_generic_section_label(self, client, user_profile, owned_animal, type_of_event):
+        user, _ = user_profile
+        client.force_login(user)
+
+        url = f"/note/{owned_animal.id}/create/"
+        if type_of_event:
+            url += f"?type_of_event={type_of_event}"
+        response = client.get(url, HTTP_HX_REQUEST="true")
+
+        assert response.status_code == 200
+        assert response.context["legend"] == "Note details"

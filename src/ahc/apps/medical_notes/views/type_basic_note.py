@@ -81,14 +81,8 @@ class CreateNoteFormView(LoginRequiredMixin, AnimalDirectModifyMixin, FormView):
         context = super().get_context_data(**kwargs)
         context["form_name"] = str(self.form_class.__name__)
         context["form_action"] = self.request.get_full_path()
-        legend_map = {
-            "medical_visit": "Add vet visit",
-            "diet_note": "Diet note",
-            "biometric_record": "Biometric record",
-            "medicament_note": "Medicament note",
-            "fast_note": "Quick note",
-        }
-        context["legend"] = legend_map.get(self.request.GET.get("type_of_event", ""), "New note")
+        # The trigger's data-modal-title already gives the type-specific context, so this stays generic.
+        context["legend"] = "Note details"
         return context
 
     def form_valid(self, form):

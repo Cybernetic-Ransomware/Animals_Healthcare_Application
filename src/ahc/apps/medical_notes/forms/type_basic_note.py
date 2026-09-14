@@ -56,9 +56,6 @@ class MedicalRecordForm(forms.ModelForm):
         type_of_event_param = kwargs.pop("type_of_event_param", None)
         super().__init__(*args, **kwargs)
 
-        if animal_choices:
-            self.fields["additional_animals"].widget.choices = animal_choices
-
         # Restrict the validation queryset so a posted UUID of a deceased or inaccessible
         # animal fails form validation, not just widget display.
         if profile is not None:
@@ -66,6 +63,10 @@ class MedicalRecordForm(forms.ModelForm):
             if exclude_id is not None:
                 qs = qs.exclude(id=exclude_id)
             self.fields["additional_animals"].queryset = qs
+
+        # Must come after queryset= above: its setter resets widget.choices to the default str(obj) iterator.
+        if animal_choices:
+            self.fields["additional_animals"].widget.choices = animal_choices
 
         if type_of_event_param in set(event[0] for event in self.TYPES_OF_EVENTS):
             self.fields["type_of_event"].initial = type_of_event_param
@@ -118,16 +119,17 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         profile = kwargs.pop("profile", None)
         super().__init__(*args, **kwargs)
 
-        if animal_choices:
-            self.fields["animal"].widget.choices = animal_choices
-            self.fields["additional_animals"].widget.choices = animal_choices
-
         # Restrict validation querysets so a posted UUID of a deceased or inaccessible
         # animal fails form validation, not just widget display.
         if profile is not None:
             qs = animals_visible_to(profile)
             self.fields["animal"].queryset = qs
             self.fields["additional_animals"].queryset = qs
+
+        # Must come after queryset= above: its setter resets widget.choices to the default str(obj) iterator.
+        if animal_choices:
+            self.fields["animal"].widget.choices = animal_choices
+            self.fields["additional_animals"].widget.choices = animal_choices
 
         if not is_author:
             del self.fields["animal"]
