@@ -4,13 +4,13 @@
 
 {% block content %}
 
-    <div class="container welcome-heading">
+    <div class="welcome-heading">
         <h2>Welcome to your pet organizer</h2>
     </div>
 
     {% if user.is_authenticated %}
 
-        <div class="container">
+        <div>
             <h4>Operations:</h4>
 
             <div class="ops-row">
@@ -21,7 +21,7 @@
         </div>
 
         {% if pinned_animals %}
-            <div class="container homepage-section">
+            <div class="homepage-section">
                 <h4>Pinned up:</h4>
 
                 <div class="animals-grid">
@@ -34,7 +34,7 @@
         {% endif %}
 
         {% if recent_animals %}
-            <div class="container homepage-section">
+            <div class="homepage-section">
                 <h4>Recent added:</h4>
 
                 <div class="animals-grid">
