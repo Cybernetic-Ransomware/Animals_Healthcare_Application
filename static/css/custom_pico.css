@@ -117,6 +117,12 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
 }
 
+/* Reused Pico token: default muted small text sits near the 4.5:1 WCAG AA edge on dark backgrounds; this gives a safer ~5.4-5.7:1. */
+.form-help {
+  color: var(--pico-form-element-placeholder-color);
+  display: block;
+}
+
 /* Site header: 3-col grid (brand | banner | user-nav); height clipped to 72px */
 .site-header {
   padding-block: 0;
@@ -323,28 +329,33 @@ h1, h2, h3, h4, h5, h6 {
   white-space: nowrap;
 }
 
-/* additional_animals: CheckboxSelectMultiple rendered as pill toggles */
-#field_additional_animals ul {
-  list-style: none;
-  padding: 0;
-  margin: 0.25rem 0 0;
+/* additional_animals: CheckboxSelectMultiple renders div-based markup (not ul/li), styled here as pill toggles. */
+#field_additional_animals #id_additional_animals {
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
+  margin: 0.25rem 0 0;
 }
 
-#field_additional_animals li {
-  display: block;
-}
-
+/* Visually hidden (not display:none) so the checkbox keeps tab order and native Space-toggle behaviour. */
 #field_additional_animals input[type="checkbox"] {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-#field_additional_animals li label {
+#field_additional_animals #id_additional_animals label {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 0.3rem 0.75rem;
+  min-height: 44px;
+  padding: 0.4rem 1rem;
   border: 1px solid var(--pico-muted-border-color);
   border-radius: 20px;
   font-size: 0.875rem;
@@ -355,15 +366,19 @@ h1, h2, h3, h4, h5, h6 {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-#field_additional_animals li label:hover {
+#field_additional_animals #id_additional_animals label:hover {
   border-color: var(--pico-primary);
 }
 
-#field_additional_animals li:has(input:checked) label,
-#field_additional_animals label:has(input:checked) {
+#field_additional_animals #id_additional_animals label:has(input:checked) {
   background: var(--pico-primary);
   border-color: var(--pico-primary);
   color: var(--pico-primary-inverse, #000);
+}
+
+#field_additional_animals #id_additional_animals label:has(input:focus-visible) {
+  outline: 2px solid var(--pico-primary);
+  outline-offset: 2px;
 }
 
 /* note_tags: JS-enhanced pill tag input */
