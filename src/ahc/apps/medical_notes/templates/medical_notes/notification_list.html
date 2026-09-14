@@ -65,13 +65,15 @@
                     {% if note.is_active %}Set inactive{% else %}Set active{% endif %}
                 </button>
             </form>
-            <form method="post" action="{% url 'note_related_notifications_delete' pk=note.pk %}">
+            <form method="post" action="{% url 'notification_delete' pk=note.pk %}">
                 {% csrf_token %}
                 <button type="submit" class="secondary outline">Delete</button>
             </form>
         </div>
     </footer>
 </article>
+{% empty %}
+<p class="empty-state">No notifications set for this record yet.</p>
 {% endfor %}
 
 {% endblock %}
