@@ -44,6 +44,18 @@ main {
   padding: 0;
   list-style: none;
   overflow-x: auto;
+  scroll-snap-type: x proximity;
+  /* Edge-fade affordance: "local" gradients mask content near each edge, "scroll" gradients show through only while there's more to scroll — no JS. */
+  background:
+    linear-gradient(to right, var(--pico-background-color) 0%, transparent 100%) left / 28px 100% no-repeat local,
+    linear-gradient(to left, var(--pico-background-color) 0%, transparent 100%) right / 28px 100% no-repeat local,
+    linear-gradient(to right, var(--pico-muted-border-color), transparent 100%) left / 14px 100% no-repeat scroll,
+    linear-gradient(to left, var(--pico-muted-border-color), transparent 100%) right / 14px 100% no-repeat scroll;
+  background-color: var(--pico-background-color);
+}
+
+.tab-nav ul li {
+  scroll-snap-align: start;
 }
 
 .tab-nav ul li a {
@@ -209,6 +221,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.875rem;
 }
 
+/* max-width: 767px deliberately mirrors Pico's own 768px tablet tier (767 = 768 - 1); timeline.css's unrelated 640px breakpoint is a separate, out-of-scope legacy component. */
 @media (max-width: 767px) {
   .site-header {
     overflow: visible;
@@ -242,8 +255,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .animal-profile-hero__img img {
-  width: 180px;
-  height: 180px;
+  /* clamp() keeps 180px as the desktop ceiling (no visual growth) while shrinking to 96px on narrow viewports. */
+  width: clamp(96px, 22vw, 180px);
+  aspect-ratio: 1 / 1;
+  height: auto;
   object-fit: cover;
   border-radius: 8px;
   display: block;
