@@ -19,10 +19,25 @@ function initTimelineJump() {
     var nodes = document.querySelectorAll("[id$='-" + month + "']");
     for (var i = 0; i < nodes.length; i++) {
         if (nodes[i].id.indexOf("tlmonth-") === 0) {
-            nodes[i].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+            scrollAxisToNode(nodes[i]);
             return;
         }
     }
+}
+
+// Scroll the axis's own horizontal scroll container (the <ol>) so the target month
+// comes into view. scrollIntoView() would also drag the whole page vertically to
+// satisfy the node's block-axis visibility, which is not wanted for a horizontal axis.
+function scrollAxisToNode(node) {
+    var container = node.closest("ol");
+    if (!container) {
+        node.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+        return;
+    }
+    var containerRect = container.getBoundingClientRect();
+    var nodeRect = node.getBoundingClientRect();
+    var target = container.scrollLeft + (nodeRect.left - containerRect.left);
+    container.scrollTo({ left: target, behavior: "smooth" });
 }
 
 window.addEventListener("load", initTimelineJump);

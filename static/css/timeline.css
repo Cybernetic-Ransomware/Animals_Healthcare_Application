@@ -54,8 +54,9 @@
 
 @media (max-width: 640px) {
   .timeline {
+    /* Stack .info above ol; keep nowrap (below) so the axis <li>s stay on one
+       line — the ol scrolls horizontally at any width, it must never wrap. */
     grid-template-columns: 1fr;
-    white-space: normal;
   }
 }
 
@@ -103,9 +104,18 @@
 
 .timeline ol {
   font-size: 0;
-  padding: 250px 0;
+  /* Fallback for the brief window before timeline.js measures real card heights
+     (initTimeline() overrides this per instance via inline style — see there for
+     why a fixed value can't fit every card). Covers a typical short card only. */
+  padding: 160px 0;
   transition: all 1s;
   overflow-x: scroll;
+  /* Cards are absolutely positioned above/below the axis (see nth-child rules
+     below), so setting overflow-x alone would leave overflow-y at its default
+     "auto", clipping any card the padding above doesn't cover with an
+     unstyled vertical scrollbar. initTimeline() sizes the padding to fit, so
+     vertical scrolling is never the intended way to reach a card. */
+  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   scrollbar-color: var(--timeline-yellow) var(--timeline-midnight-green);
 }
@@ -146,6 +156,7 @@
   position: absolute;
   left: calc(100% + 7px);
   width: 280px;
+  max-width: min(280px, calc(100vw - 2.5rem));
   padding: 15px;
   font-size: 1rem;
   white-space: normal;
