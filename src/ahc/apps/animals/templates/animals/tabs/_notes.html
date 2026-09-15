@@ -13,58 +13,13 @@
                    hx-swap="innerHTML"
                    data-modal-title="New note">Add a note</a>
                 <a role="button" class="secondary outline" href="{% url 'full_timeline_of_notes' pk=animal.id %}">View full timeline</a>
-                {% if available_months %}
-                <select
-                    hx-get="{% url 'animal_tab' pk=animal.id slug='notes' %}"
-                    hx-target="#tab-panels"
-                    hx-swap="innerHTML"
-                    hx-push-url="true"
-                    name="month"
-                    aria-label="Jump to month">
-                    <option value="">— Jump to month —</option>
-                    {% for month in available_months %}
-                    <option value="{{ month|date:'Y-m' }}" {% if scroll_to_month == month|date:"Y-m" %}selected{% endif %}>
-                        {{ month|date:"F Y" }}
-                    </option>
-                    {% endfor %}
-                </select>
-                {% endif %}
+                {% include "animals/tabs/partials/_timeline_month_jump.html" with tab_slug="notes" animal=animal available_months=available_months scroll_to_month=scroll_to_month only %}
             </div>
         </div>
         <span data-scroll-month="{{ scroll_to_month }}" hidden></span>
         {% if other_records %}
         <ol>
-            {% for record in other_records %}
-            {% ifchanged record.date_creation|date:"Y-m" %}
-            <li class="month-start" id="tlmonth-notes-{{ record.date_creation|date:'Y-m' }}" data-month="{{ record.date_creation|date:'M Y' }}"></li>
-            {% endifchanged %}
-            <li>
-                <div>
-                    <time>{{ record.date_creation|date:"Y-m-d" }}</time>
-                    <a href="{% url 'note_edit' pk=record.id %}">{{ record.short_description }}</a>
-                    <small>({{ record.type_of_event }})</small>
-                    <br>
-                    <a role="button" class="secondary outline"
-                       href="{% url 'note_edit' pk=record.id %}"
-                       hx-get="{% url 'note_edit' pk=record.id %}"
-                       hx-target="#modal-body"
-                       hx-swap="innerHTML"
-                       data-modal-title="Edit note">Edit</a>
-                    <a role="button" class="secondary outline" href="{% url 'note_delete' pk=record.id %}">Delete</a>
-                </div>
-            </li>
-            {% endfor %}
-            {% if tl_has_more %}
-            <li class="timeline-load-more" id="timeline-more-notes">
-                <div>
-                    <a role="button" class="secondary outline"
-                       href="{% url 'animal_tab' pk=animal.id slug='notes' %}?before={{ tl_next_before }}&load_more=1"
-                       hx-get="{% url 'animal_tab' pk=animal.id slug='notes' %}?before={{ tl_next_before }}&load_more=1"
-                       hx-target="#timeline-more-notes"
-                       hx-swap="outerHTML">Load older</a>
-                </div>
-            </li>
-            {% endif %}
+            {% include "animals/tabs/partials/_timeline_nodes_notes.html" %}
             <li></li>
         </ol>
         {% else %}
@@ -76,7 +31,7 @@
     {% if "biometrics" in allowed_categories %}
     <h3>Biometrics</h3>
     {% if biometric_records %}
-    <section class="timeline" style="grid-template-columns: 1fr;">
+    <section class="timeline timeline--single">
         <ol>
             {% for record in biometric_records %}
             <li>

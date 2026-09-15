@@ -1,0 +1,16 @@
+{% if available_months %}
+<select
+    hx-get="{% url 'animal_tab' pk=animal.id slug=tab_slug %}"
+    hx-target="#tab-panels"
+    hx-swap="innerHTML"
+    hx-push-url="true"
+    name="month"
+    aria-label="Jump to month">
+    <option value="">— Jump to month —</option>
+    {% for month in available_months %}
+    <option value="{{ month|date:'Y-m' }}" {% if scroll_to_month == month|date:"Y-m" %}selected{% endif %}>
+        {{ month|date:"F Y" }}
+    </option>
+    {% endfor %}
+</select>
+{% endif %}

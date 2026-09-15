@@ -1,6 +1,6 @@
 {% for record in other_records %}
 {% ifchanged record.date_creation|date:"Y-m" %}
-<li class="month-start" id="tlmonth-notes-{{ record.date_creation|date:'Y-m' }}" data-month="{{ record.date_creation|date:'M Y' }}"></li>
+<li class="month-start" id="tlmonth-notes-{{ record.date_creation|date:'Y-m' }}"><span class="month-start__label">{{ record.date_creation|date:"M Y" }}</span></li>
 {% endifchanged %}
 <li>
     <div>
