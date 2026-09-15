@@ -1,19 +1,34 @@
-// Timeline layout: equalise heights of list-item divs so the connector line aligns,
-// and size the axis's vertical padding to match. Each .timeline instance is measured
-// independently so unrelated timelines never force each other's card/axis size
-// (e.g. the Notes tab renders a history timeline and a biometrics timeline together).
-// initTimeline() is called on window load and after htmx swaps.
+// Timeline layout: on desktop, equalise card heights and size the axis's vertical padding to match; on mobile (plain vertical feed) any leftover inline styles from a prior desktop layout are cleared instead. Runs on load, after htmx swaps, and on matchMedia breakpoint changes (not resize).
+
+const TIMELINE_DESKTOP_QUERY = "(min-width: 768px)";
 
 function initTimeline() {
+    const isDesktop = window.matchMedia(TIMELINE_DESKTOP_QUERY).matches;
     document.querySelectorAll(".timeline").forEach(function (timeline) {
         const ol = timeline.querySelector("ol");
         const cards = timeline.querySelectorAll("li > div");
-        if (!ol || cards.length === 0) {
+        if (!ol) {
+            return;
+        }
+        if (!isDesktop) {
+            resetMobileLayout(ol, cards);
+            return;
+        }
+        if (cards.length === 0) {
             return;
         }
         const maxHeight = setEqualHeights(cards);
         setAxisPadding(ol, maxHeight);
     });
+}
+
+// Clears any inline height/padding a previous desktop layout left behind.
+function resetMobileLayout(ol, cards) {
+    ol.style.paddingTop = "";
+    ol.style.paddingBottom = "";
+    for (let i = 0; i < cards.length; i++) {
+        cards[i].style.height = "";
+    }
 }
 
 function setEqualHeights(elements) {
@@ -36,7 +51,7 @@ function setEqualHeights(elements) {
 }
 
 // Cards sit 16px above (odd) or below (even) the axis line via absolute
-// positioning (see .timeline ol li:nth-child(odd/even) div in timeline.css), so
+// positioning (see .timeline ol li:nth-child(odd/even) > div in timeline.css), so
 // the ol needs at least maxHeight + 16px of padding on each side, plus a little
 // breathing room, to avoid clipping the tallest card. A single fixed padding
 // can't fit every timeline's content, so it's computed per instance here.
@@ -47,3 +62,4 @@ function setAxisPadding(ol, maxHeight) {
 }
 
 window.addEventListener("load", initTimeline);
+window.matchMedia(TIMELINE_DESKTOP_QUERY).addEventListener("change", initTimeline);

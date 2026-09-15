@@ -15,25 +15,29 @@ function initTimelineJump() {
         return;
     }
 
-    // Tab horizontal timelines: node anchors follow the pattern "tlmonth-<slug>-YYYY-MM"
+    // Tab timelines: node anchors follow the pattern "tlmonth-<slug>-YYYY-MM"
     var nodes = document.querySelectorAll("[id$='-" + month + "']");
     for (var i = 0; i < nodes.length; i++) {
         if (nodes[i].id.indexOf("tlmonth-") === 0) {
-            scrollAxisToNode(nodes[i]);
+            scrollToMonthNode(nodes[i]);
             return;
         }
     }
 }
 
-// Scroll the axis's own horizontal scroll container (the <ol>) so the target month
-// comes into view. scrollIntoView() would also drag the whole page vertically to
-// satisfy the node's block-axis visibility, which is not wanted for a horizontal axis.
-function scrollAxisToNode(node) {
+// Reads the container's actual overflow-x instead of re-checking the breakpoint here, so this stays correct even if timeline.css's breakpoint changes.
+function scrollToMonthNode(node) {
     var container = node.closest("ol");
-    if (!container) {
-        node.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+    if (container && getComputedStyle(container).overflowX === "scroll") {
+        scrollAxisHorizontally(container, node);
         return;
     }
+    // Vertical mobile axis: the node is in normal document flow, so scroll the page.
+    node.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Scrolls the ol's own horizontal container — scrollIntoView() would also drag the page vertically, which is wrong for a horizontal axis.
+function scrollAxisHorizontally(container, node) {
     var containerRect = container.getBoundingClientRect();
     var nodeRect = node.getBoundingClientRect();
     var target = container.scrollLeft + (nodeRect.left - containerRect.left);
