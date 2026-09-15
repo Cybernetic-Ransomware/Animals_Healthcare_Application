@@ -504,3 +504,15 @@ footer nav ul li > button {
   padding: 1.5rem 0;
   text-align: center;
 }
+
+/* Keeps horizontal overflow local to the table instead of stretching the page. */
+.table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive:focus-visible {
+  outline: 2px solid var(--pico-primary);
+  outline-offset: 2px;
+}

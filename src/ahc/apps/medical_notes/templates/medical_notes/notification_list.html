@@ -29,6 +29,7 @@
     <p>Time of sending: {{ note.daily_timestamp }} for timezone: {{ note.timezone }}</p>
     <p>Period: {{ note.start_date }} – {% if note.end_date %}{{ note.end_date }}{% else %}ongoing{% endif %}</p>
 
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Notification schedule for {{ note.receiver_name }}">
     <table>
         <thead>
             <tr>
@@ -49,6 +50,7 @@
             </tr>
         </tbody>
     </table>
+    </div>
 
     <article>
         <header>The message to send:</header>
