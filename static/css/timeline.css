@@ -52,6 +52,10 @@
   grid-gap: 20px;
 }
 
+.timeline--single {
+  grid-template-columns: 1fr;
+}
+
 @media (max-width: 640px) {
   .timeline {
     /* Stack .info above ol; keep nowrap (below) so the axis <li>s stay on one
