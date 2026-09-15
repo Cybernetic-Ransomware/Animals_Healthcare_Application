@@ -19,6 +19,7 @@
         {{ formset.management_form }}
 
         {% if rows %}
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Batch measurements table">
         <table role="grid">
             <thead>
                 <tr>
@@ -48,6 +49,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
         {% else %}
         <p>No animals available. <a href="{% url 'animal_create' %}">Add an animal</a> first, or ask an owner to share one with you.</p>
         {% endif %}
