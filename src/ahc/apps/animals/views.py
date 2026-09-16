@@ -62,6 +62,25 @@ def _timeline_boundary_from_month(month_param: str) -> datetime | None:
     return timezone.make_aware(datetime(first_of_next.year, first_of_next.month, first_of_next.day, 0, 0, 0), tz)
 
 
+def _resolve_timeline_page(qs, month_param: str | None, before_param: str | None) -> tuple[list, bool]:
+    """Apply month-jump/cursor filtering and slice one page; an unparsable before_param fails closed (no records)."""
+    if month_param and not before_param:
+        boundary = _timeline_boundary_from_month(month_param)
+        if boundary:
+            qs = qs.filter(date_creation__lt=boundary)
+    elif before_param:
+        before_dt = parse_datetime(before_param)
+        if before_dt is None:
+            return [], False
+        qs = qs.filter(date_creation__lt=before_dt)
+
+    records = list(qs[: _TIMELINE_PER_PAGE + 1])
+    tl_has_more = len(records) > _TIMELINE_PER_PAGE
+    if tl_has_more:
+        records = records[:_TIMELINE_PER_PAGE]
+    return records, tl_has_more
+
+
 def _build_vet(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
     ctx: dict[str, Any] = {}
     if allowed is None or "vet_contact" in allowed:
@@ -75,19 +94,7 @@ def _build_vet(request, animal: Animal, allowed: set[str] | None = None) -> dict
         month_param = request.GET.get("month")
         before_param = request.GET.get("before")
 
-        if month_param and not before_param:
-            boundary = _timeline_boundary_from_month(month_param)
-            if boundary:
-                qs = qs.filter(date_creation__lt=boundary)
-        elif before_param:
-            before_dt = parse_datetime(before_param)
-            if before_dt:
-                qs = qs.filter(date_creation__lt=before_dt)
-
-        records = list(qs[: _TIMELINE_PER_PAGE + 1])
-        tl_has_more = len(records) > _TIMELINE_PER_PAGE
-        if tl_has_more:
-            records = records[:_TIMELINE_PER_PAGE]
+        records, tl_has_more = _resolve_timeline_page(qs, month_param, before_param)
 
         ctx.update(
             {
@@ -131,19 +138,7 @@ def _build_notes(request, animal: Animal, allowed: set[str] | None = None) -> di
         month_param = request.GET.get("month")
         before_param = request.GET.get("before")
 
-        if month_param and not before_param:
-            boundary = _timeline_boundary_from_month(month_param)
-            if boundary:
-                qs = qs.filter(date_creation__lt=boundary)
-        elif before_param:
-            before_dt = parse_datetime(before_param)
-            if before_dt:
-                qs = qs.filter(date_creation__lt=before_dt)
-
-        records = list(qs[: _TIMELINE_PER_PAGE + 1])
-        tl_has_more = len(records) > _TIMELINE_PER_PAGE
-        if tl_has_more:
-            records = records[:_TIMELINE_PER_PAGE]
+        records, tl_has_more = _resolve_timeline_page(qs, month_param, before_param)
 
         available_months = list(
             other_history_for(animal).datetimes(
