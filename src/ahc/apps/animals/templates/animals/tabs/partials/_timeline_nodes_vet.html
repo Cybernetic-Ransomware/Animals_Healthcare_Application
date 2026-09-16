@@ -13,8 +13,8 @@
 <li class="timeline-load-more" id="timeline-more-vet">
     <div>
         <a role="button" class="secondary outline"
-           href="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before|urlencode }}&load_more=1"
-           hx-get="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before|urlencode }}&load_more=1"
+           href="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before|urlencode }}&before_id={{ tl_next_before_pk }}&load_more=1"
+           hx-get="{% url 'animal_tab' pk=animal.id slug='vet' %}?before={{ tl_next_before|urlencode }}&before_id={{ tl_next_before_pk }}&load_more=1"
            hx-target="#timeline-more-vet"
            hx-swap="outerHTML">Load older</a>
     </div>

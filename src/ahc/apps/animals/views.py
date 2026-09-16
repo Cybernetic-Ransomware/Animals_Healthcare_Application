@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
 from django.http import Http404, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -62,17 +64,23 @@ def _timeline_boundary_from_month(month_param: str) -> datetime | None:
     return timezone.make_aware(datetime(first_of_next.year, first_of_next.month, first_of_next.day, 0, 0, 0), tz)
 
 
-def _resolve_timeline_page(qs, month_param: str | None, before_param: str | None) -> tuple[list, bool]:
-    """Apply month-jump/cursor filtering and slice one page; an unparsable before_param fails closed (no records)."""
+def _resolve_timeline_page(
+    qs, month_param: str | None, before_param: str | None, before_pk_param: str | None
+) -> tuple[list, bool]:
+    """Filter/slice one page (qs ordered -date_creation, -pk); (date, pk) cursor avoids skipping ties at the boundary."""
     if month_param and not before_param:
         boundary = _timeline_boundary_from_month(month_param)
         if boundary:
             qs = qs.filter(date_creation__lt=boundary)
     elif before_param:
         before_dt = parse_datetime(before_param)
-        if before_dt is None:
+        if before_dt is None or not before_pk_param:
             return [], False
-        qs = qs.filter(date_creation__lt=before_dt)
+        try:
+            before_pk = uuid.UUID(before_pk_param)
+        except ValueError:
+            return [], False
+        qs = qs.filter(Q(date_creation__lt=before_dt) | Q(date_creation=before_dt, pk__lt=before_pk))
 
     records = list(qs[: _TIMELINE_PER_PAGE + 1])
     tl_has_more = len(records) > _TIMELINE_PER_PAGE
@@ -89,18 +97,20 @@ def _build_vet(request, animal: Animal, allowed: set[str] | None = None) -> dict
     if allowed is None or "history" in allowed:
         from ahc.apps.medical_notes.selectors import available_months_for, timeline_for
 
-        qs = timeline_for(animal, type_of_event="medical_visit").order_by("-date_creation")
+        qs = timeline_for(animal, type_of_event="medical_visit").order_by("-date_creation", "-pk")
 
         month_param = request.GET.get("month")
         before_param = request.GET.get("before")
+        before_pk_param = request.GET.get("before_id")
 
-        records, tl_has_more = _resolve_timeline_page(qs, month_param, before_param)
+        records, tl_has_more = _resolve_timeline_page(qs, month_param, before_param, before_pk_param)
 
         ctx.update(
             {
                 "vet_records": records,
                 "tl_has_more": tl_has_more,
                 "tl_next_before": records[-1].date_creation.isoformat() if records else None,
+                "tl_next_before_pk": records[-1].pk if records else None,
                 "tl_slug": "vet",
                 "scroll_to_month": month_param or "",
                 "available_months": available_months_for(animal, type_of_event="medical_visit"),
@@ -133,12 +143,13 @@ def _build_notes(request, animal: Animal, allowed: set[str] | None = None) -> di
     if allowed is None or "history" in allowed:
         from ahc.apps.medical_notes.selectors import other_history_for
 
-        qs = other_history_for(animal)
+        qs = other_history_for(animal).order_by("-date_creation", "-pk")
 
         month_param = request.GET.get("month")
         before_param = request.GET.get("before")
+        before_pk_param = request.GET.get("before_id")
 
-        records, tl_has_more = _resolve_timeline_page(qs, month_param, before_param)
+        records, tl_has_more = _resolve_timeline_page(qs, month_param, before_param, before_pk_param)
 
         available_months = list(
             other_history_for(animal).datetimes(
@@ -154,6 +165,7 @@ def _build_notes(request, animal: Animal, allowed: set[str] | None = None) -> di
                 "other_records": records,
                 "tl_has_more": tl_has_more,
                 "tl_next_before": records[-1].date_creation.isoformat() if records else None,
+                "tl_next_before_pk": records[-1].pk if records else None,
                 "tl_slug": "notes",
                 "scroll_to_month": month_param or "",
                 "available_months": available_months,

@@ -677,6 +677,65 @@ class TestTimelineLoadMorePagination:
         assert self._present_pks(content, records) == set()
         assert not self._has_load_more(content, "timeline-more-notes")
 
+    def test_notes_before_without_before_id_fails_closed(self, animal, user_profile):
+        user, profile = user_profile
+        records = self._create_notes(animal, profile, 24)
+        c = self._client_for(user)
+
+        first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
+        href = self._extract_load_more_href(first_content, "timeline-more-notes")
+        before_only = href.split("&before_id=")[0]
+
+        response = c.get(f"{before_only}&load_more=1", HTTP_HX_REQUEST="true")
+        content = response.content.decode()
+
+        assert response.status_code == 200
+        assert self._present_pks(content, records) == set()
+        assert not self._has_load_more(content, "timeline-more-notes")
+
+    def test_notes_tied_date_creation_at_page_boundary_drops_no_records(self, animal, user_profile):
+        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+
+        user, profile = user_profile
+        base = timezone.now()
+
+        unique = [
+            MedicalRecord.objects.create(
+                animal=animal, author=profile, short_description=f"unique {i}", type_of_event="fast_note"
+            )
+            for i in range(19)
+        ]
+        for i, r in enumerate(unique):
+            MedicalRecord.objects.filter(pk=r.pk).update(date_creation=base - timedelta(hours=i + 1))
+
+        # 5 records sharing one timestamp, straddling the page boundary (1 of them fills page one).
+        tied_ts = base - timedelta(hours=20)
+        tied = [
+            MedicalRecord.objects.create(
+                animal=animal, author=profile, short_description=f"tied {i}", type_of_event="fast_note"
+            )
+            for i in range(5)
+        ]
+        for r in tied:
+            MedicalRecord.objects.filter(pk=r.pk).update(date_creation=tied_ts)
+
+        records = list(MedicalRecord.objects.filter(pk__in=[r.pk for r in unique + tied]))
+        c = self._client_for(user)
+
+        first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
+        first_present = self._present_pks(first_content, records)
+        assert len(first_present) == 20
+        assert self._has_load_more(first_content, "timeline-more-notes")
+
+        href = self._extract_load_more_href(first_content, "timeline-more-notes")
+        second_content = c.get(href, HTTP_HX_REQUEST="true").content.decode()
+        second_present = self._present_pks(second_content, records)
+
+        assert len(second_present) == 4
+        assert first_present.isdisjoint(second_present)
+        assert first_present | second_present == {r.pk for r in records}
+        assert not self._has_load_more(second_content, "timeline-more-notes")
+
     def test_notes_load_more_href_survives_url_round_trip_with_tz_offset_cursor(self, animal, user_profile):
         """Cursor is always UTC ("+00:00"); href must carry a percent-encoded '+' or this test passes vacuously."""
         user, profile = user_profile
