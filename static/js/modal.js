@@ -10,10 +10,14 @@
     var modalTitle = document.getElementById("modal-title");
     var modalBody = document.getElementById("modal-body");
 
+    // Captured only in "beforeRequest" — other htmx events reuse event.detail.elt for unrelated nodes.
+    var lastTrigger = null;
+
     // Populate modal title from the triggering element before the htmx request fires.
     document.addEventListener("htmx:beforeRequest", function (event) {
         if (event.detail.target.id !== "modal-body") return;
         var elt = event.detail.elt;
+        lastTrigger = elt || null;
         if (elt && modalTitle && elt.dataset.modalTitle) {
             modalTitle.textContent = elt.dataset.modalTitle;
         }
@@ -78,4 +82,13 @@
     if (closeBtn) {
         closeBtn.addEventListener("click", function () { modal.close(); });
     }
+
+    // Native "close" fires for every close path (X, backdrop, Escape, data-close-modal) — one listener covers them all.
+    modal.addEventListener("close", function () {
+        var trigger = lastTrigger;
+        lastTrigger = null;
+        if (trigger && document.contains(trigger) && isFocusable(trigger)) {
+            trigger.focus();
+        }
+    });
 }());
