@@ -17,7 +17,10 @@
     document.addEventListener("htmx:beforeRequest", function (event) {
         if (event.detail.target.id !== "modal-body") return;
         var elt = event.detail.elt;
-        lastTrigger = elt || null;
+        // In-modal form submits also target #modal-body; only an opener from outside the dialog should overwrite it.
+        if (elt && !modal.contains(elt)) {
+            lastTrigger = elt;
+        }
         if (elt && modalTitle && elt.dataset.modalTitle) {
             modalTitle.textContent = elt.dataset.modalTitle;
         }
