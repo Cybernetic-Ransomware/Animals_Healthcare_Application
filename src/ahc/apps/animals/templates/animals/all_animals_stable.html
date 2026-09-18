@@ -1,8 +1,4 @@
 {% extends 'homepage/base.html' %}
-{% load static %}
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/stable_grid.css' %}">
-{% endblock %}
 {% block content %}
 
     {% if user.is_authenticated %}
@@ -10,7 +6,7 @@
     <div>
         {% if animals %}
             <h3>All pets:</h3>
-            <div class="stable_grid">
+            <div class="animals-grid">
                 {% for animal in animals %}
                     {% include "partials/animal_card.html" %}
                 {% endfor %}

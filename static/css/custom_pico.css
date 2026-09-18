@@ -185,6 +185,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .site-header__user-nav nav ul {
   margin-bottom: 0;
+  /* Pico's default -10px nav ul margin bleeds into container padding elsewhere; .site-header
+     has none at this width, so overflow: hidden clips the last button without this reset. */
+  margin-inline: 0;
   flex-wrap: nowrap;
   align-items: center;
   gap: 0.5rem;
