@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING, cast
+
 from django.views.generic import TemplateView
 
 from ahc.apps.animals.selectors import animals_visible_to
 from ahc.apps.users.models import Profile as UserProfile
+
+if TYPE_CHECKING:
+    from ahc.types import AuthenticatedRequest
 
 
 class HomepageView(TemplateView):
@@ -15,8 +20,9 @@ class HomepageView(TemplateView):
         if not user.is_authenticated:
             return context
 
-        user_query = UserProfile.objects.get(user=user)
-        profile = user.profile
+        request = cast("AuthenticatedRequest", self.request)
+        user_query = UserProfile.objects.get(user=request.user)
+        profile = request.user.profile
 
         if user_query.allow_recennt_animals_list:
             # Deceased animals are excluded: pinned_animals may contain a now-deceased

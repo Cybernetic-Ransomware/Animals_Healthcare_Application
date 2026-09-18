@@ -38,7 +38,7 @@ class BiometricBatchSessionForm(forms.Form):
     )
 
     def clean(self):
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         if cleaned.get("record_type") == "custom":
             if not cleaned.get("custom_name"):
                 self.add_error("custom_name", "Measurement name is required for custom records.")
@@ -65,7 +65,7 @@ class BiometricBatchRowForm(forms.Form):
     )
 
     def clean(self):
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         if cleaned.get("include") and cleaned.get("value") is None:
             self.add_error("value", "A value is required for checked animals.")
         return cleaned

@@ -35,9 +35,9 @@ The current stack uses two complementary mechanisms:
 Notification channel: **Discord** via `discord.py`. Additional channels (e-mail, SMS) are deferred.
 
 ### Consequences
-- The `homepage.CronJob` model is an **orphan** — it was populated by django-crontab and nothing
-  currently writes to it. Follow-up required: migrate it or drop the table (tracked in CLAUDE.md
-  under Known Refactoring Targets).
+- The `homepage.CronJob` model (the django-crontab leftover) was dropped in migration
+  `homepage/0004_delete_cronjob.py` — the orphan-table follow-up this ADR originally flagged
+  is resolved.
 - Celery Beat requires two running processes: the Celery worker (`queue` service) and the Beat
   scheduler (`celery_beat` service). Both are defined in `docker/docker-compose.yml`.
 - Task visibility is available via **Celery Flower** (port 5555).

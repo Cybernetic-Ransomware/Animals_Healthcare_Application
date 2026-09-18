@@ -14,13 +14,12 @@ All handlers registered in `ready()`. Status per handler:
 | `clean_orphaned_metric_records`      | `medical_notes/signals/`     | Fixed (None guard on `related_note`), connected |
 | `clean_orphaned_diet_records`        | `medical_notes/signals/`     | Fixed (rewrote logic, see §2), connected     |
 | `create_profile` / `save_profile`    | `users/signals.py`           | Connected (`save_profile` guarded with `hasattr`) |
-| `create_basic_privilege` / `create_background` | `users/signals.py` | **Deleted** — see note below               |
+| `create_basic_privilege` / `create_background` | `users/signals.py` | Restored, connected — see note below       |
 
-`create_basic_privilege` / `create_background`: `Privilege` and `ProfileBackground`
-raise `NotImplementedError` in `__init__`, making them permanently uninstantiable via
-the ORM (any queryset that returns a row crashes). `Profile.privilege_tier` and
-`profile_background` are nullable (`default=None`), so a Profile without them is valid.
-Reconnect only after `homepage/models.py` is redesigned (see the `TODO` comments there).
+`create_basic_privilege` / `create_background` were deleted at one point because
+`Privilege`/`ProfileBackground` used to raise `NotImplementedError` in `__init__`.
+`homepage/models.py` no longer does that — both are plain, ORM-instantiable models —
+so the two handlers were restored and are unit-tested in `users/tests.py`.
 
 Note: `remove_old_pictures_after_change` and `remove_old_pictures_after_user_delete`
 perform a full media-dir scan on every `Animal`/`Profile` save — O(table). Candidate
@@ -43,7 +42,7 @@ guaranteed present when Django calls them).
 
 - `medical_notes/views/` feeding views covered (§5).
 - `users/signals.py` `create_profile`/`save_profile` connected (§1); `create_basic_privilege`/
-  `create_background` restored (§A); unit tests for all four in `users/tests.py`.
+  `create_background` restored (§1); unit tests for all four in `users/tests.py`.
 - `animals/views.py`: `CreateAnimalView`, `AnimalProfileDetailView`, `StableView`,
   `ToPinAnimalsView` — integration tests added (`animals/tests.py`).
 - `animals/utils_owner/views.py`: `AnimalDeleteView`, `ChangeBirthdayView`,
@@ -109,10 +108,19 @@ To use in a view, two things are required:
    ```
 3. Annotate the view class: `request: AuthenticatedRequest`
 
-**Current state (after §A+§C):** all view classes with `LoginRequiredMixin` now carry
-`request: AuthenticatedRequest`. The `[[tool.ty.overrides]]` block was narrowed — the
-`views.py` / `views/**` patterns were removed. Remaining in the block: `signals/**`,
-`forms/**`, `mixins/**` (Django CBV `self.kwargs` false-positives), and `homepage/views.py`
-(unauthenticated-user context). Remove those patterns once their respective false-positives
-are resolved by other means (e.g. typed `kwargs` stub for CBV, ORM stubs for reverse
-relations).
+**Current state:** all view classes with `LoginRequiredMixin` carry `request: AuthenticatedRequest`.
+The `[[tool.ty.overrides]]` block has been removed entirely (`refactor/backend-typing-cleanup`):
+
+- `homepage/views.py` — narrowed locally: `cast("AuthenticatedRequest", self.request)` only
+  inside the `is_authenticated` branch, since `HomepageView` also serves anonymous users.
+- `mixins/**` (`self.kwargs` on `UserPassesTestMixin`-based permission mixins, which don't
+  inherit from `View`) — fixed with one shared typing-only base, `ahc.types.AuthenticatedCBVMixin`,
+  mixed in ahead of `UserPassesTestMixin` instead of repeating `request`/`kwargs` per class.
+- `forms/**` — fixed with `cast()` to the concrete field type (`ModelChoiceField` /
+  `ModelMultipleChoiceField` / `Field`) where django-stubs only exposes the generic base, and
+  `super().clean() or {}` where the stub return type is `dict[str, Any] | None`.
+- `signals/**` — fixed with `TYPE_CHECKING`-only reverse-manager annotations
+  (`feedingnote_set` / `biometricrecord_set`) on `MedicalRecord`, since neither FK sets
+  `related_name` and `ty` has no equivalent to django-stubs' mypy plugin for inferring them.
+
+No local ignores were left — every case had a correct static-typing fix.

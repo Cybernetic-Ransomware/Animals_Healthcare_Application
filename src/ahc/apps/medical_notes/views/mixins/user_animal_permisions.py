@@ -19,10 +19,6 @@ AnimalDirectAccessRequiredMixin is kept as a backward-compatible alias for
 AnimalDirectViewMixin; prefer the explicit names in new code.
 """
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.shortcuts import get_object_or_404
 
@@ -34,32 +30,26 @@ from ahc.apps.medical_notes.selectors import (
     is_attachment_author,
     is_note_author,
 )
-
-if TYPE_CHECKING:
-    from ahc.types import AuthenticatedRequest
+from ahc.types import AuthenticatedCBVMixin
 
 
-class AnimalDirectViewMixin(UserPassesTestMixin):
+class AnimalDirectViewMixin(AuthenticatedCBVMixin, UserPassesTestMixin):
     """Allow read access when pk in URL is an Animal UUID.
 
     The owner may always view (including deceased animals in read-only mode).
     Carers are blocked on deceased animals.
     """
 
-    request: AuthenticatedRequest
-
     def test_func(self):
         animal = get_object_or_404(Animal, id=self.kwargs.get("pk"))
         return user_can_view_animal(self.request.user.profile, animal)
 
 
-class AnimalDirectModifyMixin(UserPassesTestMixin):
+class AnimalDirectModifyMixin(AuthenticatedCBVMixin, UserPassesTestMixin):
     """Allow write access when pk in URL is an Animal UUID.
 
     Deceased animals are blocked for everyone — including the owner.
     """
-
-    request: AuthenticatedRequest
 
     def test_func(self):
         animal = get_object_or_404(Animal, id=self.kwargs.get("pk"))
@@ -70,7 +60,7 @@ class AnimalDirectModifyMixin(UserPassesTestMixin):
 AnimalDirectAccessRequiredMixin = AnimalDirectViewMixin
 
 
-class BiometricModifyMixin(UserPassesTestMixin):
+class BiometricModifyMixin(AuthenticatedCBVMixin, UserPassesTestMixin):
     """Allow biometric writes when pk is an Animal UUID and the profile may record biometrics.
 
     Owners always pass; carers need allow_biometrics=True on their active share.
@@ -78,37 +68,29 @@ class BiometricModifyMixin(UserPassesTestMixin):
     user_can_modify_animal which enforces that invariant).
     """
 
-    request: AuthenticatedRequest
-
     def test_func(self):
         animal = get_object_or_404(Animal, id=self.kwargs.get("pk"))
         return user_can_record_biometrics(self.request.user.profile, animal)
 
 
-class AnimalAccessRequiredMixin(UserPassesTestMixin):
+class AnimalAccessRequiredMixin(AuthenticatedCBVMixin, UserPassesTestMixin):
     """Allow write access when pk in URL is a MedicalRecord UUID and the profile may write to its animal."""
-
-    request: AuthenticatedRequest
 
     def test_func(self):
         note = get_object_or_404(MedicalRecord, id=self.kwargs.get("pk"))
         return can_access_note_animal(self.request.user.profile, note)
 
 
-class NoteAuthorRequiredMixin(UserPassesTestMixin):
+class NoteAuthorRequiredMixin(AuthenticatedCBVMixin, UserPassesTestMixin):
     """Allow access only to the author of the MedicalRecord (pk = note UUID)."""
-
-    request: AuthenticatedRequest
 
     def test_func(self):
         note = get_object_or_404(MedicalRecord, id=self.kwargs.get("pk"))
         return is_note_author(self.request.user.profile, note)
 
 
-class AttachmentAuthorRequiredMixin(UserPassesTestMixin):
+class AttachmentAuthorRequiredMixin(AuthenticatedCBVMixin, UserPassesTestMixin):
     """Allow access only to the author of the note that owns the attachment (pk = attachment UUID)."""
-
-    request: AuthenticatedRequest
 
     def test_func(self):
         attachment = get_object_or_404(MedicalRecordAttachment, pk=self.kwargs.get("pk"))

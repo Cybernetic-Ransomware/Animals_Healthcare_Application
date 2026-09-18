@@ -1,4 +1,7 @@
+from typing import cast
+
 from django import forms
+from django.forms import ModelChoiceField, ModelMultipleChoiceField
 
 from ahc.apps.animals.selectors import animals_visible_to
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
@@ -62,7 +65,7 @@ class MedicalRecordForm(forms.ModelForm):
             qs = animals_visible_to(profile)
             if exclude_id is not None:
                 qs = qs.exclude(id=exclude_id)
-            self.fields["additional_animals"].queryset = qs
+            cast(ModelMultipleChoiceField, self.fields["additional_animals"]).queryset = qs
 
         # Must come after queryset= above: its setter resets widget.choices to the default str(obj) iterator.
         if animal_choices:
@@ -98,7 +101,7 @@ class MedicalRecordEditForm(MedicalRecordForm):
         self.fields["type_of_event"].disabled = True
 
     def clean(self):
-        cleaned_data = super().clean()
+        cleaned_data = super().clean() or {}
         additional_animals = cleaned_data.get("additional_animals")
 
         if additional_animals is not None and self.animal in additional_animals:
@@ -123,8 +126,8 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
         # animal fails form validation, not just widget display.
         if profile is not None:
             qs = animals_visible_to(profile)
-            self.fields["animal"].queryset = qs
-            self.fields["additional_animals"].queryset = qs
+            cast(ModelChoiceField, self.fields["animal"]).queryset = qs
+            cast(ModelMultipleChoiceField, self.fields["additional_animals"]).queryset = qs
 
         # Must come after queryset= above: its setter resets widget.choices to the default str(obj) iterator.
         if animal_choices:
@@ -135,7 +138,7 @@ class MedicalRecordEditRelatedAnimalsForm(forms.ModelForm):
             del self.fields["animal"]
 
     def clean(self):
-        cleaned_data = super().clean()
+        cleaned_data = super().clean() or {}
         animal = cleaned_data.get("animal")
         additional_animals = cleaned_data.get("additional_animals")
 
