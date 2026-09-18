@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from django.db import models
 from taggit.managers import TaggableManager
@@ -6,6 +7,12 @@ from taggit.models import GenericUUIDTaggedItemBase, TaggedItemBase
 
 from ahc.apps.animals.models import Animal
 from ahc.apps.users.models import Profile as UserProfile
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import RelatedManager
+
+    from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
+    from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
 
 
 class UUIDTaggedItem(GenericUUIDTaggedItemBase, TaggedItemBase):
@@ -37,6 +44,11 @@ class MedicalRecord(models.Model):
     event_details = None
 
     note_tags = TaggableManager(through=UUIDTaggedItem, blank=True)
+
+    if TYPE_CHECKING:
+        # No related_name on either FK, and ty has no django-stubs mypy-plugin equivalent to infer these.
+        feedingnote_set: RelatedManager[FeedingNote]
+        biometricrecord_set: RelatedManager[BiometricRecord]
 
 
 class MedicalRecordAttachment(models.Model):

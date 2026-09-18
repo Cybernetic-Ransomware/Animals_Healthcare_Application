@@ -24,6 +24,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from django.contrib.auth.models import User
     from django.http import HttpRequest
 
@@ -34,3 +36,11 @@ if TYPE_CHECKING:
 
     class AuthenticatedRequest(HttpRequest):
         user: _AHCUser  # type: ignore[assignment]
+
+
+class AuthenticatedCBVMixin:
+    """Typing-only base for permission mixins on UserPassesTestMixin, which doesn't inherit from View."""
+
+    if TYPE_CHECKING:
+        request: AuthenticatedRequest
+        kwargs: dict[str, Any]
