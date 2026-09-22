@@ -1,6 +1,11 @@
+from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.core.files.base import ContentFile
+from django.db import transaction
+from django.db.models import Field
 
 from ahc.apps.users.models import Profile
 from ahc.apps.users.signals import create_background, create_basic_privilege
@@ -38,6 +43,78 @@ class TestProfileModel:
         _, profile = user_profile
         assert profile.profile_background is not None
         assert profile.profile_background.title == "Default Background"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestRemoveOldPicturesAfterProfileDeleteSignal:
+    """remove_old_pictures_after_profile_delete: transaction-safe targeted delete."""
+
+    @pytest.fixture(autouse=True)
+    def _media_root(self, tmp_path, settings):
+        settings.MEDIA_ROOT = tmp_path
+        (tmp_path / "profile_pics" / "users").mkdir(parents=True)
+
+    def test_custom_image_removed_after_commit(self, django_capture_on_commit_callbacks, user_profile):
+        _, profile = user_profile
+        profile.profile_image.save("avatar.png", ContentFile(b"fake-image-bytes"), save=True)
+        image_path = Path(profile.profile_image.path)
+        assert image_path.exists()
+
+        with django_capture_on_commit_callbacks(execute=True):
+            profile.delete()
+
+        assert not image_path.exists()
+
+    def test_default_image_kept_after_delete(self, django_capture_on_commit_callbacks, user_profile, tmp_path):
+        _, profile = user_profile
+        default_name = cast(Field, Profile._meta.get_field("profile_image")).get_default()
+        assert profile.profile_image.name == default_name
+
+        # Proves the guard checks the default explicitly, not just directory layout.
+        decoy = tmp_path / "profile_pics" / "users" / Path(default_name).name
+        decoy.write_bytes(b"default-image-bytes")
+
+        with django_capture_on_commit_callbacks(execute=True):
+            profile.delete()
+
+        assert decoy.exists()
+
+    def test_missing_file_on_disk_does_not_raise(self, django_capture_on_commit_callbacks, user_profile):
+        _, profile = user_profile
+        profile.profile_image.save("avatar.png", ContentFile(b"fake-image-bytes"), save=True)
+        Path(profile.profile_image.path).unlink()
+
+        with django_capture_on_commit_callbacks(execute=True):
+            profile.delete()
+
+    def test_user_delete_cascade_removes_profile_image(self, django_capture_on_commit_callbacks, user_profile):
+        user, profile = user_profile
+        profile.profile_image.save("avatar.png", ContentFile(b"fake-image-bytes"), save=True)
+        image_path = Path(profile.profile_image.path)
+        assert image_path.exists()
+
+        with django_capture_on_commit_callbacks(execute=True):
+            user.delete()
+
+        assert not image_path.exists()
+        assert not Profile.objects.filter(pk=profile.pk).exists()
+
+    def test_rollback_keeps_record_and_file(self, user_profile):
+        _, profile = user_profile
+        profile.profile_image.save("avatar.png", ContentFile(b"fake-image-bytes"), save=True)
+        image_path = Path(profile.profile_image.path)
+        profile_id = profile.id
+
+        class _Boom(Exception):
+            pass
+
+        with pytest.raises(_Boom), transaction.atomic():
+            profile.delete()
+            raise _Boom()
+
+        assert Profile.objects.filter(id=profile_id).exists()
+        assert image_path.exists()
 
 
 @pytest.mark.unit

@@ -1,9 +1,14 @@
 import html
 import re
 from datetime import date, timedelta
+from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.core.files.base import ContentFile
+from django.db import transaction
+from django.db.models import Field
 from django.urls import reverse
 from django.utils import timezone
 
@@ -88,6 +93,62 @@ class TestUpdateAllowedUsersSignalHandler:
     def test_no_op_when_allowed_users_is_empty(self, animal):
         update_allowed_users(sender=Animal, instance=animal)
         assert animal.allowed_users.count() == 0
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestRemoveOldPicturesAfterAnimalDeleteSignal:
+    """remove_old_pictures_after_animal_delete: transaction-safe targeted delete."""
+
+    @pytest.fixture(autouse=True)
+    def _media_root(self, tmp_path, settings):
+        settings.MEDIA_ROOT = tmp_path
+        (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
+
+    def test_custom_image_removed_after_commit(self, django_capture_on_commit_callbacks, animal):
+        animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
+        image_path = Path(animal.profile_image.path)
+        assert image_path.exists()
+
+        with django_capture_on_commit_callbacks(execute=True):
+            animal.delete()
+
+        assert not image_path.exists()
+
+    def test_default_image_kept_after_delete(self, django_capture_on_commit_callbacks, animal, tmp_path):
+        default_name = cast(Field, Animal._meta.get_field("profile_image")).get_default()
+        assert animal.profile_image.name == default_name
+
+        # Proves the guard checks the default explicitly, not just directory layout.
+        decoy = tmp_path / "profile_pics" / "animals" / Path(default_name).name
+        decoy.write_bytes(b"default-image-bytes")
+
+        with django_capture_on_commit_callbacks(execute=True):
+            animal.delete()
+
+        assert decoy.exists()
+
+    def test_missing_file_on_disk_does_not_raise(self, django_capture_on_commit_callbacks, animal):
+        animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
+        Path(animal.profile_image.path).unlink()
+
+        with django_capture_on_commit_callbacks(execute=True):
+            animal.delete()
+
+    def test_rollback_keeps_record_and_file(self, animal):
+        animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
+        image_path = Path(animal.profile_image.path)
+        animal_id = animal.id
+
+        class _Boom(Exception):
+            pass
+
+        with pytest.raises(_Boom), transaction.atomic():
+            animal.delete()
+            raise _Boom()
+
+        assert Animal.objects.filter(id=animal_id).exists()
+        assert image_path.exists()
 
 
 @pytest.mark.unit

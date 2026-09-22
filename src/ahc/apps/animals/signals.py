@@ -1,26 +1,34 @@
 from pathlib import Path
+from typing import cast
 
 from django.conf import settings
+from django.db import transaction
+from django.db.models import Field
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
 from ahc.apps.animals.models import Animal
 
-_ANIMALS_MEDIA_DIR = Path(settings.MEDIA_ROOT) / "profile_pics" / "animals"
-
 
 @receiver(pre_delete, sender=Animal)
 def remove_old_pictures_after_animal_delete(sender, instance, **kwargs):
-    """Remove the animal's profile image when the Animal row is deleted.
+    """Delete the animal's profile image once the delete transaction commits.
 
-    Targeted O(1) cleanup — kept as a signal because it fires at exactly the
-    right moment. The broader orphan-image sweep (post_save full scan) has been
-    moved to the daily Celery Beat task clean_orphaned_profile_images in
-    celery_notifications/cron.py.
+    Deferred via transaction.on_commit so a rollback leaves the file in place; the
+    closure captures the basename and MEDIA_ROOT-resolved dir at call time, not the
+    instance, so it respects per-test MEDIA_ROOT overrides.
     """
-    if instance.profile_image:
-        image_path = _ANIMALS_MEDIA_DIR / Path(instance.profile_image.name).name
-        image_path.unlink(missing_ok=True)
+    name = instance.profile_image.name
+    default = cast(Field, Animal._meta.get_field("profile_image")).get_default()
+    if not name or name == default:
+        return
+
+    media_dir = Path(settings.MEDIA_ROOT) / "profile_pics" / "animals"
+
+    def _delete_committed_image() -> None:
+        (media_dir / Path(name).name).unlink(missing_ok=True)
+
+    transaction.on_commit(_delete_committed_image)
 
 
 @receiver(post_save, sender=Animal)
