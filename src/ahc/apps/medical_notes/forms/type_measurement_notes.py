@@ -1,4 +1,7 @@
+from typing import cast
+
 from django import forms
+from django.db.models import Field
 
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricHeightRecords, BiometricWeightRecords
 
@@ -25,8 +28,12 @@ class BiometricRecordForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        default_height_unit_to_present = BiometricHeightRecords._meta.get_field("height_unit_to_present").get_default()
-        default_weight_unit_to_present = BiometricWeightRecords._meta.get_field("weight_unit_to_present").get_default()
+        default_height_unit_to_present = cast(
+            Field, BiometricHeightRecords._meta.get_field("height_unit_to_present")
+        ).get_default()
+        default_weight_unit_to_present = cast(
+            Field, BiometricWeightRecords._meta.get_field("weight_unit_to_present")
+        ).get_default()
 
         self.fields["height_unit_to_present"].initial = default_height_unit_to_present
         self.fields["weight_unit_to_present"].initial = default_weight_unit_to_present

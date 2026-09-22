@@ -24,6 +24,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from django.contrib.auth.models import User
     from django.http import HttpRequest
 
@@ -33,4 +35,12 @@ if TYPE_CHECKING:
         profile: Profile
 
     class AuthenticatedRequest(HttpRequest):
-        user: _AHCUser  # type: ignore[assignment]
+        user: _AHCUser
+
+
+class AuthenticatedCBVMixin:
+    """Runtime no-op base (participates in MRO) carrying type-check-only request/kwargs annotations."""
+
+    if TYPE_CHECKING:
+        request: AuthenticatedRequest
+        kwargs: dict[str, Any]
