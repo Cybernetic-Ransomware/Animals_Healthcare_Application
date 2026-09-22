@@ -2,13 +2,11 @@ import html
 import re
 from datetime import date, timedelta
 from pathlib import Path
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import Field
 from django.urls import reverse
 from django.utils import timezone
 
@@ -115,18 +113,21 @@ class TestRemoveOldPicturesAfterAnimalDeleteSignal:
 
         assert not image_path.exists()
 
-    def test_default_image_kept_after_delete(self, django_capture_on_commit_callbacks, animal, tmp_path):
-        default_name = cast(Field, Animal._meta.get_field("profile_image")).get_default()
-        assert animal.profile_image.name == default_name
+    def test_blank_image_delete_does_not_unlink_files(self, django_capture_on_commit_callbacks, animal, tmp_path):
+        assert animal.profile_image.name == ""
 
-        # Proves the guard checks the default explicitly, not just directory layout.
-        decoy = tmp_path / "profile_pics" / "animals" / Path(default_name).name
-        decoy.write_bytes(b"default-image-bytes")
+        # Proves the guard short-circuits on the blank name before touching disk at all.
+        sentinel = tmp_path / "profile_pics" / "animals" / "sentinel.png"
+        sentinel.write_bytes(b"unrelated-file-bytes")
 
-        with django_capture_on_commit_callbacks(execute=True):
+        with (
+            patch.object(Path, "unlink") as mock_unlink,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
             animal.delete()
 
-        assert decoy.exists()
+        mock_unlink.assert_not_called()
+        assert sentinel.exists()
 
     def test_missing_file_on_disk_does_not_raise(self, django_capture_on_commit_callbacks, animal):
         animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
@@ -907,6 +908,11 @@ class TestAnimalProfileDetailView:
         _, profile = user_profile
         return Animal.objects.create(full_name="ProfileTest", owner=profile)
 
+    @pytest.fixture(autouse=True)
+    def _media_root(self, tmp_path, settings):
+        settings.MEDIA_ROOT = tmp_path
+        (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
+
     def _client_for(self, user):
         from django.test import Client
 
@@ -929,6 +935,20 @@ class TestAnimalProfileDetailView:
         other_user, _ = second_user_profile
         response = self._client_for(other_user).get(f"/pet/{animal.id}/")
         assert response.status_code == 403
+
+    def test_uses_static_fallback_when_no_custom_image(self, animal, user_profile):
+        user, _ = user_profile
+        assert animal.profile_image.name == ""
+        response = self._client_for(user).get(f"/pet/{animal.id}/")
+        assert "img/defaults/pet-care.png" in response.content.decode()
+
+    def test_custom_image_used_instead_of_fallback(self, animal, user_profile):
+        user, _ = user_profile
+        animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
+        response = self._client_for(user).get(f"/pet/{animal.id}/")
+        content = response.content.decode()
+        assert animal.profile_image.url in content
+        assert "img/defaults/pet-care.png" not in content
 
 
 @pytest.mark.integration
@@ -955,6 +975,13 @@ class TestStableView:
         response = self._client_for(user).get("/pet/animals/")
         assert response.status_code == 200
         assert animal in response.context["animals"]
+
+    def test_card_uses_static_fallback_when_no_custom_image(self, user_profile):
+        user, profile = user_profile
+        animal = Animal.objects.create(full_name="StableAnimal", owner=profile)
+        assert animal.profile_image.name == ""
+        response = self._client_for(user).get("/pet/animals/")
+        assert "img/defaults/pet-care.png" in response.content.decode()
 
 
 @pytest.mark.integration

@@ -1,10 +1,8 @@
 from pathlib import Path
-from typing import cast
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Field
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
@@ -54,8 +52,7 @@ def remove_old_pictures_after_profile_delete(sender, instance, **kwargs):
     daily sweep is the recovery path for whatever this leaves behind.
     """
     name = instance.profile_image.name
-    default = cast(Field, Profile._meta.get_field("profile_image")).get_default()
-    if not name or name == default:
+    if not name:
         return
 
     media_dir = Path(settings.MEDIA_ROOT) / "profile_pics" / "users"

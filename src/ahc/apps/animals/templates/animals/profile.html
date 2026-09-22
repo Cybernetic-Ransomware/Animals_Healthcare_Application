@@ -59,14 +59,25 @@
     <div class="animal-profile-hero">
         {% if is_deceased %}
         <div class="animal-profile-hero__img">
+            {% if animal.profile_image %}
             <img src="{{ animal.profile_image.url }}"
                  alt="Animal's profile picture">
+            {% else %}
+            <img src="{% static 'img/defaults/pet-care.png' %}"
+                 alt="Animal's profile picture">
+            {% endif %}
         </div>
         {% else %}
         <a class="animal-profile-hero__img" href="{% url 'upload_image' pk=animal.id %}">
+            {% if animal.profile_image %}
             <img src="{{ animal.profile_image.url }}"
                  alt="Animal's profile picture"
                  title="Change a picture">
+            {% else %}
+            <img src="{% static 'img/defaults/pet-care.png' %}"
+                 alt="Animal's profile picture"
+                 title="Change a picture">
+            {% endif %}
         </a>
         {% endif %}
         <div class="animal-profile-hero__info">

@@ -30,7 +30,7 @@ class Animal(models.Model):
     long_description = models.CharField(max_length=2500, default=None, blank=True, null=True)
 
     birthdate = models.DateField(null=True, default=None)
-    profile_image = models.ImageField(default="profile_pics/pet-care.png", upload_to="profile_pics/animals")
+    profile_image = models.ImageField(blank=True, default="", upload_to="profile_pics/animals")
     creation_date = models.DateTimeField(auto_now_add=True, editable=False)
 
     owner = models.ForeignKey(
