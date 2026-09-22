@@ -6,9 +6,8 @@ All handlers registered in `ready()`. Status per handler:
 
 | Handler                              | File                         | Outcome                                      |
 |--------------------------------------|------------------------------|----------------------------------------------|
-| `remove_old_pictures_after_change`   | `animals/signals.py`         | Connected as-is                              |
 | `remove_old_pictures_after_animal_delete` | `animals/signals.py`    | Connected as-is                              |
-| `remove_old_pictures_after_user_delete` | `animals/signals.py`      | Connected as-is                              |
+| `remove_old_pictures_after_profile_delete` | `users/signals.py`     | Connected as-is                              |
 | `update_allowed_users`               | `animals/signals.py`         | Connected as-is                              |
 | `validate_one_to_one_fields`         | `medical_notes/signals/`     | Connected as-is                              |
 | `clean_orphaned_metric_records`      | `medical_notes/signals/`     | Fixed (None guard on `related_note`), connected |
@@ -21,9 +20,17 @@ All handlers registered in `ready()`. Status per handler:
 `homepage/models.py` no longer does that — both are plain, ORM-instantiable models —
 so the two handlers were restored and are unit-tested in `users/tests.py`.
 
-Note: `remove_old_pictures_after_change` and `remove_old_pictures_after_user_delete`
-perform a full media-dir scan on every `Animal`/`Profile` save — O(table). Candidate
-for a management command in a later PR.
+Profile-image cleanup lifecycle (as of the media-cleanup-hardening branch):
+- **Animal delete** and **Profile delete** (direct, or cascaded via `User.delete()`):
+  targeted O(1) `pre_delete` signals (`remove_old_pictures_after_animal_delete`,
+  `remove_old_pictures_after_profile_delete`) schedule the file removal via
+  `transaction.on_commit`, so a rolled-back delete leaves the file in place. Both
+  signals explicitly skip the field's default image.
+- **Image replacement** (custom → custom, custom → default): deliberately deferred,
+  no signal — the old file becomes an unreferenced orphan, picked up by the daily
+  sweep below.
+- **Orphan sweep**: `clean_orphaned_profile_images` (Celery Beat, daily 03:00) now
+  covers both `profile_pics/animals/` (Animal) and `profile_pics/users/` (Profile).
 
 ## 2. FeedingNote missing `author` field — DONE
 
