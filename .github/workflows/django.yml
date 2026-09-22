@@ -301,6 +301,55 @@ jobs:
             -f docker/docker-compose.cd.yml \
             config
 
+      - name: Assert web/queue media mount parity
+        # `config` above only catches broken YAML/interpolation -- it would happily accept
+        # web having a media bind mount and queue not having one. The orphan-image sweep
+        # runs in queue and must see the exact files web writes, so assert both services
+        # mount /app/static/media from the same host source.
+        env:
+          AHC_DOMAIN: "ahc.example.test"
+          APP_IMAGE_TAG: "sha-0000000000000000000000000000000000000000"
+          POSTGRES_DB: "ahc_test"
+          POSTGRES_USER: "ahc_test"
+          POSTGRES_PASSWORD: "test-password"
+          COUCHDB_USER: "ahc_test"
+          COUCHDB_PASSWORD: "test-password"
+          COUCHDB_PORT: "5982"
+          CELERY_BROKER_URL: "redis://redis:6379/0"
+          FLOWER_PORT: "5555"
+          FLOWER_BASIC_AUTH: "test:test-password"
+          DB_VOLUMEN_POSTGRES: "/tmp/ahc-ci-fake/postgres"
+          DB_VOLUMEN_COUCH: "/tmp/ahc-ci-fake/couchdb"
+          VOLUMEN_PRIVATE_STORAGE: "/tmp/ahc-ci-fake/private"
+        run: |
+          docker compose \
+            -f docker/docker-compose-traefik.yml \
+            -f docker/docker-compose.cd.yml \
+            config --format json > /tmp/compose-config.json
+          python3 - <<'EOF'
+          import json
+
+          config = json.load(open("/tmp/compose-config.json"))
+          services = config["services"]
+
+          def media_mount(service_name):
+              for vol in services[service_name].get("volumes", []):
+                  if vol.get("target") == "/app/static/media":
+                      return vol
+              return None
+
+          web_mount = media_mount("web")
+          queue_mount = media_mount("queue")
+
+          assert web_mount is not None, "web service has no /app/static/media mount"
+          assert queue_mount is not None, "queue service has no /app/static/media mount"
+          assert web_mount["source"] == queue_mount["source"], (
+              f"web and queue media mounts point at different sources: "
+              f"web={web_mount['source']!r} queue={queue_mount['source']!r}"
+          )
+          print(f"OK: web and queue share media mount source {web_mount['source']!r}")
+          EOF
+
   build-validate:
     name: Build ahc-app image (validation only, no push)
     runs-on: ubuntu-latest

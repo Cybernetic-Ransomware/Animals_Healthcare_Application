@@ -114,6 +114,9 @@ services:
     image: ahc-app:latest
     command: celery -A celery_notifications.config:celery_obj worker -l info
     volumes:
+      # Same host media mount as web: the daily orphan sweep (clean_orphaned_profile_images)
+      # runs in this worker and must see the same files web writes/serves.
+      - ../static/media:/app/static/media
       - private_storage:/app/private
     env_file:
       - ../.env

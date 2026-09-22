@@ -6,8 +6,8 @@ All handlers registered in `ready()`. Status per handler:
 
 | Handler                              | File                         | Outcome                                      |
 |--------------------------------------|------------------------------|----------------------------------------------|
-| `remove_old_pictures_after_animal_delete` | `animals/signals.py`    | Connected as-is                              |
-| `remove_old_pictures_after_profile_delete` | `users/signals.py`     | Connected as-is                              |
+| `remove_old_pictures_after_animal_delete` | `animals/signals.py`    | Targeted O(1), after-commit cleanup          |
+| `remove_old_pictures_after_profile_delete` | `users/signals.py`     | Targeted O(1), after-commit cleanup          |
 | `update_allowed_users`               | `animals/signals.py`         | Connected as-is                              |
 | `validate_one_to_one_fields`         | `medical_notes/signals/`     | Connected as-is                              |
 | `clean_orphaned_metric_records`      | `medical_notes/signals/`     | Fixed (None guard on `related_note`), connected |
@@ -20,7 +20,7 @@ All handlers registered in `ready()`. Status per handler:
 `homepage/models.py` no longer does that — both are plain, ORM-instantiable models —
 so the two handlers were restored and are unit-tested in `users/tests.py`.
 
-Profile-image cleanup lifecycle (as of the media-cleanup-hardening branch):
+Current profile-image cleanup lifecycle:
 - **Animal delete** and **Profile delete** (direct, or cascaded via `User.delete()`):
   targeted O(1) `pre_delete` signals (`remove_old_pictures_after_animal_delete`,
   `remove_old_pictures_after_profile_delete`) schedule the file removal via
