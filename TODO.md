@@ -95,7 +95,7 @@ if TYPE_CHECKING:
         profile: Profile
 
     class AuthenticatedRequest(HttpRequest):
-        user: _AHCUser  # type: ignore[assignment]
+        user: _AHCUser
 ```
 
 To use in a view, two things are required:
