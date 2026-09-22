@@ -2,7 +2,10 @@ import json
 import logging
 import logging.config
 import logging.handlers
+import os
 import pathlib
+import stat
+import time as time_module
 from datetime import date, datetime, time, timedelta
 from functools import wraps
 
@@ -24,6 +27,12 @@ def setup_logging():
     config_file = pathlib.Path(__file__).parent / "logger_config.json"
     with open(config_file) as file:
         config = json.load(file)
+
+    for handler in config.get("handlers", {}).values():
+        filename = handler.get("filename")
+        if filename:
+            pathlib.Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
     logging.config.dictConfig(config)
 
 
@@ -147,28 +156,94 @@ def send_discord_notes():
     send_discord_notifications.apply_async(kwargs={"user_id": user_id, "user_message": user_message}, countdown=delay)
 
 
+# Django can write an uploaded file to storage before the row referencing it is saved.
+# A file younger than this is never treated as orphaned, so the daily sweep can't
+# race a concurrent upload. Cheap to be generous here: the sweep only runs once a day.
+ORPHAN_IMAGE_GRACE_PERIOD = timedelta(hours=1)
+
+
+def _clean_orphaned_images(media_dir: pathlib.Path, live_names: set[str]) -> tuple[int, int]:
+    """Removes files under media_dir whose basename isn't in live_names.
+
+    Isolates failures at both the directory and the per-file level: a directory that
+    can't be listed, or a single file that can't be stat'd or unlinked, is logged and
+    skipped rather than aborting the rest of the sweep. Files younger than
+    ORPHAN_IMAGE_GRACE_PERIOD are left alone regardless of live_names (see module docstring
+    on ORPHAN_IMAGE_GRACE_PERIOD). Returns (removed_count, failed_count).
+    """
+    if not media_dir.is_dir():
+        return 0, 0
+
+    try:
+        entries = os.listdir(media_dir)
+    except OSError as e:
+        logger.error("clean_orphaned_profile_images: failed to list %s: %s", media_dir, e)
+        return 0, 0
+
+    removed = 0
+    failed = 0
+    now = time_module.time()
+    grace_seconds = ORPHAN_IMAGE_GRACE_PERIOD.total_seconds()
+
+    for entry in entries:
+        path = media_dir / entry
+
+        try:
+            st = path.stat()
+        except OSError as e:
+            # Don't delete blindly when we can't even inspect the entry (missing_ok
+            # race, permission issue, ...) -- skip and let the next run reassess it.
+            logger.warning("clean_orphaned_profile_images: failed to stat %s in %s: %s", entry, media_dir, e)
+            failed += 1
+            continue
+
+        if not stat.S_ISREG(st.st_mode):
+            continue
+        if entry in live_names:
+            continue
+        if now - st.st_mtime < grace_seconds:
+            continue
+
+        try:
+            path.unlink(missing_ok=True)
+            removed += 1
+        except OSError as e:
+            logger.warning("clean_orphaned_profile_images: failed to remove %s in %s: %s", entry, media_dir, e)
+            failed += 1
+
+    return removed, failed
+
+
 @log_exceptions_and_notifications
 def clean_orphaned_profile_images() -> None:
-    """Delete animal profile images with no corresponding Animal row.
-
-    Runs as a daily Celery Beat task. Replaces the former post_save / post_delete
-    full directory-scan signals on Animal and Profile that ran O(N images) on every
-    write. Now runs once per day at 03:00 UTC.
+    """Deferred O(N) daily sweep for images an upload or replacement left orphaned;
+    the Animal/Profile pre_delete signals already handle the O(1) delete case.
     """
-    import os
-    from pathlib import Path
-
     from django.conf import settings
 
     from ahc.apps.animals.models import Animal
+    from ahc.apps.users.models import Profile
 
-    animals_media_dir = Path(settings.MEDIA_ROOT) / "profile_pics" / "animals"
-    if not animals_media_dir.is_dir():
-        return
-    live = {str(p).split("/")[-1] for p in Animal.objects.exclude(profile_image="").values_list("profile_image", flat=True)}
-    for image_name in os.listdir(animals_media_dir):
-        if image_name not in live:
-            (animals_media_dir / image_name).unlink(missing_ok=True)
+    media_root = pathlib.Path(settings.MEDIA_ROOT) / "profile_pics"
+
+    animal_live = {
+        pathlib.Path(name).name for name in Animal.objects.exclude(profile_image="").values_list("profile_image", flat=True)
+    }
+    animals_removed, animals_failed = _clean_orphaned_images(media_root / "animals", animal_live)
+
+    profile_live = {
+        pathlib.Path(name).name
+        for name in Profile.objects.exclude(profile_image="").values_list("profile_image", flat=True)
+    }
+    users_removed, users_failed = _clean_orphaned_images(media_root / "users", profile_live)
+
+    logger.info(
+        "clean_orphaned_profile_images: animals removed=%d failed=%d, users removed=%d failed=%d",
+        animals_removed,
+        animals_failed,
+        users_removed,
+        users_failed,
+    )
 
 
 @log_exceptions_and_notifications

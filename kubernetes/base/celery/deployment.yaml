@@ -18,9 +18,7 @@ spec:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
       initContainers:
-        # Same rationale as in the web Deployment: the worker writes offline
-        # snapshots to the shared PVC as uid 1000, and the worker can start
-        # before the web pod has prepared the volume.
+        # Same rationale as in the web Deployment: preps shared PVCs as uid 1000 in case the worker starts first.
         - name: prepare-storage
           image: busybox:1.37
           securityContext:
@@ -30,8 +28,11 @@ spec:
             - -c
             - |
               set -eu
-              chown -R 1000:1000 /mnt/private
+              mkdir -p /mnt/media/profile_pics/animals /mnt/media/profile_pics/users
+              chown -R 1000:1000 /mnt/media /mnt/private
           volumeMounts:
+            - name: app-media
+              mountPath: /mnt/media
             - name: app-private
               mountPath: /mnt/private
           resources:
@@ -71,6 +72,9 @@ spec:
                   name: postgres-credentials
                   key: POSTGRES_PASSWORD
           volumeMounts:
+            - name: app-media
+              mountPath: /app/static/media/profile_pics
+              subPath: profile_pics
             - name: app-private
               mountPath: /app/private
           livenessProbe:
@@ -91,6 +95,9 @@ spec:
               memory: "384Mi"
               cpu: "300m"
       volumes:
+        - name: app-media
+          persistentVolumeClaim:
+            claimName: app-media-pvc
         - name: app-private
           persistentVolumeClaim:
             claimName: app-private-pvc
