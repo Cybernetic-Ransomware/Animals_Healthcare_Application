@@ -65,20 +65,28 @@ class TestCleanOrphanedImagesHelper:
 @pytest.mark.integration
 @pytest.mark.django_db
 class TestCleanOrphanedProfileImagesTask:
-    """clean_orphaned_profile_images: end-to-end sweep across Animal + Profile.
-
-    Uses __wrapped__ to bypass log_exceptions_and_notifications, whose setup_logging()
-    fails without a logs/ directory this repo doesn't provision (pre-existing, unrelated).
-    """
+    """clean_orphaned_profile_images: end-to-end sweep across Animal + Profile, through the real decorator."""
 
     @pytest.fixture(autouse=True)
-    def _media_root(self, tmp_path, settings):
+    def _media_root(self, tmp_path, settings, monkeypatch):
         settings.MEDIA_ROOT = tmp_path
         (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
         (tmp_path / "profile_pics" / "users").mkdir(parents=True)
+        # Relative "logs/cron.log" in logger_config.json resolves against cwd — keep it off the real repo.
+        monkeypatch.chdir(tmp_path)
 
     def _run(self) -> None:
-        clean_orphaned_profile_images.__wrapped__()
+        clean_orphaned_profile_images()
+
+    def test_setup_logging_creates_log_dir_and_task_still_runs(self, tmp_path, user_profile):
+        _, profile = user_profile
+        profile.profile_image.save("avatar.png", ContentFile(b"fake"), save=True)
+        live_name = _basename(profile.profile_image.name)
+
+        self._run()
+
+        assert (tmp_path / "logs" / "cron.log").exists()
+        assert (tmp_path / "profile_pics" / "users" / live_name).exists()
 
     def test_live_animal_image_kept_orphan_removed(self, tmp_path, user_profile):
         _, profile = user_profile

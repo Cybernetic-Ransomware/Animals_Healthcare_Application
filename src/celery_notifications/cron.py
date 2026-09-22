@@ -25,6 +25,12 @@ def setup_logging():
     config_file = pathlib.Path(__file__).parent / "logger_config.json"
     with open(config_file) as file:
         config = json.load(file)
+
+    for handler in config.get("handlers", {}).values():
+        filename = handler.get("filename")
+        if filename:
+            pathlib.Path(filename).parent.mkdir(parents=True, exist_ok=True)
+
     logging.config.dictConfig(config)
 
 
