@@ -49,7 +49,9 @@ def remove_old_pictures_after_profile_delete(sender, instance, **kwargs):
     Fires for both a direct Profile.delete() and a cascaded User.delete() — a
     pre_delete receiver disables Django's fast-delete optimization, so the cascade
     always materializes and deletes each Profile row individually. Deferred via
-    transaction.on_commit so a rollback leaves the file in place.
+    transaction.on_commit so a rollback leaves the file in place. robust=True keeps
+    a callback failure (e.g. a locked file) from propagating to the caller — the
+    daily sweep is the recovery path for whatever this leaves behind.
     """
     name = instance.profile_image.name
     default = cast(Field, Profile._meta.get_field("profile_image")).get_default()
@@ -61,4 +63,4 @@ def remove_old_pictures_after_profile_delete(sender, instance, **kwargs):
     def _delete_committed_image() -> None:
         (media_dir / Path(name).name).unlink(missing_ok=True)
 
-    transaction.on_commit(_delete_committed_image)
+    transaction.on_commit(_delete_committed_image, robust=True)

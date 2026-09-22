@@ -135,6 +135,18 @@ class TestRemoveOldPicturesAfterAnimalDeleteSignal:
         with django_capture_on_commit_callbacks(execute=True):
             animal.delete()
 
+    def test_callback_failure_does_not_propagate_and_record_stays_deleted(self, django_capture_on_commit_callbacks, animal):
+        animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
+        animal_id = animal.id
+
+        with (
+            patch.object(Path, "unlink", side_effect=PermissionError("simulated")),
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            animal.delete()
+
+        assert not Animal.objects.filter(id=animal_id).exists()
+
     def test_rollback_keeps_record_and_file(self, animal):
         animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
         image_path = Path(animal.profile_image.path)

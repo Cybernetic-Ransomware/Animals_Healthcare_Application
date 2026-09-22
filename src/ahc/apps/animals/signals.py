@@ -16,7 +16,9 @@ def remove_old_pictures_after_animal_delete(sender, instance, **kwargs):
 
     Deferred via transaction.on_commit so a rollback leaves the file in place; the
     closure captures the basename and MEDIA_ROOT-resolved dir at call time, not the
-    instance, so it respects per-test MEDIA_ROOT overrides.
+    instance, so it respects per-test MEDIA_ROOT overrides. robust=True keeps a
+    callback failure (e.g. a locked file) from propagating to the caller — the daily
+    sweep is the recovery path for whatever this leaves behind.
     """
     name = instance.profile_image.name
     default = cast(Field, Animal._meta.get_field("profile_image")).get_default()
@@ -28,7 +30,7 @@ def remove_old_pictures_after_animal_delete(sender, instance, **kwargs):
     def _delete_committed_image() -> None:
         (media_dir / Path(name).name).unlink(missing_ok=True)
 
-    transaction.on_commit(_delete_committed_image)
+    transaction.on_commit(_delete_committed_image, robust=True)
 
 
 @receiver(post_save, sender=Animal)

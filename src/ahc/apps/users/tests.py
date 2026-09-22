@@ -88,6 +88,21 @@ class TestRemoveOldPicturesAfterProfileDeleteSignal:
         with django_capture_on_commit_callbacks(execute=True):
             profile.delete()
 
+    def test_callback_failure_does_not_propagate_and_record_stays_deleted(
+        self, django_capture_on_commit_callbacks, user_profile
+    ):
+        _, profile = user_profile
+        profile.profile_image.save("avatar.png", ContentFile(b"fake-image-bytes"), save=True)
+        profile_id = profile.id
+
+        with (
+            patch.object(Path, "unlink", side_effect=PermissionError("simulated")),
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            profile.delete()
+
+        assert not Profile.objects.filter(id=profile_id).exists()
+
     def test_user_delete_cascade_removes_profile_image(self, django_capture_on_commit_callbacks, user_profile):
         user, profile = user_profile
         profile.profile_image.save("avatar.png", ContentFile(b"fake-image-bytes"), save=True)
