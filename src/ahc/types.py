@@ -35,11 +35,11 @@ if TYPE_CHECKING:
         profile: Profile
 
     class AuthenticatedRequest(HttpRequest):
-        user: _AHCUser  # type: ignore[assignment]
+        user: _AHCUser
 
 
 class AuthenticatedCBVMixin:
-    """Typing-only base for permission mixins on UserPassesTestMixin, which doesn't inherit from View."""
+    """Runtime no-op base (participates in MRO) carrying type-check-only request/kwargs annotations."""
 
     if TYPE_CHECKING:
         request: AuthenticatedRequest
