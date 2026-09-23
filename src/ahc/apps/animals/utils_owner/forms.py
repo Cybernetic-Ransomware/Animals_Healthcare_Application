@@ -12,6 +12,9 @@ class ImageUploadForm(forms.ModelForm):
     MAX_IMAGE_SIZE_MB = 5
     MAX_IMAGE_DIMENSION = 1000
 
+    # Model field is blank=True (static fallback); this dedicated upload screen still requires a file.
+    profile_image = forms.ImageField(required=True)
+
     class Meta:
         model = Animal
         fields = ["profile_image"]

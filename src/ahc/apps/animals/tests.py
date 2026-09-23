@@ -1,14 +1,17 @@
 import html
 import re
 from datetime import date, timedelta
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image as PILImage
 
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import (
@@ -44,6 +47,14 @@ from ahc.apps.animals.signals import update_allowed_users
 def animal(db, user_profile):
     _, profile = user_profile
     return Animal.objects.create(full_name="Whiskers", owner=profile)
+
+
+def _valid_png_upload(name: str = "avatar.png") -> SimpleUploadedFile:
+    """A real, minimal, Pillow-decodable PNG — Django's ImageField validates actual image content."""
+    buf = BytesIO()
+    PILImage.new("RGB", (10, 10), color="blue").save(buf, format="PNG")
+    buf.seek(0)
+    return SimpleUploadedFile(name, buf.read(), content_type="image/png")
 
 
 @pytest.mark.integration
@@ -1060,6 +1071,44 @@ class TestAnimalDeleteView:
         other_user, _ = second_user_profile
         response = self._client_for(other_user).post(f"/pet/{animal.id}/delete/")
         assert response.status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestImageUploadView:
+    """ImageUploadView: profile_image is required on this dedicated upload screen."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="UploadTarget", owner=profile)
+
+    @pytest.fixture(autouse=True)
+    def _media_root(self, tmp_path, settings):
+        settings.MEDIA_ROOT = tmp_path
+        (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_post_without_file_is_invalid_and_does_not_crash(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(f"/pet/{animal.id}/upload-image/", {})
+        assert response.status_code == 200
+        assert response.context["form"].errors["profile_image"]
+        animal.refresh_from_db()
+        assert animal.profile_image.name == ""
+
+    def test_valid_post_saves_image_and_redirects(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(f"/pet/{animal.id}/upload-image/", {"profile_image": _valid_png_upload()})
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.profile_image.name != ""
 
 
 @pytest.mark.integration
