@@ -1,0 +1,72 @@
+{% load static %}
+<section class="tab-panel">
+
+    {% if "biometrics" in allowed_categories %}
+    <h3>Biometrics</h3>
+
+    {% if can_record_biometrics %}
+    <section class="records-actions">
+        <a role="button"
+           href="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record"
+           hx-get="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record"
+           hx-target="#modal-body"
+           hx-swap="innerHTML"
+           data-modal-title="New measurement">Add measurement</a>
+        <a role="button" class="secondary outline" href="{% url 'biometric_batch' %}">Batch measurements</a>
+    </section>
+    {% endif %}
+
+    {% if chart_series %}
+    {{ chart_series|json_script:"biometric-chart-data" }}
+    <div class="grid biometric-charts">
+        {% for series in chart_series %}
+        <article>
+            <h5>{{ series.label }}</h5>
+            <div class="biometric-chart-canvas-wrap">
+                <canvas data-biometric-chart
+                        data-series-index="{{ forloop.counter0 }}"
+                        id="biometric-chart-{{ forloop.counter0 }}"
+                        role="img"
+                        aria-label="{{ series.label }} history chart — see the table below for exact values.">
+                </canvas>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h4>History</h4>
+    {% if history_rows %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Measurement</th>
+                    <th scope="col">Value</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col">Context</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in history_rows %}
+                <tr>
+                    <td>{{ row.date|date:"Y-m-d" }}</td>
+                    <td>{{ row.label }}</td>
+                    <td>{{ row.value }}</td>
+                    <td>{{ row.unit }}</td>
+                    <td>{{ row.context|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty-state">No biometric records yet.</p>
+    {% endif %}
+
+    {% else %}
+    <p>You do not have access to this section.</p>
+    {% endif %}
+
+</section>

@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from ahc.apps.animals.selectors import animals_visible_to, user_can_modify_animal
 from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, MedicalRecordAttachment
+from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
 
 
 def animal_choices_for(profile, exclude_id=None) -> list[tuple]:
@@ -174,12 +175,22 @@ def other_history_for(animal) -> QuerySet[MedicalRecord]:
     )
 
 
-def biometric_records_for(animal) -> QuerySet[MedicalRecord]:
-    """Return biometric_record MedicalRecords for the Notes tab biometrics section."""
-    return (
-        MedicalRecord.objects.filter(animal=animal, type_of_event="biometric_record")
-        .prefetch_related("attachments")
-        .order_by("-date_creation")
+def biometric_records_for_chart(animal) -> QuerySet[BiometricRecord]:
+    """Return BiometricRecords for an animal, preloaded for chart/history rendering.
+
+    Queries BiometricRecord (not MedicalRecord) as the primary model — it is the only
+    model holding the actual weight/height/custom values. select_related covers the
+    related shell note plus all three measurement sub-types so the Biometrics tab
+    builder can render both the history table and the chart series from one query,
+    with no per-record N+1 lookups. Ordering is left to the caller since the chart
+    (ascending) and the history table (descending) need different orders, and both
+    are computed from a resolved date that isn't a plain model field.
+    """
+    return BiometricRecord.objects.filter(animal=animal).select_related(
+        "related_note",
+        "weight_biometric_record",
+        "height_biometric_record",
+        "custom_biometric_record",
     )
 
 
