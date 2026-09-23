@@ -1,3 +1,4 @@
+{% load static %}
 <a class="animal-card"
    href="{% url 'animal_profile' pk=animal.id %}"
    aria-label="Go to profile of {{ animal.full_name }}"
@@ -5,6 +6,8 @@
     <div class="animal-card__thumb">
         {% if animal.profile_image %}
         <img src="{{ animal.profile_image.url }}" alt="">
+        {% else %}
+        <img src="{% static 'img/defaults/pet-care.png' %}" alt="">
         {% endif %}
     </div>
     <span class="animal-card__name">{{ animal.full_name }}</span>

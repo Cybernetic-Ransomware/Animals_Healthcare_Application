@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, UpdateView
@@ -28,6 +29,8 @@ class UserRegisterView(CreateView):
 
 
 class UserProfileView(LoginRequiredMixin, UpdateView):
+    """Binds, validates, and saves the User and Profile forms as one atomic submit."""
+
     model = Profile
     request: AuthenticatedRequest
     form_class = UserUpdateForm
@@ -39,11 +42,24 @@ class UserProfileView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["profile_update"] = ProfileUpdateForm(instance=self.request.user.profile)
+        context.setdefault("profile_update", ProfileUpdateForm(instance=self.request.user.profile))
         return context
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+
+        user_valid = form.is_valid()
+        profile_valid = profile_form.is_valid()
+        if user_valid and profile_valid:
+            return self._save_both_forms(form, profile_form)
+        return self.render_to_response(self.get_context_data(form=form, profile_update=profile_form))
+
+    def _save_both_forms(self, form, profile_form):
+        with transaction.atomic():
+            response = super().form_valid(form)
+            profile_form.save()
         messages.success(self.request, "Your profile has been updated")
         return response
 

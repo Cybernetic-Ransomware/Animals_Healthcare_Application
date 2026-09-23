@@ -1,9 +1,7 @@
 from pathlib import Path
-from typing import cast
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Field
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
@@ -21,8 +19,7 @@ def remove_old_pictures_after_animal_delete(sender, instance, **kwargs):
     sweep is the recovery path for whatever this leaves behind.
     """
     name = instance.profile_image.name
-    default = cast(Field, Animal._meta.get_field("profile_image")).get_default()
-    if not name or name == default:
+    if not name:
         return
 
     media_dir = Path(settings.MEDIA_ROOT) / "profile_pics" / "animals"

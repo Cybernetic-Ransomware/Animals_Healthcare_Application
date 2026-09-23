@@ -1,16 +1,17 @@
 import html
 import re
 from datetime import date, timedelta
+from io import BytesIO
 from pathlib import Path
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
-from django.db.models import Field
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image as PILImage
 
 from ahc.apps.animals.models import Animal
 from ahc.apps.animals.selectors import (
@@ -46,6 +47,14 @@ from ahc.apps.animals.signals import update_allowed_users
 def animal(db, user_profile):
     _, profile = user_profile
     return Animal.objects.create(full_name="Whiskers", owner=profile)
+
+
+def _valid_png_upload(name: str = "avatar.png") -> SimpleUploadedFile:
+    """A real, minimal, Pillow-decodable PNG — Django's ImageField validates actual image content."""
+    buf = BytesIO()
+    PILImage.new("RGB", (10, 10), color="blue").save(buf, format="PNG")
+    buf.seek(0)
+    return SimpleUploadedFile(name, buf.read(), content_type="image/png")
 
 
 @pytest.mark.integration
@@ -115,18 +124,21 @@ class TestRemoveOldPicturesAfterAnimalDeleteSignal:
 
         assert not image_path.exists()
 
-    def test_default_image_kept_after_delete(self, django_capture_on_commit_callbacks, animal, tmp_path):
-        default_name = cast(Field, Animal._meta.get_field("profile_image")).get_default()
-        assert animal.profile_image.name == default_name
+    def test_blank_image_delete_does_not_unlink_files(self, django_capture_on_commit_callbacks, animal, tmp_path):
+        assert animal.profile_image.name == ""
 
-        # Proves the guard checks the default explicitly, not just directory layout.
-        decoy = tmp_path / "profile_pics" / "animals" / Path(default_name).name
-        decoy.write_bytes(b"default-image-bytes")
+        # Proves the guard short-circuits on the blank name before touching disk at all.
+        sentinel = tmp_path / "profile_pics" / "animals" / "sentinel.png"
+        sentinel.write_bytes(b"unrelated-file-bytes")
 
-        with django_capture_on_commit_callbacks(execute=True):
+        with (
+            patch.object(Path, "unlink") as mock_unlink,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
             animal.delete()
 
-        assert decoy.exists()
+        mock_unlink.assert_not_called()
+        assert sentinel.exists()
 
     def test_missing_file_on_disk_does_not_raise(self, django_capture_on_commit_callbacks, animal):
         animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
@@ -907,6 +919,11 @@ class TestAnimalProfileDetailView:
         _, profile = user_profile
         return Animal.objects.create(full_name="ProfileTest", owner=profile)
 
+    @pytest.fixture(autouse=True)
+    def _media_root(self, tmp_path, settings):
+        settings.MEDIA_ROOT = tmp_path
+        (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
+
     def _client_for(self, user):
         from django.test import Client
 
@@ -929,6 +946,20 @@ class TestAnimalProfileDetailView:
         other_user, _ = second_user_profile
         response = self._client_for(other_user).get(f"/pet/{animal.id}/")
         assert response.status_code == 403
+
+    def test_uses_static_fallback_when_no_custom_image(self, animal, user_profile):
+        user, _ = user_profile
+        assert animal.profile_image.name == ""
+        response = self._client_for(user).get(f"/pet/{animal.id}/")
+        assert "img/defaults/pet-care.png" in response.content.decode()
+
+    def test_custom_image_used_instead_of_fallback(self, animal, user_profile):
+        user, _ = user_profile
+        animal.profile_image.save("rex.png", ContentFile(b"fake-image-bytes"), save=True)
+        response = self._client_for(user).get(f"/pet/{animal.id}/")
+        content = response.content.decode()
+        assert animal.profile_image.url in content
+        assert "img/defaults/pet-care.png" not in content
 
 
 @pytest.mark.integration
@@ -955,6 +986,13 @@ class TestStableView:
         response = self._client_for(user).get("/pet/animals/")
         assert response.status_code == 200
         assert animal in response.context["animals"]
+
+    def test_card_uses_static_fallback_when_no_custom_image(self, user_profile):
+        user, profile = user_profile
+        animal = Animal.objects.create(full_name="StableAnimal", owner=profile)
+        assert animal.profile_image.name == ""
+        response = self._client_for(user).get("/pet/animals/")
+        assert "img/defaults/pet-care.png" in response.content.decode()
 
 
 @pytest.mark.integration
@@ -1033,6 +1071,44 @@ class TestAnimalDeleteView:
         other_user, _ = second_user_profile
         response = self._client_for(other_user).post(f"/pet/{animal.id}/delete/")
         assert response.status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestImageUploadView:
+    """ImageUploadView: profile_image is required on this dedicated upload screen."""
+
+    @pytest.fixture
+    def animal(self, db, user_profile):
+        _, profile = user_profile
+        return Animal.objects.create(full_name="UploadTarget", owner=profile)
+
+    @pytest.fixture(autouse=True)
+    def _media_root(self, tmp_path, settings):
+        settings.MEDIA_ROOT = tmp_path
+        (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
+
+    def _client_for(self, user):
+        from django.test import Client
+
+        c = Client()
+        c.force_login(user)
+        return c
+
+    def test_post_without_file_is_invalid_and_does_not_crash(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(f"/pet/{animal.id}/upload-image/", {})
+        assert response.status_code == 200
+        assert response.context["form"].errors["profile_image"]
+        animal.refresh_from_db()
+        assert animal.profile_image.name == ""
+
+    def test_valid_post_saves_image_and_redirects(self, animal, user_profile):
+        user, _ = user_profile
+        response = self._client_for(user).post(f"/pet/{animal.id}/upload-image/", {"profile_image": _valid_png_upload()})
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.profile_image.name != ""
 
 
 @pytest.mark.integration

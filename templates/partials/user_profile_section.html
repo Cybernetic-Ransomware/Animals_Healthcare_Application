@@ -1,6 +1,11 @@
+{% load static %}
 <div class="content-section">
     <div>
-        <img src="{{ user.profile.image.url }}" alt="User's profile picture">
+        {% if user.profile.profile_image %}
+        <img src="{{ user.profile.profile_image.url }}" alt="User's profile picture">
+        {% else %}
+        <img src="{% static 'img/defaults/signup2.png' %}" alt="User's profile picture">
+        {% endif %}
         <div>
             <h2>{{ user.username }}</h2>
             <p><small>{{ user.email }}</small></p>
@@ -10,7 +15,7 @@
         {% csrf_token %}
         <fieldset>
             <legend>Profile info</legend>
-            {% include "partials/form_fields.html" with form=user_form %}
+            {% include "partials/form_fields.html" with form=form %}
             {% include "partials/form_fields.html" with form=profile_update %}
         </fieldset>
         <button type="submit">Update</button>
