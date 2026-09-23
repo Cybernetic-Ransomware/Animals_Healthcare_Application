@@ -47,5 +47,8 @@
         if (typeof initVaccinationTable === "function") {
             initVaccinationTable();
         }
+        if (typeof initBiometricCharts === "function") {
+            initBiometricCharts();
+        }
     });
 }());

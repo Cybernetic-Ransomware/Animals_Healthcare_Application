@@ -1,0 +1,22 @@
+/* Biometrics tab: Chart.js canvas sizing.
+ *
+ * Chart.js with maintainAspectRatio:false fills its parent's height — without an
+ * explicit height here the canvas collapses to 0px, so this is the one rule Pico's
+ * defaults can't provide on their own.
+ */
+
+.biometric-chart-canvas-wrap {
+  position: relative;
+  height: 260px;
+}
+
+.biometric-chart-canvas-wrap canvas {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 480px) {
+  .biometric-chart-canvas-wrap {
+    height: 200px;
+  }
+}

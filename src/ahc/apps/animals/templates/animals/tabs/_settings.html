@@ -14,12 +14,6 @@
     </div>
 
     <br>
-    <h5>Records</h5>
-    <div class="grid">
-        <a role="button" class="secondary outline" href="{% url 'note_create' pk=animal.id %}?type_of_event=biometric_record">Add biometric record</a>
-    </div>
-
-    <br>
     <h5>Offline snapshot</h5>
     <div hx-get="{% url 'offline_snapshot_widget' pk=animal.id %}" hx-trigger="load" hx-swap="outerHTML">
         <p><small>Loading snapshot status&hellip;</small></p>

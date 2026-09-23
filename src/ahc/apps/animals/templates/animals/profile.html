@@ -5,6 +5,7 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/expanding_sections.css' %}">
     <link rel="stylesheet" href="{% static 'css/timeline.css' %}">
+    <link rel="stylesheet" href="{% static 'css/biometric_charts.css' %}">
 {% endblock %}
 
 {% block extra_js %}
@@ -12,6 +13,8 @@
     <script defer src="{% static 'js/timeline.js' %}"></script>
     <script defer src="{% static 'js/pin_animal.js' %}"></script>
     <script defer src="{% static 'js/vaccination_table.js' %}"></script>
+    <script defer src="{% static 'js/vendor/chart.umd.min.js' %}"></script>
+    <script defer src="{% static 'js/biometric_charts.js' %}"></script>
 {% endblock %}
 
 {% block tab_nav %}

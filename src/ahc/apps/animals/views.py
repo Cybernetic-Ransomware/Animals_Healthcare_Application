@@ -24,6 +24,7 @@ from ahc.apps.animals.selectors import (
     deceased_animals_for,
     is_animal_owner,
     is_pinned,
+    user_can_record_biometrics,
     user_can_view_animal,
 )
 from ahc.apps.animals.services import create_animal, pin_animal, unpin_animal
@@ -172,12 +173,89 @@ def _build_notes(request, animal: Animal, allowed: set[str] | None = None) -> di
             }
         )
 
-    if allowed is None or "biometrics" in allowed:
-        from ahc.apps.medical_notes.selectors import biometric_records_for
-
-        ctx["biometric_records"] = biometric_records_for(animal)
-
     return ctx
+
+
+def _resolve_biometric_date(record) -> date:
+    """Return the best-known measurement date for a BiometricRecord.
+
+    Cascade: the related note's user-entered date_event_started wins; otherwise fall
+    back to the related note's date_creation; if the note itself was deleted
+    (related_note is SET_NULL-able), fall back to BiometricRecord.date_updated, which
+    despite its name is set once at creation (auto_now_add) and never changes.
+    Both datetime fallbacks are localized before truncating to a date, since
+    TIME_ZONE="Europe/Warsaw" means a naive `.date()` on stored UTC could land on the
+    wrong day for entries made close to midnight.
+    """
+    note = record.related_note
+    if note is not None:
+        if note.date_event_started is not None:
+            return note.date_event_started
+        return timezone.localtime(note.date_creation).date()
+    return timezone.localtime(record.date_updated).date()
+
+
+def _build_biometrics(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
+    if allowed is not None and "biometrics" not in allowed:
+        return {}
+    from ahc.apps.medical_notes.selectors import biometric_records_for_chart
+
+    profile = request.user.profile
+    history_rows: list[dict[str, Any]] = []
+    weight_points_by_unit: dict[str, list[dict[str, Any]]] = {}
+
+    for record in biometric_records_for_chart(animal):
+        if record.weight_biometric_record is not None:
+            sub = record.weight_biometric_record
+            measurement_type, label, value, unit = "weight", "Weight", sub.weight, sub.weight_unit_to_present
+        elif record.height_biometric_record is not None:
+            sub = record.height_biometric_record
+            measurement_type, label, value, unit = "height", "Height", sub.height, sub.height_unit_to_present
+        elif record.custom_biometric_record is not None:
+            sub = record.custom_biometric_record
+            measurement_type, label, value, unit = "custom", sub.record_name, sub.record_value, sub.record_unit
+        else:
+            # No sub-type attached — shouldn't happen (validate_one_to_one_fields blocks
+            # >1, create_biometric_record always sets exactly one) but don't crash on it.
+            continue
+
+        resolved_date = _resolve_biometric_date(record)
+        history_rows.append(
+            {
+                "id": record.pk,
+                "date": resolved_date,
+                "measurement_type": measurement_type,
+                "label": label,
+                "value": value,
+                "unit": unit,
+                "context": record.related_note.short_description if record.related_note else "",
+            }
+        )
+
+        if measurement_type == "weight":
+            weight_points_by_unit.setdefault(unit, []).append(
+                {"date": resolved_date.isoformat(), "value": float(value), "id": record.pk}
+            )
+
+    history_rows.sort(key=lambda row: (row["date"], row["id"]), reverse=True)
+
+    chart_series = [
+        {
+            "measurement_type": "weight",
+            "unit": unit,
+            "label": f"Weight ({unit})",
+            "points": [
+                {"date": p["date"], "value": p["value"]} for p in sorted(points, key=lambda p: (p["date"], p["id"]))
+            ],
+        }
+        for unit, points in sorted(weight_points_by_unit.items())
+    ]
+
+    return {
+        "history_rows": history_rows,
+        "chart_series": chart_series,
+        "can_record_biometrics": user_can_record_biometrics(profile, animal),
+    }
 
 
 def _build_ownership(request, animal: Animal, allowed: set[str] | None = None) -> dict[str, Any]:
@@ -237,7 +315,15 @@ TAB_REGISTRY: dict[str, Tab] = {
             "animals/tabs/_notes.html",
             False,
             _build_notes,
-            frozenset({"history", "biometrics"}),
+            frozenset({"history"}),
+        ),
+        Tab(
+            "biometrics",
+            "Biometrics",
+            "animals/tabs/_biometrics.html",
+            False,
+            _build_biometrics,
+            frozenset({"biometrics"}),
         ),
         Tab(
             "vaccinations",
