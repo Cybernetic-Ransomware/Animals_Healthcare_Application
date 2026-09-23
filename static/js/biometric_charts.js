@@ -20,12 +20,28 @@ function formatChartDate(timestamp) {
     return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(timestamp));
 }
 
+// Chart.js's linear scale has no notion of "a sensible span of time" — with only one
+// data point min===max, and its "nice number" tick algorithm then picks round bounds
+// relative to the sheer magnitude of millisecond-since-epoch values (~1.7e12), producing
+// an axis stretching years in either direction around a single dot. Pin an explicit,
+// tight window instead of letting it autoscale.
+var SINGLE_POINT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
 function initBiometricCharts() {
     var dataEl = document.getElementById("biometric-chart-data");
     if (!dataEl) return;
 
-    var series = JSON.parse(dataEl.textContent);
+    // Right after an htmx innerHTML swap (or on first paint), the browser hasn't
+    // necessarily committed layout for the freshly-inserted canvas wrappers yet —
+    // Chart.js measures its container synchronously at construction time, and without
+    // this rAF it reproducibly locks in its ~300px fallback width instead of the real
+    // (wider) card width. One frame is enough for layout to settle.
+    requestAnimationFrame(function () {
+        _renderBiometricCharts(JSON.parse(dataEl.textContent));
+    });
+}
 
+function _renderBiometricCharts(series) {
     document.querySelectorAll("canvas[data-biometric-chart]").forEach(function (canvas) {
         var s = series[Number(canvas.dataset.seriesIndex)];
         if (!s || !s.points || s.points.length === 0) return;
@@ -57,6 +73,8 @@ function initBiometricCharts() {
                 scales: {
                     x: {
                         type: "linear",
+                        min: singlePoint ? points[0].x - SINGLE_POINT_WINDOW_MS : undefined,
+                        max: singlePoint ? points[0].x + SINGLE_POINT_WINDOW_MS : undefined,
                         ticks: {
                             callback: formatChartDate,
                         },
