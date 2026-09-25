@@ -41,4 +41,4 @@ patches:
 images:
 - name: ghcr.io/cybernetic-ransomware/ahc-app
   newName: ghcr.io/cybernetic-ransomware/ahc-app
-  newTag: sha-32d10062d5781a5793c31a3fab05ecf9e470fccd
+  newTag: sha-f2a4e892caf26fed38486781ad6edb893d331199
