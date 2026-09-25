@@ -37,34 +37,27 @@ class TestDeceasedAnimalWriteBlocking:
             "note_on_living": note_on_living,
         }
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_cannot_create_note_on_deceased(self, setup):
+    def test_owner_cannot_create_note_on_deceased(self, setup, logged_in_client):
         s = setup
         # medical_notes URLs are mounted under /note/ (see ahc/urls.py)
-        response = self._client_for(s["owner_user"]).post(
+        response = logged_in_client(s["owner_user"]).post(
             f"/note/{s['deceased'].id}/create/",
             {"type_of_event": "fast_note", "short_description": "new note"},
         )
         assert response.status_code == 403
 
-    def test_carer_cannot_create_note_on_deceased(self, setup):
+    def test_carer_cannot_create_note_on_deceased(self, setup, logged_in_client):
         s = setup
-        response = self._client_for(s["carer_user"]).post(
+        response = logged_in_client(s["carer_user"]).post(
             f"/note/{s['deceased'].id}/create/",
             {"type_of_event": "fast_note", "short_description": "carer note"},
         )
         assert response.status_code == 403
 
-    def test_deceased_animal_not_in_batch_allowed_set(self, setup):
+    def test_deceased_animal_not_in_batch_allowed_set(self, setup, logged_in_client):
         """Deceased animal must never appear in the formset offered by BiometricBatchCreateView."""
         s = setup
-        response = self._client_for(s["owner_user"]).get(reverse("biometric_batch"))
+        response = logged_in_client(s["owner_user"]).get(reverse("biometric_batch"))
         assert response.status_code == 200
         # BiometricBatchCreateView._build_context stores animals inside 'rows' as (form, animal) tuples
         offered_ids = {str(animal.id) for _, animal in response.context["rows"]}

@@ -1,19 +1,8 @@
 from datetime import date
-from io import BytesIO
 
 import pytest
-from django.core.files.uploadedfile import SimpleUploadedFile
-from PIL import Image as PILImage
 
 from ahc.apps.animals.models import Animal
-
-
-def _valid_png_upload(name: str = "avatar.png") -> SimpleUploadedFile:
-    """A real, minimal, Pillow-decodable PNG — Django's ImageField validates actual image content."""
-    buf = BytesIO()
-    PILImage.new("RGB", (10, 10), color="blue").save(buf, format="PNG")
-    buf.seek(0)
-    return SimpleUploadedFile(name, buf.read(), content_type="image/png")
 
 
 @pytest.mark.integration
@@ -29,28 +18,21 @@ class TestRemoveKeeperView:
         a.allowed_users.add(keeper_profile)
         return a
 
-    def test_owner_post_removes_keeper_and_redirects(self, animal_with_keeper, user_profile, second_user_profile):
-        from django.test import Client
-
+    def test_owner_post_removes_keeper_and_redirects(
+        self, animal_with_keeper, user_profile, second_user_profile, logged_in_client
+    ):
         owner_user, _ = user_profile
         _, keeper_profile = second_user_profile
-        c = Client()
-        c.force_login(owner_user)
         url = f"/pet/{animal_with_keeper.id}/keepers/{keeper_profile.pk}/remove/"
-        response = c.post(url)
+        response = logged_in_client(owner_user).post(url)
         assert response.status_code == 302
         animal_with_keeper.refresh_from_db()
         assert not animal_with_keeper.allowed_users.filter(pk=keeper_profile.pk).exists()
 
-    def test_non_owner_post_returns_403(self, animal_with_keeper, second_user_profile):
-        from django.test import Client
-
-        keeper_user, _ = second_user_profile
-        c = Client()
-        c.force_login(keeper_user)
-        _, keeper_profile = second_user_profile
+    def test_non_owner_post_returns_403(self, animal_with_keeper, second_user_profile, logged_in_client):
+        keeper_user, keeper_profile = second_user_profile
         url = f"/pet/{animal_with_keeper.id}/keepers/{keeper_profile.pk}/remove/"
-        response = c.post(url)
+        response = logged_in_client(keeper_user).post(url)
         assert response.status_code == 403
 
 
@@ -64,28 +46,21 @@ class TestAnimalDeleteView:
         _, profile = user_profile
         return Animal.objects.create(full_name="ToDelete", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/delete/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/delete/")
         assert response.status_code == 200
 
-    def test_owner_post_deletes_animal_and_redirects(self, animal, user_profile):
+    def test_owner_post_deletes_animal_and_redirects(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
         pk = animal.id
-        response = self._client_for(user).post(f"/pet/{pk}/delete/")
+        response = logged_in_client(user).post(f"/pet/{pk}/delete/")
         assert response.status_code == 302
         assert not Animal.objects.filter(pk=pk).exists()
 
-    def test_non_owner_post_returns_403(self, animal, second_user_profile):
+    def test_non_owner_post_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).post(f"/pet/{animal.id}/delete/")
+        response = logged_in_client(other_user).post(f"/pet/{animal.id}/delete/")
         assert response.status_code == 403
 
 
@@ -104,24 +79,17 @@ class TestImageUploadView:
         settings.MEDIA_ROOT = tmp_path
         (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_post_without_file_is_invalid_and_does_not_crash(self, animal, user_profile):
+    def test_post_without_file_is_invalid_and_does_not_crash(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).post(f"/pet/{animal.id}/upload-image/", {})
+        response = logged_in_client(user).post(f"/pet/{animal.id}/upload-image/", {})
         assert response.status_code == 200
         assert response.context["form"].errors["profile_image"]
         animal.refresh_from_db()
         assert animal.profile_image.name == ""
 
-    def test_valid_post_saves_image_and_redirects(self, animal, user_profile):
+    def test_valid_post_saves_image_and_redirects(self, animal, user_profile, logged_in_client, png_upload):
         user, _ = user_profile
-        response = self._client_for(user).post(f"/pet/{animal.id}/upload-image/", {"profile_image": _valid_png_upload()})
+        response = logged_in_client(user).post(f"/pet/{animal.id}/upload-image/", {"profile_image": png_upload()})
         assert response.status_code == 302
         animal.refresh_from_db()
         assert animal.profile_image.name != ""
@@ -137,28 +105,21 @@ class TestChangeBirthdayView:
         _, profile = user_profile
         return Animal.objects.create(full_name="BdayAnimal", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/btd/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/btd/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/btd/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/btd/")
         assert response.status_code == 403
 
-    def test_valid_post_saves_birthdate_and_redirects(self, animal, user_profile):
+    def test_valid_post_saves_birthdate_and_redirects(self, animal, user_profile, logged_in_client):
         from datetime import date
 
         user, _ = user_profile
-        response = self._client_for(user).post(f"/pet/{animal.id}/btd/", {"birthdate": "2020-03-15"})
+        response = logged_in_client(user).post(f"/pet/{animal.id}/btd/", {"birthdate": "2020-03-15"})
         assert response.status_code == 302
         animal.refresh_from_db()
         assert animal.birthdate == date(2020, 3, 15)
@@ -174,26 +135,19 @@ class TestChangeFirstContactView:
         _, profile = user_profile
         return Animal.objects.create(full_name="FirstContactAnimal", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/cnt/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/cnt/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/cnt/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/cnt/")
         assert response.status_code == 403
 
-    def test_valid_post_saves_vet_and_place(self, animal, user_profile):
+    def test_valid_post_saves_vet_and_place(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/cnt/",
             {"first_contact_vet": "Dr. Smith", "first_contact_medical_place": "City Clinic"},
         )
@@ -213,28 +167,21 @@ class TestChangeNextVisitView:
         _, profile = user_profile
         return Animal.objects.create(full_name="NextVisitAnimal", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/next-visit/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/next-visit/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/next-visit/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/next-visit/")
         assert response.status_code == 403
 
-    def test_valid_post_saves_date_and_redirects_to_vet_tab(self, animal, user_profile):
+    def test_valid_post_saves_date_and_redirects_to_vet_tab(self, animal, user_profile, logged_in_client):
         from datetime import date
 
         user, _ = user_profile
-        response = self._client_for(user).post(f"/pet/{animal.id}/next-visit/", {"next_visit_date": "2026-09-01"})
+        response = logged_in_client(user).post(f"/pet/{animal.id}/next-visit/", {"next_visit_date": "2026-09-01"})
         assert response.status_code == 302
         animal.refresh_from_db()
         assert animal.next_visit_date == date(2026, 9, 1)
@@ -251,26 +198,19 @@ class TestChangeDietaryRestrictionsView:
         _, profile = user_profile
         return Animal.objects.create(full_name="DietAnimal", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/dietary-restrictions/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/dietary-restrictions/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/dietary-restrictions/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/dietary-restrictions/")
         assert response.status_code == 403
 
-    def test_valid_post_saves_restrictions_and_redirects_to_diet_tab(self, animal, user_profile):
+    def test_valid_post_saves_restrictions_and_redirects_to_diet_tab(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/dietary-restrictions/", {"dietary_restrictions": "No grapes, no onions"}
         )
         assert response.status_code == 302
@@ -289,26 +229,19 @@ class TestChangeAnimalDetailsView:
         _, profile = user_profile
         return Animal.objects.create(full_name="DetailsAnimal", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/details/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/details/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/details/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/details/")
         assert response.status_code == 403
 
-    def test_valid_post_saves_details_and_redirects_to_settings_tab(self, animal, user_profile):
+    def test_valid_post_saves_details_and_redirects_to_settings_tab(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/details/",
             {"species": "cat", "breed": "Maine Coon", "sex": "f", "sterilization": "on"},
         )
@@ -331,29 +264,22 @@ class TestManageKeepersView:
         _, profile = user_profile
         return Animal.objects.create(full_name="KeeperAnimal", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/manage_keepers/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/manage_keepers/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/manage_keepers/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/manage_keepers/")
         assert response.status_code == 403
 
-    def test_valid_post_creates_share_for_new_keeper(self, animal, user_profile, second_user_profile):
+    def test_valid_post_creates_share_for_new_keeper(self, animal, user_profile, second_user_profile, logged_in_client):
         from ahc.apps.animals.models import AnimalShare
 
         user, _ = user_profile
         _, keeper_profile = second_user_profile
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/manage_keepers/",
             {"input_user": keeper_profile.user.username, "allow_basic": "on"},
         )
@@ -371,27 +297,20 @@ class TestChangeOwnerView:
         _, profile = user_profile
         return Animal.objects.create(full_name="OwnerAnimal", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/owner/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/owner/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/owner/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/owner/")
         assert response.status_code == 403
 
-    def test_valid_post_transfers_ownership(self, animal, user_profile, second_user_profile):
+    def test_valid_post_transfers_ownership(self, animal, user_profile, second_user_profile, logged_in_client):
         user, _ = user_profile
         _, new_owner_profile = second_user_profile
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/owner/",
             {"new_owner": new_owner_profile.user.username, "set_keeper": ""},
         )
@@ -415,29 +334,22 @@ class TestEditShareView:
         share = AnimalShare.objects.create(animal=animal, carer=carer_profile)
         return animal, share, carer_profile
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal_with_share, user_profile):
+    def test_owner_get_returns_200(self, animal_with_share, user_profile, logged_in_client):
         user, _ = user_profile
         animal, _, carer_profile = animal_with_share
-        response = self._client_for(user).get(f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/")
         assert response.status_code == 200
 
-    def test_non_owner_get_returns_403(self, animal_with_share, second_user_profile):
+    def test_non_owner_get_returns_403(self, animal_with_share, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
         animal, _, carer_profile = animal_with_share
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/")
         assert response.status_code == 403
 
-    def test_valid_post_updates_share_scope_and_redirects(self, animal_with_share, user_profile):
+    def test_valid_post_updates_share_scope_and_redirects(self, animal_with_share, user_profile, logged_in_client):
         user, _ = user_profile
         animal, share, carer_profile = animal_with_share
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/keepers/{carer_profile.pk}/access/",
             {"allow_basic": "on", "allow_diet": "on"},
         )
@@ -453,26 +365,19 @@ class TestEditShareView:
 class TestMarkDeceasedView:
     """MarkDeceasedView: owner can archive; carer cannot."""
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_get_returns_200(self, animal, user_profile):
+    def test_owner_get_returns_200(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).get(f"/pet/{animal.id}/deceased/")
+        response = logged_in_client(user).get(f"/pet/{animal.id}/deceased/")
         assert response.status_code == 200
 
-    def test_carer_get_returns_403(self, animal, second_user_profile):
+    def test_carer_get_returns_403(self, animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).get(f"/pet/{animal.id}/deceased/")
+        response = logged_in_client(other_user).get(f"/pet/{animal.id}/deceased/")
         assert response.status_code == 403
 
-    def test_owner_post_archives_and_redirects(self, animal, user_profile):
+    def test_owner_post_archives_and_redirects(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/deceased/",
             {"date_of_death": "2024-04-01", "memorial_note": "Goodbye"},
         )
@@ -481,9 +386,9 @@ class TestMarkDeceasedView:
         assert animal.date_of_death == date(2024, 4, 1)
         assert animal.memorial_note == "Goodbye"
 
-    def test_future_date_rejected(self, animal, user_profile):
+    def test_future_date_rejected(self, animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).post(
+        response = logged_in_client(user).post(
             f"/pet/{animal.id}/deceased/",
             {"date_of_death": "2099-12-31"},
         )
@@ -495,26 +400,14 @@ class TestMarkDeceasedView:
 class TestUnarchiveAnimalView:
     """UnarchiveAnimalView: owner can un-archive; carer cannot."""
 
-    @pytest.fixture
-    def deceased_animal(self, db, user_profile):
-        _, profile = user_profile
-        return Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
-
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
-    def test_owner_post_restores_animal(self, deceased_animal, user_profile):
+    def test_owner_post_restores_animal(self, deceased_animal, user_profile, logged_in_client):
         user, _ = user_profile
-        response = self._client_for(user).post(f"/pet/{deceased_animal.id}/unarchive/")
+        response = logged_in_client(user).post(f"/pet/{deceased_animal.id}/unarchive/")
         assert response.status_code == 302
         deceased_animal.refresh_from_db()
         assert deceased_animal.date_of_death is None
 
-    def test_carer_post_returns_403(self, deceased_animal, second_user_profile):
+    def test_carer_post_returns_403(self, deceased_animal, second_user_profile, logged_in_client):
         other_user, _ = second_user_profile
-        response = self._client_for(other_user).post(f"/pet/{deceased_animal.id}/unarchive/")
+        response = logged_in_client(other_user).post(f"/pet/{deceased_animal.id}/unarchive/")
         assert response.status_code == 403

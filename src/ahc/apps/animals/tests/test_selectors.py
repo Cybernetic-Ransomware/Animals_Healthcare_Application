@@ -174,11 +174,6 @@ class TestDeceasedPredicates:
 class TestDeceasedSelectors:
     """animals_visible_to / deceased_animals_for on deceased animals."""
 
-    @pytest.fixture
-    def deceased_animal(self, db, user_profile):
-        _, profile = user_profile
-        return Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
-
     def test_animals_visible_to_excludes_deceased_for_owner(self, deceased_animal, user_profile):
         _, profile = user_profile
         assert deceased_animal not in animals_visible_to(profile)

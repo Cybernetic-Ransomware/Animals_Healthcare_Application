@@ -73,7 +73,7 @@ docstring-code-line-length = 124
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "ahc.settings"
 pythonpath = ["src"]
-python_files = ["test_*.py", "tests.py"]
+python_files = ["test_*.py"]
 addopts = "--strict-markers"
 markers = [
     "unit: fast isolated tests with no DB access",

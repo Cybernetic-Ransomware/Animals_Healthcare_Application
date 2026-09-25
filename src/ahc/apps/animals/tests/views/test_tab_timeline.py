@@ -19,13 +19,6 @@ class TestTimelineLoadMorePagination:
         _, profile = user_profile
         return Animal.objects.create(full_name="Milo", owner=profile)
 
-    def _client_for(self, user):
-        from django.test import Client
-
-        c = Client()
-        c.force_login(user)
-        return c
-
     def _create_records(self, animal, profile, count, type_of_event):
         """Create `count` MedicalRecords, newest-first, backdated via .update() (auto_now_add ignores explicit values)."""
         from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
@@ -59,10 +52,10 @@ class TestTimelineLoadMorePagination:
         assert match, f"expected a Load older node with id={node_id!r} in response"
         return html.unescape(match.group(1))
 
-    def test_notes_20_records_renders_all_without_load_more(self, animal, user_profile):
+    def test_notes_20_records_renders_all_without_load_more(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 20)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         response = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true")
         content = response.content.decode()
@@ -70,10 +63,10 @@ class TestTimelineLoadMorePagination:
         assert self._present_pks(content, records) == {r.pk for r in records}
         assert not self._has_load_more(content, "timeline-more-notes")
 
-    def test_notes_21_records_second_page_has_exactly_one_new_record(self, animal, user_profile):
+    def test_notes_21_records_second_page_has_exactly_one_new_record(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 21)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
         first_present = self._present_pks(first_content, records)
@@ -89,10 +82,10 @@ class TestTimelineLoadMorePagination:
         assert first_present | second_present == {r.pk for r in records}
         assert not self._has_load_more(second_content, "timeline-more-notes")
 
-    def test_notes_24_records_second_page_has_remaining_four_no_duplicates(self, animal, user_profile):
+    def test_notes_24_records_second_page_has_remaining_four_no_duplicates(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 24)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
         first_present = self._present_pks(first_content, records)
@@ -108,10 +101,10 @@ class TestTimelineLoadMorePagination:
         assert first_present | second_present == {r.pk for r in records}
         assert not self._has_load_more(second_content, "timeline-more-notes")
 
-    def test_notes_40_records_two_full_pages_no_load_more_after(self, animal, user_profile):
+    def test_notes_40_records_two_full_pages_no_load_more_after(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 40)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
         first_present = self._present_pks(first_content, records)
@@ -127,10 +120,10 @@ class TestTimelineLoadMorePagination:
         assert first_present | second_present == {r.pk for r in records}
         assert not self._has_load_more(second_content, "timeline-more-notes")
 
-    def test_notes_41_records_three_pages_each_record_appears_once(self, animal, user_profile):
+    def test_notes_41_records_three_pages_each_record_appears_once(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 41)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
         first_present = self._present_pks(first_content, records)
@@ -154,10 +147,10 @@ class TestTimelineLoadMorePagination:
         assert second_present.isdisjoint(third_present)
         assert first_present | second_present | third_present == {r.pk for r in records}
 
-    def test_vet_24_records_second_page_has_remaining_four_no_duplicates(self, animal, user_profile):
+    def test_vet_24_records_second_page_has_remaining_four_no_duplicates(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_vet_visits(animal, profile, 24)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/vet/", HTTP_HX_REQUEST="true").content.decode()
         first_present = self._present_pks(first_content, records)
@@ -173,11 +166,11 @@ class TestTimelineLoadMorePagination:
         assert first_present | second_present == {r.pk for r in records}
         assert not self._has_load_more(second_content, "timeline-more-vet")
 
-    def test_notes_month_jump_then_load_older_continues_without_duplicates(self, animal, user_profile):
+    def test_notes_month_jump_then_load_older_continues_without_duplicates(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 25)
         month_param = records[0].date_creation.strftime("%Y-%m")
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_response = c.get(f"/pet/{animal.id}/tab/notes/?month={month_param}", HTTP_HX_REQUEST="true")
         assert first_response.status_code == 200
@@ -197,10 +190,10 @@ class TestTimelineLoadMorePagination:
         assert first_present | second_present == {r.pk for r in records}
         assert not self._has_load_more(second_content, "timeline-more-notes")
 
-    def test_notes_malformed_cursor_fails_closed(self, animal, user_profile):
+    def test_notes_malformed_cursor_fails_closed(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 24)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         response = c.get(f"/pet/{animal.id}/tab/notes/?before=not-a-datetime&load_more=1", HTTP_HX_REQUEST="true")
         content = response.content.decode()
@@ -209,10 +202,10 @@ class TestTimelineLoadMorePagination:
         assert self._present_pks(content, records) == set()
         assert not self._has_load_more(content, "timeline-more-notes")
 
-    def test_notes_before_without_before_id_fails_closed(self, animal, user_profile):
+    def test_notes_before_without_before_id_fails_closed(self, animal, user_profile, logged_in_client):
         user, profile = user_profile
         records = self._create_notes(animal, profile, 24)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
         href = self._extract_load_more_href(first_content, "timeline-more-notes")
@@ -225,7 +218,7 @@ class TestTimelineLoadMorePagination:
         assert self._present_pks(content, records) == set()
         assert not self._has_load_more(content, "timeline-more-notes")
 
-    def test_notes_tied_date_creation_at_page_boundary_drops_no_records(self, animal, user_profile):
+    def test_notes_tied_date_creation_at_page_boundary_drops_no_records(self, animal, user_profile, logged_in_client):
         from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 
         user, profile = user_profile
@@ -252,7 +245,7 @@ class TestTimelineLoadMorePagination:
             MedicalRecord.objects.filter(pk=r.pk).update(date_creation=tied_ts)
 
         records = list(MedicalRecord.objects.filter(pk__in=[r.pk for r in unique + tied]))
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
         first_present = self._present_pks(first_content, records)
@@ -268,11 +261,13 @@ class TestTimelineLoadMorePagination:
         assert first_present | second_present == {r.pk for r in records}
         assert not self._has_load_more(second_content, "timeline-more-notes")
 
-    def test_notes_load_more_href_survives_url_round_trip_with_tz_offset_cursor(self, animal, user_profile):
+    def test_notes_load_more_href_survives_url_round_trip_with_tz_offset_cursor(
+        self, animal, user_profile, logged_in_client
+    ):
         """Cursor is always UTC ("+00:00"); href must carry a percent-encoded '+' or this test passes vacuously."""
         user, profile = user_profile
         records = self._create_notes(animal, profile, 21)
-        c = self._client_for(user)
+        c = logged_in_client(user)
 
         first_content = c.get(f"/pet/{animal.id}/tab/notes/", HTTP_HX_REQUEST="true").content.decode()
         href = self._extract_load_more_href(first_content, "timeline-more-notes")
