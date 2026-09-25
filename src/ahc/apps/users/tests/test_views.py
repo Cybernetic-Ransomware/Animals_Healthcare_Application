@@ -1,8 +1,12 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client
+
+from ahc.apps.animals.models import ShareDefaults
 
 
 @pytest.mark.integration
@@ -11,15 +15,10 @@ class TestUserRegisterView:
     """UserRegisterView: form rendering and user account creation."""
 
     def test_get_renders_registration_form(self):
-        from django.test import Client
-
         response = Client().get("/user/register/")
         assert response.status_code == 200
 
     def test_valid_post_creates_user_and_redirects_to_login(self):
-        from django.contrib.auth.models import User
-        from django.test import Client
-
         mock_img = MagicMock()
         mock_img.height = 100
         mock_img.width = 100
@@ -37,8 +36,6 @@ class TestUserRegisterView:
         assert User.objects.filter(username="brandnewuser").exists()
 
     def test_invalid_post_re_renders_form_with_errors(self):
-        from django.test import Client
-
         response = Client().post(
             "/user/register/",
             {"username": "u", "email": "not-an-email", "password1": "abc", "password2": "xyz"},
@@ -57,8 +54,6 @@ class TestUserProfileView:
         (tmp_path / "profile_pics" / "users").mkdir(parents=True)
 
     def test_unauthenticated_redirects_to_login(self):
-        from django.test import Client
-
         response = Client().get("/user/profile/")
         assert response.status_code == 302
 
@@ -165,8 +160,6 @@ class TestShareDefaultsView:
     """ShareDefaultsView: default share scope configuration for new keepers."""
 
     def test_unauthenticated_redirects_to_login(self):
-        from django.test import Client
-
         response = Client().get("/user/share-defaults/")
         assert response.status_code == 302
 
@@ -176,8 +169,6 @@ class TestShareDefaultsView:
         assert response.status_code == 200
 
     def test_valid_post_saves_defaults_and_redirects(self, user_profile, logged_in_client):
-        from ahc.apps.animals.models import ShareDefaults
-
         user, profile = user_profile
         response = logged_in_client(user).post("/user/share-defaults/", {"allow_basic": "on", "allow_diet": "on"})
         assert response.status_code == 302

@@ -3,11 +3,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ahc.apps.animals.models import Animal
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 from ahc.apps.medical_notes.selectors import (
     can_access_note_animal,
     is_attachment_author,
     is_author_of_any_note,
     is_note_author,
+    other_history_for,
+    other_records_for,
 )
 
 
@@ -58,10 +61,6 @@ class TestVaccinationSelectors:
     """due_vaccination_reminders: pure filtering logic verified with MagicMock."""
 
     def test_other_history_for_excludes_vaccination_note(self):
-        from unittest.mock import patch
-
-        from ahc.apps.medical_notes.selectors import other_history_for
-
         animal = MagicMock()
         with patch("ahc.apps.medical_notes.selectors.MedicalRecord") as MockRecord:
             qs = MagicMock()
@@ -77,8 +76,6 @@ class TestVaccinationSelectors:
             assert "vaccination_note" in excluded_types
 
     def test_other_records_for_excludes_vaccination_note(self):
-        from ahc.apps.medical_notes.selectors import other_records_for
-
         animal = MagicMock()
         with patch("ahc.apps.medical_notes.selectors.MedicalRecord") as MockRecord:
             qs = MagicMock()
@@ -117,9 +114,6 @@ class TestOtherRecordsForSelector:
         return Animal.objects.create(full_name="Buddy", owner=profile)
 
     def test_excludes_medical_visit_and_diet_note(self, animal, user_profile):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.selectors import other_records_for
-
         _, profile = user_profile
         MedicalRecord.objects.create(
             animal=animal, author=profile, short_description="Visit", type_of_event="medical_visit"
@@ -135,9 +129,6 @@ class TestOtherRecordsForSelector:
         assert len(results) == 1
 
     def test_returns_empty_when_only_special_types(self, animal, user_profile):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.selectors import other_records_for
-
         _, profile = user_profile
         MedicalRecord.objects.create(animal=animal, author=profile, short_description="V", type_of_event="medical_visit")
         assert list(other_records_for(animal)) == []

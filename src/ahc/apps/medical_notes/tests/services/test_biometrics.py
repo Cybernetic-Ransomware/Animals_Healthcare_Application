@@ -1,11 +1,16 @@
+import uuid
+from decimal import Decimal
+
 import pytest
+
+from ahc.apps.animals.models import Animal
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
+from ahc.apps.medical_notes.services.biometrics import create_batch_biometric_records, create_biometric_record
 
 
 @pytest.fixture
 def medical_note(db, user_profile):
-    from ahc.apps.animals.models import Animal
-    from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-
     _, profile = user_profile
     animal = Animal.objects.create(full_name="Tester", owner=profile)
     return MedicalRecord.objects.create(
@@ -22,8 +27,6 @@ class TestCreateBiometricRecordService:
     """create_biometric_record: branches across weight / height / custom sub-records."""
 
     def test_creates_weight_record(self, medical_note):
-        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
         record = create_biometric_record(
             medical_note.animal,
             medical_note,
@@ -38,8 +41,6 @@ class TestCreateBiometricRecordService:
         assert record.custom_biometric_record is None
 
     def test_creates_height_record(self, medical_note):
-        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
         record = create_biometric_record(
             medical_note.animal,
             medical_note,
@@ -52,8 +53,6 @@ class TestCreateBiometricRecordService:
         assert record.weight_biometric_record is None
 
     def test_creates_custom_record(self, medical_note):
-        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
         record = create_biometric_record(
             medical_note.animal,
             medical_note,
@@ -70,8 +69,6 @@ class TestCreateBiometricRecordService:
 @pytest.fixture
 def batch_animals(db, user_profile):
     """Three animals owned by user_profile for batch service tests."""
-    from ahc.apps.animals.models import Animal
-
     _, profile = user_profile
     a1 = Animal.objects.create(full_name="Alpha", owner=profile)
     a2 = Animal.objects.create(full_name="Beta", owner=profile)
@@ -85,12 +82,6 @@ class TestCreateBatchBiometricRecordsService:
     """create_batch_biometric_records: creates N pairs, enforces allowed_ids, no signal orphans."""
 
     def test_creates_expected_number_of_pairs(self, batch_animals):
-        from decimal import Decimal
-
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-        from ahc.apps.medical_notes.services.biometrics import create_batch_biometric_records
-
         (a1, a2, _), profile = batch_animals
         rows = [
             (a1, {"weight": Decimal("4.5"), "weight_unit_to_present": "kg"}),
@@ -103,12 +94,6 @@ class TestCreateBatchBiometricRecordsService:
         assert BiometricRecord.objects.filter(animal__in=[a1, a2]).count() == 2
 
     def test_skips_animal_not_in_allowed_ids(self, batch_animals):
-        import uuid
-        from decimal import Decimal
-
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-        from ahc.apps.medical_notes.services.biometrics import create_batch_biometric_records
-
         (a1, _, _), profile = batch_animals
         outsider_id = uuid.uuid4()
         rows = [
@@ -126,12 +111,6 @@ class TestCreateBatchBiometricRecordsService:
         BiometricRecord — the first BiometricRecord save would then wipe the still-empty
         sibling notes. Correct sequential (note, biometry) pairing prevents this.
         """
-        from decimal import Decimal
-
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-        from ahc.apps.medical_notes.services.biometrics import create_batch_biometric_records
-
         (a1, a2, a3), profile = batch_animals
         rows = [
             (a1, {"weight": Decimal("3.0"), "weight_unit_to_present": "g"}),

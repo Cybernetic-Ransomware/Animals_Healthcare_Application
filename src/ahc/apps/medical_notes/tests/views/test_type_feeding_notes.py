@@ -1,3 +1,4 @@
+import uuid
 from datetime import date as _date
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -5,12 +6,12 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
+from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
+
 
 @pytest.fixture
 def existing_feeding_note(db, diet_note_shell):
     """A persisted FeedingNote linked to diet_note_shell."""
-    from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
-
     return FeedingNote.objects.create(
         related_note=diet_note_shell,
         real_start_date=_date(2026, 1, 1),
@@ -25,8 +26,6 @@ class TestDietRecordCreateView:
     """DietRecordCreateView (feeding_create): POST creates FeedingNote and redirects."""
 
     def test_valid_post_creates_feeding_note(self, client, user_profile, diet_note_shell):
-        from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
-
         user, _ = user_profile
         client.force_login(user)
         url = reverse("feeding_create", kwargs={"pk": diet_note_shell.id})
@@ -134,8 +133,6 @@ class TestNotificationListEmptyState:
     """Regression for D-03: notification_list.html must show an empty state, not a blank page."""
 
     def test_shows_empty_state_when_no_notifications(self, client, user_profile):
-        import uuid
-
         user, _ = user_profile
         client.force_login(user)
 

@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from ahc.apps.animals.models import Animal
+from ahc.apps.animals.models import Animal, AnimalShare
 
 
 @pytest.mark.integration
@@ -116,8 +116,6 @@ class TestChangeBirthdayView:
         assert response.status_code == 403
 
     def test_valid_post_saves_birthdate_and_redirects(self, animal, user_profile, logged_in_client):
-        from datetime import date
-
         user, _ = user_profile
         response = logged_in_client(user).post(f"/pet/{animal.id}/btd/", {"birthdate": "2020-03-15"})
         assert response.status_code == 302
@@ -178,8 +176,6 @@ class TestChangeNextVisitView:
         assert response.status_code == 403
 
     def test_valid_post_saves_date_and_redirects_to_vet_tab(self, animal, user_profile, logged_in_client):
-        from datetime import date
-
         user, _ = user_profile
         response = logged_in_client(user).post(f"/pet/{animal.id}/next-visit/", {"next_visit_date": "2026-09-01"})
         assert response.status_code == 302
@@ -275,8 +271,6 @@ class TestManageKeepersView:
         assert response.status_code == 403
 
     def test_valid_post_creates_share_for_new_keeper(self, animal, user_profile, second_user_profile, logged_in_client):
-        from ahc.apps.animals.models import AnimalShare
-
         user, _ = user_profile
         _, keeper_profile = second_user_profile
         response = logged_in_client(user).post(
@@ -326,8 +320,6 @@ class TestEditShareView:
 
     @pytest.fixture
     def animal_with_share(self, db, user_profile, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, owner_profile = user_profile
         _, carer_profile = second_user_profile
         animal = Animal.objects.create(full_name="ShareAnimal", owner=owner_profile)

@@ -2,6 +2,7 @@ from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.http import Http404
 
 from ahc.apps.medical_notes.services.attachments import (
     AttachmentLimitExceeded,
@@ -97,8 +98,6 @@ class TestDownloadAttachmentService:
         client.get_attachment.assert_called_once_with("ref-uuid")
 
     def test_raises_http404_when_not_found(self):
-        from django.http import Http404
-
         client = _make_couch_client(get_result=None)
 
         with pytest.raises(Http404):

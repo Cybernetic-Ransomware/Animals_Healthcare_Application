@@ -1,7 +1,8 @@
 import pytest
 from django.core.files.base import ContentFile
+from django.test import Client
 
-from ahc.apps.animals.models import Animal
+from ahc.apps.animals.models import Animal, AnimalShare
 
 
 @pytest.mark.integration
@@ -10,8 +11,6 @@ class TestCreateAnimalView:
     """CreateAnimalView: form rendering, animal creation, and authentication gate."""
 
     def test_unauthenticated_redirects_to_login(self):
-        from django.test import Client
-
         response = Client().get("/pet/create/")
         assert response.status_code == 302
 
@@ -43,8 +42,6 @@ class TestAnimalProfileDetailView:
         (tmp_path / "profile_pics" / "animals").mkdir(parents=True)
 
     def test_unauthenticated_redirects_to_login(self, animal):
-        from django.test import Client
-
         response = Client().get(f"/pet/{animal.id}/")
         assert response.status_code == 302
 
@@ -86,8 +83,6 @@ class TestAnimalProfileViewDeceased:
         assert response.status_code == 200
 
     def test_carer_blocked_on_deceased_profile(self, deceased_animal, second_user_profile, user_profile, logged_in_client):
-        from ahc.apps.animals.models import AnimalShare
-
         other_user, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=deceased_animal, carer=carer_profile)
         response = logged_in_client(other_user).get(f"/pet/{deceased_animal.id}/")

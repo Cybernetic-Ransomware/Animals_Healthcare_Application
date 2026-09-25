@@ -1,6 +1,9 @@
 import pytest
 from django.urls import reverse
 
+from ahc.apps.animals.models import Animal, AnimalShare
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+
 
 @pytest.mark.integration
 @pytest.mark.django_db
@@ -9,8 +12,6 @@ class TestCreateNoteFormViewBiometricGate:
 
     @pytest.fixture
     def animal_with_share(self, db, user_profile, second_user_profile):
-        from ahc.apps.animals.models import Animal, AnimalShare
-
         _, owner_profile = user_profile
         _, carer_profile = second_user_profile
         animal = Animal.objects.create(full_name="GatedAnimal", owner=owner_profile)
@@ -52,8 +53,6 @@ class TestRelatedAnimalsLabels:
 
     @pytest.fixture
     def two_owned_animals_for_notes(self, db, user_profile):
-        from ahc.apps.animals.models import Animal
-
         _, profile = user_profile
         primary = Animal.objects.create(full_name="Maru", owner=profile)
         other = Animal.objects.create(full_name="Chilli", owner=profile)
@@ -71,8 +70,6 @@ class TestRelatedAnimalsLabels:
         assert b"Animal object" not in response.content
 
     def test_edit_related_animals_shows_animal_full_name(self, client, user_profile, two_owned_animals_for_notes):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-
         user, profile = user_profile
         primary, other, _ = two_owned_animals_for_notes
         note = MedicalRecord.objects.create(
@@ -95,8 +92,6 @@ class TestCreateNoteFormViewLegend:
 
     @pytest.fixture
     def owned_animal(self, db, user_profile):
-        from ahc.apps.animals.models import Animal
-
         _, profile = user_profile
         return Animal.objects.create(full_name="Maru", owner=profile)
 

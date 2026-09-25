@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from ahc.apps.animals.models import Animal
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 
 
 @pytest.mark.integration
@@ -21,8 +22,6 @@ class TestTimelineLoadMorePagination:
 
     def _create_records(self, animal, profile, count, type_of_event):
         """Create `count` MedicalRecords, newest-first, backdated via .update() (auto_now_add ignores explicit values)."""
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-
         base = timezone.now()
         created = [
             MedicalRecord.objects.create(
@@ -219,8 +218,6 @@ class TestTimelineLoadMorePagination:
         assert not self._has_load_more(content, "timeline-more-notes")
 
     def test_notes_tied_date_creation_at_page_boundary_drops_no_records(self, animal, user_profile, logged_in_client):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-
         user, profile = user_profile
         base = timezone.now()
 

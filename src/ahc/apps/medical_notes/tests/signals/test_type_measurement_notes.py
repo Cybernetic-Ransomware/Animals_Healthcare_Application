@@ -4,6 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from ahc.apps.medical_notes.models.type_measurement_notes import (
+    BiometricCustomRecords,
     BiometricHeightRecords,
     BiometricWeightRecords,
 )
@@ -31,8 +32,6 @@ class TestBiometricRecordValidation:
             validate_one_to_one_fields(sender=None, instance=instance)
 
     def test_all_three_types_raises_validation_error(self):
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricCustomRecords
-
         instance = _make_instance(
             weight=BiometricWeightRecords(weight=5),
             height=BiometricHeightRecords(height=30),

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from ahc.apps.animals.models import AnimalShare
 from ahc.apps.animals.selectors import (
     animals_visible_to,
 )
@@ -14,8 +15,10 @@ from ahc.apps.animals.services import (
     remove_keeper,
     set_birthday,
     set_deceased,
+    set_dietary_restrictions,
     set_first_contact,
     set_memorial_note,
+    set_next_visit,
     transfer_ownership,
     unpin_animal,
     unset_deceased,
@@ -170,19 +173,13 @@ class TestNewAnimalServices:
             mock_model.objects.filter.return_value.delete.assert_called_once()
 
     def test_set_next_visit_assigns_date_and_saves(self):
-        from datetime import date as date_type
-
-        from ahc.apps.animals.services import set_next_visit
-
         animal = MagicMock()
-        d = date_type(2026, 9, 1)
+        d = date(2026, 9, 1)
         set_next_visit(animal, d)
         assert animal.next_visit_date == d
         animal.save.assert_called_once()
 
     def test_set_dietary_restrictions_assigns_text_and_saves(self):
-        from ahc.apps.animals.services import set_dietary_restrictions
-
         animal = MagicMock()
         set_dietary_restrictions(animal, "No grapes, no onions")
         assert animal.dietary_restrictions == "No grapes, no onions"
@@ -211,16 +208,12 @@ class TestDeceasedServices:
         assert animal.is_deceased is True
 
     def test_set_deceased_does_not_delete_shares(self, animal, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         share = AnimalShare.objects.create(animal=animal, carer=carer_profile)
         set_deceased(animal, date_of_death=date(2024, 5, 1), memorial_note=None)
         assert AnimalShare.objects.filter(pk=share.pk).exists()
 
     def test_unset_deceased_clears_date_and_restores_visibility(self, animal, user_profile, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile)
         set_deceased(animal, date_of_death=date(2024, 5, 1), memorial_note="Farewell")

@@ -1,8 +1,13 @@
+from decimal import Decimal
+
 import pytest
 from django.urls import reverse
 
+from ahc.apps.animals.models import Animal, AnimalShare
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 from ahc.apps.medical_notes.models.type_measurement_notes import (
     BiometricHeightRecords,
+    BiometricRecord,
     BiometricWeightRecords,
 )
 
@@ -10,8 +15,6 @@ from ahc.apps.medical_notes.models.type_measurement_notes import (
 @pytest.fixture
 def two_owned_animals(db, user_profile):
     """Two animals owned by user_profile for view tests."""
-    from ahc.apps.animals.models import Animal
-
     _, profile = user_profile
     a1 = Animal.objects.create(full_name="Dog", owner=profile)
     a2 = Animal.objects.create(full_name="Cat", owner=profile)
@@ -34,9 +37,6 @@ class TestBiometricBatchCreateView:
         assert "Cat" in content
 
     def test_post_creates_pairs_for_checked_rows_only(self, client, user_profile, two_owned_animals):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-
         user, _ = user_profile
         (a1, a2), _ = two_owned_animals
         client.force_login(user)
@@ -66,11 +66,8 @@ class TestBiometricBatchCreateView:
 
     def test_post_ignores_animal_outside_allowed_set(self, client, user_profile, second_user_profile, two_owned_animals):
         """A row carrying a stranger's animal_id must produce no records."""
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-
         user, _ = user_profile
         _, other_profile = second_user_profile
-        from ahc.apps.animals.models import Animal
 
         stranger_animal = Animal.objects.create(full_name="Stranger", owner=other_profile)
         client.force_login(user)
@@ -106,8 +103,6 @@ class TestBiometricBatchCarerPermissions:
 
     @pytest.fixture
     def shared_animal_no_biometrics(self, db, user_profile, second_user_profile):
-        from ahc.apps.animals.models import Animal, AnimalShare
-
         _, owner_profile = user_profile
         _, carer_profile = second_user_profile
         animal = Animal.objects.create(full_name="SharedPet", owner=owner_profile)
@@ -129,8 +124,6 @@ class TestBiometricBatchCarerPermissions:
         self, client, second_user_profile, shared_animal_no_biometrics
     ):
         """POST with a no-biometrics animal_id must produce zero records."""
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-
         carer_user, _ = second_user_profile
         animal, _ = shared_animal_no_biometrics
         client.force_login(carer_user)
@@ -161,9 +154,6 @@ class TestBiometricRecordCreateViewPermissions:
 
     @pytest.fixture
     def animal_and_shell_note(self, db, user_profile):
-        from ahc.apps.animals.models import Animal
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-
         _, owner_profile = user_profile
         animal = Animal.objects.create(full_name="BioAnimal", owner=owner_profile)
         shell = MedicalRecord.objects.create(
@@ -172,8 +162,6 @@ class TestBiometricRecordCreateViewPermissions:
         return animal, shell
 
     def test_carer_without_biometrics_gets_403(self, client, second_user_profile, user_profile, animal_and_shell_note):
-        from ahc.apps.animals.models import AnimalShare
-
         carer_user, carer_profile = second_user_profile
         animal, shell = animal_and_shell_note
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
@@ -191,8 +179,6 @@ class TestBiometricRecordCreateViewPermissions:
         assert response.status_code == 200
 
     def test_carer_with_biometrics_can_access(self, client, second_user_profile, user_profile, animal_and_shell_note):
-        from ahc.apps.animals.models import AnimalShare
-
         carer_user, carer_profile = second_user_profile
         animal, shell = animal_and_shell_note
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True)
@@ -204,8 +190,6 @@ class TestBiometricRecordCreateViewPermissions:
     @pytest.mark.regression
     def test_post_decimal_weight_is_persisted(self, client, user_profile, animal_and_shell_note):
         """Regression #61: a decimal weight submitted via the view was rejected."""
-        from decimal import Decimal
-
         owner_user, _ = user_profile
         animal, shell = animal_and_shell_note
         client.force_login(owner_user)
@@ -229,8 +213,6 @@ class TestBiometricRecordCreateViewPermissions:
     @pytest.mark.regression
     def test_post_decimal_height_is_persisted(self, client, user_profile, animal_and_shell_note):
         """Regression #61: a decimal height submitted via the view was rejected."""
-        from decimal import Decimal
-
         owner_user, _ = user_profile
         animal, shell = animal_and_shell_note
         client.force_login(owner_user)

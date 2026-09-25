@@ -3,6 +3,12 @@ from datetime import date as _date
 import pytest
 from django.urls import reverse
 
+from ahc.apps.animals.models import Animal, AnimalShare
+from ahc.apps.medical_notes.forms.type_basic_note import MedicalRecordForm
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
+from ahc.apps.medical_notes.selectors import can_access_note_animal, due_vaccination_reminders
+
 
 @pytest.mark.integration
 @pytest.mark.django_db
@@ -11,9 +17,6 @@ class TestDeceasedAnimalWriteBlocking:
 
     @pytest.fixture
     def setup(self, db, user_profile, second_user_profile):
-        from ahc.apps.animals.models import Animal, AnimalShare
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-
         _, owner_profile = user_profile
         owner_user, _ = user_profile
         _, carer_profile = second_user_profile
@@ -66,8 +69,6 @@ class TestDeceasedAnimalWriteBlocking:
 
     def test_form_queryset_rejects_deceased_uuid_in_additional_animals(self, setup):
         """MedicalRecordForm.additional_animals queryset must reject a deceased animal UUID."""
-        from ahc.apps.medical_notes.forms.type_basic_note import MedicalRecordForm
-
         s = setup
         form = MedicalRecordForm(
             data={
@@ -83,9 +84,6 @@ class TestDeceasedAnimalWriteBlocking:
 
     def test_can_access_note_animal_returns_false_for_deceased(self, setup):
         """can_access_note_animal must block even the owner on a deceased animal's note."""
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.selectors import can_access_note_animal
-
         s = setup
         deceased_note = MedicalRecord.objects.create(
             animal=s["deceased"], author=s["owner_profile"], short_description="old note", type_of_event="fast_note"
@@ -95,10 +93,6 @@ class TestDeceasedAnimalWriteBlocking:
 
     def test_due_vaccination_reminders_excludes_deceased(self, setup):
         """Vaccination reminders must not fire for deceased animals."""
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
-        from ahc.apps.medical_notes.selectors import due_vaccination_reminders
-
         s = setup
         living_note = MedicalRecord.objects.create(
             animal=s["living"], author=s["owner_profile"], short_description="vacc base", type_of_event="vaccination_note"

@@ -1,9 +1,14 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from ahc.apps.animals.models import Animal
+from ahc.apps.animals.models import Animal, AnimalShare
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
+from ahc.apps.medical_notes.services.biometrics import create_biometric_record
 
 
 @pytest.mark.integration
@@ -33,8 +38,6 @@ class TestBiometricsTabAccess:
         assert response.context["can_record_biometrics"] is True
 
     def test_keeper_with_allow_biometrics_sees_tab(self, animal, second_user_profile, logged_in_client):
-        from ahc.apps.animals.models import AnimalShare
-
         carer_user, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True)
         c = logged_in_client(carer_user)
@@ -42,8 +45,6 @@ class TestBiometricsTabAccess:
         assert response.status_code == 200
 
     def test_keeper_without_allow_biometrics_blocked(self, animal, second_user_profile, logged_in_client):
-        from ahc.apps.animals.models import AnimalShare
-
         carer_user, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
         c = logged_in_client(carer_user)
@@ -51,8 +52,6 @@ class TestBiometricsTabAccess:
         assert response.status_code == 403
 
     def test_expired_share_blocked(self, animal, second_user_profile, logged_in_client):
-        from ahc.apps.animals.models import AnimalShare
-
         carer_user, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True, valid_until=date(2020, 1, 1))
         c = logged_in_client(carer_user)
@@ -69,8 +68,6 @@ class TestBiometricsTabAccess:
         assert "Add measurement" not in response.content.decode()
 
     def test_keeper_only_history_does_not_see_biometrics(self, animal, second_user_profile, logged_in_client):
-        from ahc.apps.animals.models import AnimalShare
-
         carer_user, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_history=True, allow_biometrics=False)
         c = logged_in_client(carer_user)
@@ -78,8 +75,6 @@ class TestBiometricsTabAccess:
         assert c.get(f"/pet/{animal.id}/tab/biometrics/", HTTP_HX_REQUEST="true").status_code == 403
 
     def test_keeper_only_biometrics_does_not_see_notes(self, animal, second_user_profile, logged_in_client):
-        from ahc.apps.animals.models import AnimalShare
-
         carer_user, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_history=False, allow_biometrics=True)
         c = logged_in_client(carer_user)
@@ -90,9 +85,6 @@ class TestBiometricsTabAccess:
 def _create_biometric_weight(
     animal, profile, weight, unit="kg", date_event_started=None, backdate_creation=None, description="Weigh-in"
 ):
-    from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-    from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
     note = MedicalRecord.objects.create(
         animal=animal,
         author=profile,
@@ -109,9 +101,6 @@ def _create_biometric_weight(
 def _create_biometric_height(
     animal, profile, height, unit="cm", date_event_started=None, backdate_creation=None, description="Height check"
 ):
-    from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-    from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
     note = MedicalRecord.objects.create(
         animal=animal,
         author=profile,
@@ -151,11 +140,8 @@ class TestBiometricsTabData:
         a bare `.date()` on the stored UTC value (skipping localtime()) would wrongly
         resolve to 2026-01-10.
         """
-        from datetime import UTC
-        from datetime import datetime as dt
-
         user, profile = user_profile
-        utc_instant = dt(2026, 1, 10, 23, 30, tzinfo=UTC)
+        utc_instant = datetime(2026, 1, 10, 23, 30, tzinfo=UTC)
         _create_biometric_weight(animal, profile, 4.2, backdate_creation=utc_instant)
         response = self._get(logged_in_client(user), animal)
         assert response.context["history_rows"][0]["date"] == date(2026, 1, 11)
@@ -165,7 +151,6 @@ class TestBiometricsTabData:
         record = _create_biometric_weight(animal, profile, 4.2)
         expected = timezone.localtime(record.date_updated).date()
         # Simulate the note having been deleted (SET_NULL) without re-triggering signals.
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
 
         BiometricRecord.objects.filter(pk=record.pk).update(related_note=None)
 
@@ -206,9 +191,6 @@ class TestBiometricsTabData:
         assert [r["id"] for r in rows] == [second.id, first.id]
 
     def test_custom_visible_in_history_but_not_charted(self, animal, user_profile, logged_in_client):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
         user, profile = user_profile
         _create_biometric_weight(animal, profile, 4.0, date_event_started=date(2026, 1, 1))
         note = MedicalRecord.objects.create(
@@ -284,9 +266,6 @@ class TestBiometricsTabData:
         assert [p["date"] for p in points] == ["2026-01-01", "2026-01-10", "2026-01-20"]
 
     def test_only_custom_no_chart_canvas(self, animal, user_profile, logged_in_client):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
         user, profile = user_profile
         note = MedicalRecord.objects.create(
             animal=animal,
@@ -324,9 +303,6 @@ class TestBiometricsTabData:
         assert points[0] == {"date": "2026-01-01", "value": 31.0}
 
     def test_record_without_any_subtype_is_skipped_not_crashed(self, animal, user_profile, logged_in_client):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
-
         user, profile = user_profile
         note = MedicalRecord.objects.create(
             animal=animal, author=profile, short_description="Corrupted", type_of_event="biometric_record"
@@ -339,12 +315,6 @@ class TestBiometricsTabData:
 
     def test_selector_has_no_n_plus_1(self, animal, user_profile, logged_in_client):
         """Query count must stay flat regardless of how many records or measurement types exist."""
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
-
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
-
         user, profile = user_profile
         client = logged_in_client(user)
 

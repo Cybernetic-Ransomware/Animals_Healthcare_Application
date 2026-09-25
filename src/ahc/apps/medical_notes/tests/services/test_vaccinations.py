@@ -1,7 +1,17 @@
-from datetime import date as _date
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from ahc.apps.animals.models import Animal
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
+from ahc.apps.medical_notes.selectors import due_vaccination_reminders
+from ahc.apps.medical_notes.services.vaccinations import (
+    create_vaccination_note,
+    delete_vaccination_note,
+    update_vaccination_note,
+)
 
 
 @pytest.mark.unit
@@ -9,8 +19,6 @@ class TestCreateVaccinationNoteService:
     """create_vaccination_note: creates a MedicalRecord shell and a linked VaccinationNote."""
 
     def test_creates_shell_with_correct_type(self):
-        from ahc.apps.medical_notes.services.vaccinations import create_vaccination_note
-
         author = MagicMock()
         animal = MagicMock()
         form = MagicMock()
@@ -36,10 +44,6 @@ class TestCreateVaccinationNoteService:
         assert result is vacc_instance
 
     def test_update_resets_reminder_sent_when_date_changes(self):
-        from datetime import date
-
-        from ahc.apps.medical_notes.services.vaccinations import update_vaccination_note
-
         vaccination = MagicMock()
         vaccination.reminder_date = date(2026, 1, 1)
         vaccination.reminder_sent = True
@@ -56,10 +60,6 @@ class TestCreateVaccinationNoteService:
         assert result.reminder_sent is False
 
     def test_update_preserves_reminder_sent_when_date_unchanged(self):
-        from datetime import date
-
-        from ahc.apps.medical_notes.services.vaccinations import update_vaccination_note
-
         vaccination = MagicMock()
         vaccination.reminder_date = date(2026, 6, 1)
         vaccination.reminder_sent = True
@@ -76,8 +76,6 @@ class TestCreateVaccinationNoteService:
         assert result.reminder_sent is True
 
     def test_delete_removes_satellite_and_shell(self):
-        from ahc.apps.medical_notes.services.vaccinations import delete_vaccination_note
-
         vaccination = MagicMock()
         shell = MagicMock()
         vaccination.related_note = shell
@@ -90,8 +88,6 @@ class TestCreateVaccinationNoteService:
 
 @pytest.fixture
 def vaccination_animal(db, user_profile):
-    from ahc.apps.animals.models import Animal
-
     _, profile = user_profile
     return Animal.objects.create(full_name="VaccTest", owner=profile), profile
 
@@ -102,12 +98,6 @@ class TestVaccinationNoteIntegration:
     """End-to-end create / update / delete through services with a real SQLite DB."""
 
     def test_create_builds_shell_and_satellite(self, vaccination_animal):
-        from datetime import date
-
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
-        from ahc.apps.medical_notes.services.vaccinations import create_vaccination_note
-
         animal, profile = vaccination_animal
         form = MagicMock()
         form.cleaned_data = {"vaccine_name": "Distemper", "reminder_date": None}
@@ -128,12 +118,6 @@ class TestVaccinationNoteIntegration:
         assert MedicalRecord.objects.filter(type_of_event="vaccination_note", animal=animal).count() == 1
 
     def test_due_vaccination_reminders_returns_overdue_records(self, vaccination_animal):
-        from datetime import date
-
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
-        from ahc.apps.medical_notes.selectors import due_vaccination_reminders
-
         animal, profile = vaccination_animal
         shell = MedicalRecord.objects.create(
             animal=animal, author=profile, type_of_event="vaccination_note", short_description="Flu"
@@ -150,12 +134,6 @@ class TestVaccinationNoteIntegration:
         assert due[0].vaccine_name == "Flu"
 
     def test_due_vaccination_reminders_excludes_already_sent(self, vaccination_animal):
-        from datetime import date
-
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
-        from ahc.apps.medical_notes.selectors import due_vaccination_reminders
-
         animal, profile = vaccination_animal
         shell = MedicalRecord.objects.create(
             animal=animal, author=profile, type_of_event="vaccination_note", short_description="Parvovirus"
@@ -167,5 +145,5 @@ class TestVaccinationNoteIntegration:
             reminder_sent=True,
         )
 
-        due = list(due_vaccination_reminders(_date(2026, 6, 1)))
+        due = list(due_vaccination_reminders(date(2026, 6, 1)))
         assert due == []

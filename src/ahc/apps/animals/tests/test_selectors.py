@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ahc.apps.animals.models import Animal
+from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.animals.selectors import (
     animals_for_biometric_batch,
     animals_visible_to,
@@ -16,6 +16,7 @@ from ahc.apps.animals.selectors import (
     user_can_record_biometrics,
     user_can_view_animal,
 )
+from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 
 
 @pytest.mark.unit
@@ -112,8 +113,6 @@ class TestRecentRecordsForSelector:
         assert records == []
 
     def test_respects_limit(self, animal, user_profile):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-
         _, profile = user_profile
         for i in range(7):
             MedicalRecord.objects.create(
@@ -179,8 +178,6 @@ class TestDeceasedSelectors:
         assert deceased_animal not in animals_visible_to(profile)
 
     def test_animals_visible_to_excludes_deceased_for_carer(self, deceased_animal, second_user_profile, user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=deceased_animal, carer=carer_profile)
         assert deceased_animal not in animals_visible_to(carer_profile)
@@ -208,15 +205,11 @@ class TestUserCanRecordBiometrics:
         assert user_can_record_biometrics(profile, animal) is True
 
     def test_carer_with_allow_biometrics_can_record(self, animal, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True)
         assert user_can_record_biometrics(carer_profile, animal) is True
 
     def test_carer_without_allow_biometrics_blocked(self, animal, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
         assert user_can_record_biometrics(carer_profile, animal) is False
@@ -241,22 +234,16 @@ class TestAnimalsForBiometricBatch:
         assert animal in animals_for_biometric_batch(profile)
 
     def test_carer_with_allow_biometrics_included(self, animal, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True)
         assert animal in animals_for_biometric_batch(carer_profile)
 
     def test_carer_without_allow_biometrics_excluded(self, animal, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=False)
         assert animal not in animals_for_biometric_batch(carer_profile)
 
     def test_expired_share_with_allow_biometrics_excluded(self, animal, second_user_profile):
-        from ahc.apps.animals.models import AnimalShare
-
         _, carer_profile = second_user_profile
         AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_biometrics=True, valid_until=date(2020, 1, 1))
         assert animal not in animals_for_biometric_batch(carer_profile)

@@ -1,4 +1,7 @@
+import json
+
 import pytest
+from django.test import Client
 
 from ahc.apps.animals.models import Animal
 
@@ -9,8 +12,6 @@ class TestStableView:
     """StableView: animal list page for authenticated users."""
 
     def test_unauthenticated_redirects_to_login(self):
-        from django.test import Client
-
         response = Client().get("/pet/animals/")
         assert response.status_code == 302
 
@@ -42,16 +43,12 @@ class TestToPinAnimalsView:
         return Animal.objects.create(full_name="PinMe", owner=profile)
 
     def test_post_pin_returns_success_json(self, animal, user_profile, logged_in_client):
-        import json
-
         user, _ = user_profile
         response = logged_in_client(user).post("/pet/pinned-animals/", {"animal_id": str(animal.id), "action": "add"})
         assert response.status_code == 200
         assert json.loads(response.content)["status"] == "success"
 
     def test_post_unpin_returns_success_json(self, animal, user_profile, logged_in_client):
-        import json
-
         user, profile = user_profile
         profile.pinned_animals.add(animal)
         response = logged_in_client(user).post("/pet/pinned-animals/", {"animal_id": str(animal.id), "action": "remove"})
@@ -59,8 +56,6 @@ class TestToPinAnimalsView:
         assert json.loads(response.content)["status"] == "success"
 
     def test_pin_with_no_access_returns_403_json(self, animal, second_user_profile, logged_in_client):
-        import json
-
         other_user, _ = second_user_profile
         response = logged_in_client(other_user).post("/pet/pinned-animals/", {"animal_id": str(animal.id), "action": "add"})
         assert response.status_code == 403
