@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client
+from django.test import Client, override_settings
 from PIL import Image as PILImage
 
 from ahc.apps.users.models import Profile
@@ -24,6 +24,13 @@ def pytest_collection_modifyitems(items):
             errors.append(f"{item.nodeid}: 'unit' test uses the database or the Django test client")
     if errors:
         raise pytest.UsageError("Invalid test category markers:\n" + "\n".join(errors))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fast_password_hasher():
+    """PBKDF2 dominates fixture setup; no test depends on the hashing algorithm."""
+    with override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"]):
+        yield
 
 
 def _create_user_profile(username):
