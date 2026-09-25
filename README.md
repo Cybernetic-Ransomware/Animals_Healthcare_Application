@@ -119,7 +119,7 @@ just test-unit
 ```
 
 #### Integration tests
-Requires Docker backing services running (`just infra`).
+Run against a SQLite test database; no Docker backing services are needed.
 ```powershell
 uv run pytest -m integration
 # or

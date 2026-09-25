@@ -24,13 +24,17 @@ format:
 test:
     uv run pytest -m "not slow"
 
-# Run only unit tests
+# Run only unit tests (same selection as the CI test-unit job)
 test-unit:
-    uv run pytest -m unit -v
+    uv run pytest -m "unit and not slow" -v
 
-# Run only integration tests
+# Run only integration tests (same selection as the CI test-integration job)
 test-integration:
-    uv run pytest -m integration -v
+    uv run pytest -m "integration and not slow" -v
+
+# Run only tests guarding previously fixed bugs
+test-regression:
+    uv run pytest -m regression -v
 
 # Start Django development server
 runserver:

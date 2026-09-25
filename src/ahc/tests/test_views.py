@@ -4,7 +4,7 @@ import pytest
 from django.db import DatabaseError
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_livez_returns_ok_without_touching_the_database(client):
     response = client.get("/livez")
 
@@ -12,7 +12,7 @@ def test_livez_returns_ok_without_touching_the_database(client):
     assert response.json() == {"status": "ok"}
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 @pytest.mark.django_db
 def test_readyz_returns_ok_when_database_is_reachable(client):
     response = client.get("/readyz")
@@ -21,7 +21,7 @@ def test_readyz_returns_ok_when_database_is_reachable(client):
     assert response.json() == {"status": "ok"}
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_readyz_returns_503_when_database_is_down(client):
     with patch("ahc.views.connection") as mock_connection:
         mock_connection.cursor.side_effect = DatabaseError("connection refused")

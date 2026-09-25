@@ -60,7 +60,7 @@ jobs:
       - name: Codespell
         run: uv run codespell
 
-  test:
+  test-unit:
     runs-on: ubuntu-latest
     env:
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
@@ -103,11 +103,54 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run tests (Django runner)
-        run: PYTHONPATH=src uv run python manage.py test
+      - name: Run unit tests
+        run: uv run pytest -m "unit and not slow"
 
-      - name: Run tests (pytest)
-        run: uv run pytest -m "not slow"
+  test-integration:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+      FLOWER_PORT: ${{ secrets.FLOWER_PORT }}
+      FLOWER_BASIC_AUTH: ${{ secrets.FLOWER_BASIC_AUTH }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      COUCHDB_USER: ${{ secrets.COUCHDB_USER }}
+      COUCHDB_PASSWORD: ${{ secrets.COUCHDB_PASSWORD }}
+      COUCHDB_PORT: ${{ secrets.COUCHDB_PORT }}
+      COUCH_CONNECTOR: ${{ secrets.COUCH_CONNECTOR }}
+      CELERY_BACKEND: ${{ secrets.CELERY_BACKEND }}
+      EMAIL_BACKEND: ${{ secrets.EMAIL_BACKEND }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+      EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+      EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup uv
+        # SHA-pinned to v10.1.0; the trailing comment only labels the SHA, it isn't the pin.
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run integration tests
+        run: uv run pytest -m "integration and not slow"
 
   manifests:
     name: Kubernetes manifests
@@ -369,7 +412,7 @@ jobs:
   publish:
     name: Publish app image to GHCR
     runs-on: ubuntu-latest
-    needs: [test, lint, manifests]
+    needs: [lint, test-unit, test-integration, manifests]
     # workflow_dispatch allows publishing a sha- tag from a feature branch
     # (e.g. to test the branch on minikube before merge).
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
