@@ -176,6 +176,9 @@ def _build_notes(request, animal: Animal, allowed: set[str] | None = None) -> di
     return ctx
 
 
+_CHARTABLE_TYPES = ("weight", "height")
+
+
 def _resolve_biometric_date(record) -> date:
     """Return the best-known measurement date for a BiometricRecord.
 
@@ -202,7 +205,7 @@ def _build_biometrics(request, animal: Animal, allowed: set[str] | None = None) 
 
     profile = request.user.profile
     history_rows: list[dict[str, Any]] = []
-    weight_points_by_unit: dict[str, list[dict[str, Any]]] = {}
+    chart_points: dict[tuple[str, str], list[dict[str, Any]]] = {}
 
     for record in biometric_records_for_chart(animal):
         if record.weight_biometric_record is not None:
@@ -232,8 +235,8 @@ def _build_biometrics(request, animal: Animal, allowed: set[str] | None = None) 
             }
         )
 
-        if measurement_type == "weight":
-            weight_points_by_unit.setdefault(unit, []).append(
+        if measurement_type in _CHARTABLE_TYPES:
+            chart_points.setdefault((measurement_type, unit), []).append(
                 {"date": resolved_date.isoformat(), "value": float(value), "id": record.pk}
             )
 
@@ -241,14 +244,16 @@ def _build_biometrics(request, animal: Animal, allowed: set[str] | None = None) 
 
     chart_series = [
         {
-            "measurement_type": "weight",
+            "measurement_type": m_type,
             "unit": unit,
-            "label": f"Weight ({unit})",
+            "label": f"{m_type.capitalize()} ({unit})",
             "points": [
                 {"date": p["date"], "value": p["value"]} for p in sorted(points, key=lambda p: (p["date"], p["id"]))
             ],
         }
-        for unit, points in sorted(weight_points_by_unit.items())
+        for (m_type, unit), points in sorted(
+            chart_points.items(), key=lambda kv: (_CHARTABLE_TYPES.index(kv[0][0]), kv[0][1])
+        )
     ]
 
     return {

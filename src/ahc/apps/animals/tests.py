@@ -1889,6 +1889,25 @@ def _create_biometric_weight(
     return create_biometric_record(animal, note, "weight", {"weight": weight, "weight_unit_to_present": unit})
 
 
+def _create_biometric_height(
+    animal, profile, height, unit="cm", date_event_started=None, backdate_creation=None, description="Height check"
+):
+    from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+    from ahc.apps.medical_notes.services.biometrics import create_biometric_record
+
+    note = MedicalRecord.objects.create(
+        animal=animal,
+        author=profile,
+        short_description=description,
+        type_of_event="biometric_record",
+        date_event_started=date_event_started,
+    )
+    if backdate_creation is not None:
+        MedicalRecord.objects.filter(pk=note.pk).update(date_creation=backdate_creation)
+        note.refresh_from_db()
+    return create_biometric_record(animal, note, "height", {"height": height, "height_unit_to_present": unit})
+
+
 @pytest.mark.integration
 @pytest.mark.django_db
 class TestBiometricsTabData:
@@ -2000,6 +2019,100 @@ class TestBiometricsTabData:
         custom_row = next(r for r in response.context["history_rows"] if r["measurement_type"] == "custom")
         assert custom_row["value"] == "soft"
 
+    def test_height_produces_chart_series(self, animal, user_profile):
+        user, profile = user_profile
+        _create_biometric_height(animal, profile, 31.0, date_event_started=date(2026, 1, 1))
+
+        response = self._get(self._client_for(user), animal)
+        series = response.context["chart_series"]
+        assert len(series) == 1
+        assert series[0]["measurement_type"] == "height"
+        assert series[0]["label"] == "Height (cm)"
+
+    def test_height_grouped_by_unit(self, animal, user_profile):
+        user, profile = user_profile
+        _create_biometric_height(animal, profile, 31.0, unit="cm", date_event_started=date(2026, 1, 1))
+        _create_biometric_height(animal, profile, 320, unit="mm", date_event_started=date(2026, 1, 2))
+
+        response = self._get(self._client_for(user), animal)
+        series = response.context["chart_series"]
+        assert {s["unit"] for s in series} == {"cm", "mm"}
+        assert {s["label"] for s in series} == {"Height (cm)", "Height (mm)"}
+
+    def test_weight_and_height_together_both_charted(self, animal, user_profile):
+        user, profile = user_profile
+        _create_biometric_weight(animal, profile, 4.2, unit="kg", date_event_started=date(2026, 1, 1))
+        _create_biometric_height(animal, profile, 31.0, unit="cm", date_event_started=date(2026, 1, 2))
+
+        response = self._get(self._client_for(user), animal)
+        series = response.context["chart_series"]
+        assert {s["measurement_type"] for s in series} == {"weight", "height"}
+
+        types = {r["measurement_type"] for r in response.context["history_rows"]}
+        assert types == {"weight", "height"}
+
+    def test_chart_series_ordering_weight_before_height_units_alphabetical(self, animal, user_profile):
+        user, profile = user_profile
+        # Created in scrambled order to prove ordering does not depend on insertion order.
+        _create_biometric_height(animal, profile, 320, unit="mm", date_event_started=date(2026, 1, 1))
+        _create_biometric_weight(animal, profile, 4.2, unit="kg", date_event_started=date(2026, 1, 2))
+        _create_biometric_height(animal, profile, 31.0, unit="cm", date_event_started=date(2026, 1, 3))
+        _create_biometric_weight(animal, profile, 4200, unit="g", date_event_started=date(2026, 1, 4))
+
+        response = self._get(self._client_for(user), animal)
+        series = response.context["chart_series"]
+        assert [s["label"] for s in series] == ["Weight (g)", "Weight (kg)", "Height (cm)", "Height (mm)"]
+
+    def test_height_chart_points_ascending_by_resolved_date(self, animal, user_profile):
+        user, profile = user_profile
+        _create_biometric_height(animal, profile, 32.0, date_event_started=date(2026, 1, 20))
+        _create_biometric_height(animal, profile, 31.0, date_event_started=date(2026, 1, 1))
+        _create_biometric_height(animal, profile, 31.5, date_event_started=date(2026, 1, 10))
+
+        response = self._get(self._client_for(user), animal)
+        points = response.context["chart_series"][0]["points"]
+        assert [p["date"] for p in points] == ["2026-01-01", "2026-01-10", "2026-01-20"]
+
+    def test_only_custom_no_chart_canvas(self, animal, user_profile):
+        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
+
+        user, profile = user_profile
+        note = MedicalRecord.objects.create(
+            animal=animal,
+            author=profile,
+            short_description="Fur check",
+            type_of_event="biometric_record",
+            date_event_started=date(2026, 1, 1),
+        )
+        create_biometric_record(
+            animal, note, "custom", {"custom_name": "Fur density", "custom_value": "soft", "custom_unit": ""}
+        )
+
+        response = self._get(self._client_for(user), animal)
+        assert response.context["chart_series"] == []
+        content = response.content.decode()
+        assert "biometric-chart-data" not in content
+        assert "data-biometric-chart" not in content
+
+    def test_only_height_renders_canvas(self, animal, user_profile):
+        user, profile = user_profile
+        _create_biometric_height(animal, profile, 31.0, date_event_started=date(2026, 1, 1))
+
+        response = self._get(self._client_for(user), animal)
+        content = response.content.decode()
+        assert content.count("data-biometric-chart") == 1
+        assert "Height (cm)" in content
+
+    def test_single_height_point_chart_payload(self, animal, user_profile):
+        user, profile = user_profile
+        _create_biometric_height(animal, profile, 31.0, date_event_started=date(2026, 1, 1))
+
+        response = self._get(self._client_for(user), animal)
+        points = response.context["chart_series"][0]["points"]
+        assert len(points) == 1
+        assert points[0] == {"date": "2026-01-01", "value": 31.0}
+
     def test_record_without_any_subtype_is_skipped_not_crashed(self, animal, user_profile):
         from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
         from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord
@@ -2015,8 +2128,12 @@ class TestBiometricsTabData:
         assert response.context["history_rows"] == []
 
     def test_selector_has_no_n_plus_1(self, animal, user_profile):
+        """Query count must stay flat regardless of how many records or measurement types exist."""
         from django.db import connection
         from django.test.utils import CaptureQueriesContext
+
+        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
+        from ahc.apps.medical_notes.services.biometrics import create_biometric_record
 
         user, profile = user_profile
         client = self._client_for(user)
@@ -2025,8 +2142,19 @@ class TestBiometricsTabData:
         with CaptureQueriesContext(connection) as ctx_one:
             self._get(client, animal)
 
-        for i in range(2, 6):
-            _create_biometric_weight(animal, profile, 4.0 + i, date_event_started=date(2026, 1, i))
+        _create_biometric_weight(animal, profile, 4.1, date_event_started=date(2026, 1, 2))
+        _create_biometric_height(animal, profile, 31.0, date_event_started=date(2026, 1, 3))
+        _create_biometric_height(animal, profile, 31.5, unit="mm", date_event_started=date(2026, 1, 4))
+        note = MedicalRecord.objects.create(
+            animal=animal,
+            author=profile,
+            short_description="Fur check",
+            type_of_event="biometric_record",
+            date_event_started=date(2026, 1, 5),
+        )
+        create_biometric_record(
+            animal, note, "custom", {"custom_name": "Fur density", "custom_value": "soft", "custom_unit": ""}
+        )
         with CaptureQueriesContext(connection) as ctx_five:
             self._get(client, animal)
 

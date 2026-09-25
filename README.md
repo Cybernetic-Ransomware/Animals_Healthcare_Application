@@ -25,7 +25,7 @@ Scheduled reminders for upcoming visits and vaccinations are delivered via Disco
 - Animal profiles with configurable per-category sharing between owners and carers.
 - Medical timeline filtered by note type (visit, diet, medication, vaccination, biometric) and tag.
 - Inline-editable vaccination records with date-based Discord reminders.
-- Biometric tracking (weight, height, custom measurements) with historical charts planned.
+- Biometric tracking (weight, height, custom measurements) with historical weight and height charts.
 - Diet plan management with recurring e-mail / Discord notification schedules.
 - Attachment storage for medical documents via CouchDB.
 - Async task processing (Celery Beat + Redis) for scheduled notifications.
@@ -180,7 +180,7 @@ Key decisions are documented as ADRs in [`doc/`](doc/):
 | [02](doc/02_adr_django.md) | Done | Web framework — Django |
 | [03](doc/03_adr_monolit.md) | Done | Architecture — monolith |
 | [04](doc/04_adr_monorepo.md) | Done | Repository structure — monorepo + GitHub Flow |
-| [05](doc/05_adr_matlibplot.md) | Proposed | Charts — Matplotlib → Chart.js |
+| [05](doc/05_adr_matlibplot.md) | Done | Charts — Chart.js |
 | [06](doc/06_adr_html_template.md) | Done | CSS framework — PicoCSS |
 | [07](doc/07_adr_drf.md) | Proposed | API framework — DRF |
 | [08](doc/08_adr_databases.md) | In progress | Databases — PostgreSQL + CouchDB + Redis |
