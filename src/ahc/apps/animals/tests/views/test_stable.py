@@ -21,7 +21,9 @@ class TestStableView:
         assert response.status_code == 200
         assert animal in response.context["animals"]
 
+    @pytest.mark.regression
     def test_card_uses_static_fallback_when_no_custom_image(self, user_profile, logged_in_client):
+        """Regression #58: the default card image pointed at a missing media file."""
         user, profile = user_profile
         animal = Animal.objects.create(full_name="StableAnimal", owner=profile)
         assert animal.profile_image.name == ""

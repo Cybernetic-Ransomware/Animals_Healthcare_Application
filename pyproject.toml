@@ -76,8 +76,9 @@ pythonpath = ["src"]
 python_files = ["test_*.py"]
 addopts = "--strict-markers"
 markers = [
-    "unit: fast isolated tests with no DB access",
-    "integration: tests that use the DB or external services",
+    "unit: isolated component test; no DB, Django test client or external services (tmp_path is fine)",
+    "integration: collaboration of layers or real infrastructure: ORM/DB, Django client, signals, commands",
+    "regression: guards a previously fixed bug; added on top of unit or integration",
     "slow: tests that take more than a few seconds",
 ]
 

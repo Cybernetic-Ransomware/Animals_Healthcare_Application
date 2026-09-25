@@ -201,7 +201,9 @@ class TestBiometricRecordCreateViewPermissions:
         response = client.get(f"/note/{animal.id}/{shell.id}/medical_create/")
         assert response.status_code == 200
 
+    @pytest.mark.regression
     def test_post_decimal_weight_is_persisted(self, client, user_profile, animal_and_shell_note):
+        """Regression #61: a decimal weight submitted via the view was rejected."""
         from decimal import Decimal
 
         owner_user, _ = user_profile
@@ -224,7 +226,9 @@ class TestBiometricRecordCreateViewPermissions:
         assert response.status_code == 302
         assert BiometricWeightRecords.objects.get().weight == Decimal("4.25")
 
+    @pytest.mark.regression
     def test_post_decimal_height_is_persisted(self, client, user_profile, animal_and_shell_note):
+        """Regression #61: a decimal height submitted via the view was rejected."""
         from decimal import Decimal
 
         owner_user, _ = user_profile

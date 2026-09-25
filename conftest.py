@@ -9,6 +9,22 @@ from PIL import Image as PILImage
 
 from ahc.apps.users.models import Profile
 
+_DB_FIXTURES = frozenset({"db", "transactional_db", "client", "admin_client", "django_user_model", "live_server"})
+
+
+def pytest_collection_modifyitems(items):
+    """Fail collection on a missing or inconsistent category marker — CI selects jobs by marker."""
+    errors = []
+    for item in items:
+        is_unit = item.get_closest_marker("unit") is not None
+        is_integration = item.get_closest_marker("integration") is not None
+        if is_unit == is_integration:
+            errors.append(f"{item.nodeid}: needs exactly one of 'unit' or 'integration'")
+        elif is_unit and (item.get_closest_marker("django_db") or _DB_FIXTURES & set(item.fixturenames)):
+            errors.append(f"{item.nodeid}: 'unit' test uses the database or the Django test client")
+    if errors:
+        raise pytest.UsageError("Invalid test category markers:\n" + "\n".join(errors))
+
 
 def _create_user_profile(username):
     """Create a User + Profile pair, mocking image processing in Profile.save()."""

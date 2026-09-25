@@ -5,7 +5,9 @@ import pytest
 class TestBiometricRecordForm:
     """BiometricRecordForm: decimal weight/height, and conditional-required fields."""
 
+    @pytest.mark.regression
     def test_weight_accepts_decimal_input(self):
+        """Regression #61: a decimal weight was rejected by an IntegerField."""
         from decimal import Decimal
 
         from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
@@ -14,7 +16,9 @@ class TestBiometricRecordForm:
         assert form.is_valid()
         assert form.cleaned_data["weight"] == Decimal("4.25")
 
+    @pytest.mark.regression
     def test_height_accepts_decimal_input(self):
+        """Regression #61: a decimal height was rejected by an IntegerField."""
         from decimal import Decimal
 
         from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
@@ -112,7 +116,9 @@ class TestBiometricRecordForm:
         assert form.is_valid()
         assert not form.errors
 
+    @pytest.mark.regression
     def test_weight_record_with_blank_unit_is_invalid(self):
+        """Regression #61: a weight record without a unit passed validation."""
         from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
 
         form = BiometricRecordForm(data={"record_type": "weight", "weight": "4.25", "weight_unit_to_present": ""})
@@ -120,7 +126,9 @@ class TestBiometricRecordForm:
         assert "weight_unit_to_present" in form.errors
         assert "weight" not in form.errors
 
+    @pytest.mark.regression
     def test_height_record_with_blank_unit_is_invalid(self):
+        """Regression #61: a height record without a unit passed validation."""
         from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
 
         form = BiometricRecordForm(data={"record_type": "height", "height": "31.5", "height_unit_to_present": ""})

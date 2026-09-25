@@ -61,7 +61,7 @@ class TestInspectCommand:
             call_command("inspect_animal_snapshot", str(path))
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 class TestInspectCommandBrokenFiles:
     def test_missing_file_raises_command_error(self, tmp_path):
         with pytest.raises(CommandError, match="File not found"):

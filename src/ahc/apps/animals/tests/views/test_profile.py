@@ -58,7 +58,9 @@ class TestAnimalProfileDetailView:
         response = logged_in_client(other_user).get(f"/pet/{animal.id}/")
         assert response.status_code == 403
 
+    @pytest.mark.regression
     def test_uses_static_fallback_when_no_custom_image(self, animal, user_profile, logged_in_client):
+        """Regression #58: the default animal image pointed at a missing media file."""
         user, _ = user_profile
         assert animal.profile_image.name == ""
         response = logged_in_client(user).get(f"/pet/{animal.id}/")

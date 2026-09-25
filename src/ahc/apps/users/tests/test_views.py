@@ -76,7 +76,9 @@ class TestUserProfileView:
         assert 'name="profile_image"' in content
         assert 'enctype="multipart/form-data"' in content
 
+    @pytest.mark.regression
     def test_get_uses_static_fallback_when_no_custom_image(self, user_profile, logged_in_client):
+        """Regression #58: the default profile image pointed at a missing media file."""
         user, profile = user_profile
         assert profile.profile_image.name == ""
         response = logged_in_client(user).get("/user/profile/")
@@ -95,7 +97,9 @@ class TestUserProfileView:
         user.refresh_from_db()
         assert user.username == "updatedname"
 
+    @pytest.mark.regression
     def test_valid_post_with_image_saves_profile_image(self, user_profile, logged_in_client, png_upload):
+        """Regression #58: the profile image form was never saved on submit."""
         user, profile = user_profile
         response = logged_in_client(user).post(
             "/user/profile/",
@@ -106,7 +110,9 @@ class TestUserProfileView:
         assert profile.profile_image.name != ""
         assert profile.profile_image.name.startswith("profile_pics/users/")
 
+    @pytest.mark.regression
     def test_custom_image_rendered_after_upload(self, user_profile, logged_in_client, png_upload):
+        """Regression #58: an uploaded profile image never replaced the default."""
         user, profile = user_profile
         logged_in_client(user).post(
             "/user/profile/",
