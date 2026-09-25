@@ -62,7 +62,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["F401", "F841"]
-"test_*.py" = ["F401", "F841"]
 
 [tool.ruff.format]
 quote-style = "double"
