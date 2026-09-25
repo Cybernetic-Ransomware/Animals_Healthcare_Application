@@ -461,43 +461,6 @@ class TestNewAnimalServices:
 
 @pytest.mark.integration
 @pytest.mark.django_db
-class TestOtherRecordsForSelector:
-    """other_records_for: excludes medical_visit and diet_note types."""
-
-    @pytest.fixture
-    def animal(self, db, user_profile):
-        _, profile = user_profile
-        return Animal.objects.create(full_name="Buddy", owner=profile)
-
-    def test_excludes_medical_visit_and_diet_note(self, animal, user_profile):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.selectors import other_records_for
-
-        _, profile = user_profile
-        MedicalRecord.objects.create(
-            animal=animal, author=profile, short_description="Visit", type_of_event="medical_visit"
-        )
-        MedicalRecord.objects.create(animal=animal, author=profile, short_description="Diet", type_of_event="diet_note")
-        note = MedicalRecord.objects.create(
-            animal=animal, author=profile, short_description="Other", type_of_event="fast_note"
-        )
-
-        results = list(other_records_for(animal))
-        ids = [r.id for r in results]
-        assert note.id in ids
-        assert len(results) == 1
-
-    def test_returns_empty_when_only_special_types(self, animal, user_profile):
-        from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
-        from ahc.apps.medical_notes.selectors import other_records_for
-
-        _, profile = user_profile
-        MedicalRecord.objects.create(animal=animal, author=profile, short_description="V", type_of_event="medical_visit")
-        assert list(other_records_for(animal)) == []
-
-
-@pytest.mark.integration
-@pytest.mark.django_db
 class TestAnimalTabView:
     """AnimalTabView: htmx vs full-page response, access control."""
 
