@@ -42,16 +42,22 @@ class BiometricRecordForm(forms.Form):
         cleaned = super().clean() or {}
         record_type = cleaned.get("record_type")
 
-        if record_type == "weight" and cleaned.get("weight") is None:
-            self.add_error("weight", "Weight is required for a weight record.")
-        elif record_type == "height" and cleaned.get("height") is None:
-            self.add_error("height", "Height is required for a height record.")
+        if record_type == "weight":
+            if "weight" not in self.errors and cleaned.get("weight") is None:
+                self.add_error("weight", "Weight is required for a weight record.")
+            if "weight_unit_to_present" not in self.errors and not cleaned.get("weight_unit_to_present"):
+                self.add_error("weight_unit_to_present", "Unit is required for a weight record.")
+        elif record_type == "height":
+            if "height" not in self.errors and cleaned.get("height") is None:
+                self.add_error("height", "Height is required for a height record.")
+            if "height_unit_to_present" not in self.errors and not cleaned.get("height_unit_to_present"):
+                self.add_error("height_unit_to_present", "Unit is required for a height record.")
         elif record_type == "custom":
-            if not cleaned.get("custom_name"):
+            if "custom_name" not in self.errors and not cleaned.get("custom_name"):
                 self.add_error("custom_name", "Measurement name is required for custom records.")
-            if not cleaned.get("custom_value"):
+            if "custom_value" not in self.errors and not cleaned.get("custom_value"):
                 self.add_error("custom_value", "Measurement value is required for custom records.")
-            if not cleaned.get("custom_unit"):
+            if "custom_unit" not in self.errors and not cleaned.get("custom_unit"):
                 self.add_error("custom_unit", "Unit is required for custom records.")
 
         return cleaned

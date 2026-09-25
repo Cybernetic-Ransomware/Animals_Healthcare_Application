@@ -870,6 +870,8 @@ class TestBiometricRecordForm:
         form = BiometricRecordForm(data={"record_type": "weight", "weight": "4.2567", "weight_unit_to_present": "kg"})
         assert not form.is_valid()
         assert "weight" in form.errors
+        assert len(form.errors["weight"]) == 1
+        assert "required" not in form.errors["weight"][0]
 
     def test_weight_rejects_too_many_total_digits(self):
         from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
@@ -877,6 +879,8 @@ class TestBiometricRecordForm:
         form = BiometricRecordForm(data={"record_type": "weight", "weight": "123456.789", "weight_unit_to_present": "kg"})
         assert not form.is_valid()
         assert "weight" in form.errors
+        assert len(form.errors["weight"]) == 1
+        assert "required" not in form.errors["weight"][0]
 
     def test_custom_value_is_unaffected_by_decimal_change(self):
         from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
@@ -930,6 +934,31 @@ class TestBiometricRecordForm:
         form = BiometricRecordForm(data={"record_type": "weight", "weight": "4.25", "weight_unit_to_present": "kg"})
         assert form.is_valid()
         assert not form.errors
+
+    def test_weight_record_with_blank_unit_is_invalid(self):
+        from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
+
+        form = BiometricRecordForm(data={"record_type": "weight", "weight": "4.25", "weight_unit_to_present": ""})
+        assert not form.is_valid()
+        assert "weight_unit_to_present" in form.errors
+        assert "weight" not in form.errors
+
+    def test_height_record_with_blank_unit_is_invalid(self):
+        from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
+
+        form = BiometricRecordForm(data={"record_type": "height", "height": "31.5", "height_unit_to_present": ""})
+        assert not form.is_valid()
+        assert "height_unit_to_present" in form.errors
+        assert "height" not in form.errors
+
+    def test_weight_record_with_zero_value_is_valid(self):
+        from decimal import Decimal
+
+        from ahc.apps.medical_notes.forms.type_measurement_notes import BiometricRecordForm
+
+        form = BiometricRecordForm(data={"record_type": "weight", "weight": "0", "weight_unit_to_present": "kg"})
+        assert form.is_valid()
+        assert form.cleaned_data["weight"] == Decimal("0")
 
 
 # ---------------------------------------------------------------------------
