@@ -49,10 +49,11 @@ columns physically alive via `db_column`, so the pre-migration data is not lost.
 - They will be removed by a separate later "contract" migration (ADR-15, stage C12) once the
   expand PR has run in production for an observation period without a rollback.
 
-**Optional field idiom** — all optional `CharField` / `DateField` on `Animal` use:
-`default=None, blank=True, null=True`. This idiom is unchanged for `Animal`'s own nullable
-domain fields. The new `veterinary.ContactRecord` fields deliberately use a different idiom —
-see below.
+**Optional field idiom** — existing optional `CharField` / `DateField` fields on `Animal` use
+`None` / `null=True`, following the model's historical style; not every nullable field on
+`Animal` carries an identical argument set, so this is a style note, not a literal claim that
+every optional field is defined with `default=None, blank=True, null=True`. The new
+`veterinary.ContactRecord` fields deliberately use a different, stricter idiom — see below.
 
 **Boolean field idiom** — binary booleans (no "unknown" state) use:
 `BooleanField(default=False)` without `null=True`.
@@ -121,10 +122,12 @@ Stores per-share metadata for the keeper relationship.  Created explicitly via t
 1. `animals/selectors.py`: `user_can_access_animal` checks expiry; `allowed_categories_for` returns the granted set.
 2. Tab views / templates: `_build_*` functions skip building data for absent categories; templates gate sections with `{% if "<cat>" in allowed_categories %}`.
 
-**`vet_contact` and the contact book**: a carer holding `vet_contact` sees the first-contact
-`Vet`/`MedicalPlace` card only *through the animal* (read-only) — never the owner's contact book
-at `/veterinary/contacts/...` (404 for a carer), and never with permission to edit or delete the
-owner's records.
+**`vet_contact` and the contact book**: any logged-in user can open `/veterinary/contacts/`, but
+the page shows only **that user's own** owner-scoped contact book — a carer sees their own book
+there, never the owner's. A carer holding `vet_contact` on a shared animal sees the first-contact
+`Vet`/`MedicalPlace` card only *through the animal* (read-only), with no path from that page into
+the owner's book. A direct UUID request into another owner's record (`vet_edit`, `vet_delete`,
+`medical_place_edit`, `medical_place_delete`) 404s via `OwnedContactMixin`.
 
 #### `ShareCategory(TextChoices)` (`animals/models.py`)
 
