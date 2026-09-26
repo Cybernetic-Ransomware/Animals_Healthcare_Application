@@ -1,10 +1,13 @@
 from datetime import date
+from typing import cast
 
 from django import forms
 from PIL import Image
 
 from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.animals.selectors import profile_by_username
+from ahc.apps.veterinary.models import MedicalPlace, Vet
+from ahc.apps.veterinary.selectors import medical_places_for, vets_for
 
 
 class ImageUploadForm(forms.ModelForm):
@@ -151,18 +154,31 @@ class ChangeBirthdayForm(forms.ModelForm):
         return birthdate
 
 
-class ChangeFirstContactForm(forms.ModelForm):
-    class Meta:
-        model = Animal
-        fields = ["legacy_first_contact_vet", "legacy_first_contact_medical_place"]
-        widgets = {
-            "legacy_first_contact_vet": forms.Textarea(attrs={"rows": 4, "cols": 2}),
-            "legacy_first_contact_medical_place": forms.Textarea(attrs={"rows": 4, "cols": 2}),
-        }
-        labels = {
-            "legacy_first_contact_vet": "First contact vet",
-            "legacy_first_contact_medical_place": "First contact medical place",
-        }
+class VetChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.name} — {obj.phone}" if obj.phone else obj.name
+
+
+class MedicalPlaceChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.name} — {obj.address}" if obj.address else obj.name
+
+
+class ChangeFirstContactForm(forms.Form):
+    first_contact_vet = VetChoiceField(queryset=Vet.objects.none(), required=False, label="First contact vet")
+    first_contact_medical_place = MedicalPlaceChoiceField(
+        queryset=MedicalPlace.objects.none(), required=False, label="First contact medical place"
+    )
+
+    def __init__(self, *args, animal=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if animal is not None:
+            cast(VetChoiceField, self.fields["first_contact_vet"]).queryset = vets_for(animal.owner)
+            cast(MedicalPlaceChoiceField, self.fields["first_contact_medical_place"]).queryset = medical_places_for(
+                animal.owner
+            )
+            self.initial.setdefault("first_contact_vet", animal.first_contact_vet)
+            self.initial.setdefault("first_contact_medical_place", animal.first_contact_medical_place)
 
 
 class ChangeNextVisitForm(forms.ModelForm):

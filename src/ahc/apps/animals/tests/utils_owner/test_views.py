@@ -3,6 +3,7 @@ from datetime import date
 import pytest
 
 from ahc.apps.animals.models import Animal, AnimalShare
+from ahc.apps.veterinary.models import MedicalPlace, Vet
 
 
 @pytest.mark.integration
@@ -126,7 +127,7 @@ class TestChangeBirthdayView:
 @pytest.mark.integration
 @pytest.mark.django_db
 class TestChangeFirstContactView:
-    """ChangeFirstContactView: vet/place text fields update behind owner-only gate."""
+    """ChangeFirstContactView: pick first-contact Vet/MedicalPlace from the owner's contact book."""
 
     @pytest.fixture
     def animal(self, db, user_profile):
@@ -143,16 +144,134 @@ class TestChangeFirstContactView:
         response = logged_in_client(other_user).get(f"/pet/{animal.id}/cnt/")
         assert response.status_code == 403
 
+    def test_carer_get_returns_403(self, animal, second_user_profile, logged_in_client):
+        carer_user, carer_profile = second_user_profile
+        AnimalShare.objects.create(animal=animal, carer=carer_profile, allow_vet_contact=True)
+        response = logged_in_client(carer_user).get(f"/pet/{animal.id}/cnt/")
+        assert response.status_code == 403
+
     def test_valid_post_saves_vet_and_place(self, animal, user_profile, logged_in_client):
-        user, _ = user_profile
+        user, profile = user_profile
+        vet = Vet.objects.create(name="Dr Kowalski", owner=profile)
+        place = MedicalPlace.objects.create(name="City Vet Clinic", owner=profile)
+
         response = logged_in_client(user).post(
             f"/pet/{animal.id}/cnt/",
-            {"legacy_first_contact_vet": "Dr. Smith", "legacy_first_contact_medical_place": "City Clinic"},
+            {"first_contact_vet": vet.pk, "first_contact_medical_place": place.pk},
         )
+
         assert response.status_code == 302
         animal.refresh_from_db()
-        assert animal.legacy_first_contact_vet == "Dr. Smith"
-        assert animal.legacy_first_contact_medical_place == "City Clinic"
+        assert animal.first_contact_vet == vet
+        assert animal.first_contact_medical_place == place
+
+    def test_post_with_empty_values_clears_both_fk(self, animal, user_profile, logged_in_client):
+        user, profile = user_profile
+        vet = Vet.objects.create(name="Dr Kowalski", owner=profile)
+        place = MedicalPlace.objects.create(name="City Vet Clinic", owner=profile)
+        animal.first_contact_vet = vet
+        animal.first_contact_medical_place = place
+        animal.save()
+
+        response = logged_in_client(user).post(
+            f"/pet/{animal.id}/cnt/", {"first_contact_vet": "", "first_contact_medical_place": ""}
+        )
+
+        assert response.status_code == 302
+        animal.refresh_from_db()
+        assert animal.first_contact_vet is None
+        assert animal.first_contact_medical_place is None
+
+    def test_post_with_another_owners_vet_is_invalid_and_saves_nothing(
+        self, animal, user_profile, second_user_profile, logged_in_client
+    ):
+        user, _ = user_profile
+        _, other_profile = second_user_profile
+        other_vet = Vet.objects.create(name="Dr Nowak", owner=other_profile)
+
+        response = logged_in_client(user).post(f"/pet/{animal.id}/cnt/", {"first_contact_vet": other_vet.pk})
+
+        assert response.status_code == 200
+        assert not response.context["form"].is_valid()
+        animal.refresh_from_db()
+        assert animal.first_contact_vet is None
+
+    def test_post_with_another_owners_medical_place_is_invalid_and_saves_nothing(
+        self, animal, user_profile, second_user_profile, logged_in_client
+    ):
+        user, _ = user_profile
+        _, other_profile = second_user_profile
+        other_place = MedicalPlace.objects.create(name="Other Clinic", owner=other_profile)
+
+        response = logged_in_client(user).post(f"/pet/{animal.id}/cnt/", {"first_contact_medical_place": other_place.pk})
+
+        assert response.status_code == 200
+        assert not response.context["form"].is_valid()
+        animal.refresh_from_db()
+        assert animal.first_contact_medical_place is None
+
+    def test_get_shows_current_fk_as_initial_values(self, animal, user_profile, logged_in_client):
+        user, profile = user_profile
+        vet = Vet.objects.create(name="Dr Kowalski", owner=profile)
+        place = MedicalPlace.objects.create(name="City Vet Clinic", owner=profile)
+        animal.first_contact_vet = vet
+        animal.first_contact_medical_place = place
+        animal.save()
+
+        response = logged_in_client(user).get(f"/pet/{animal.id}/cnt/")
+
+        form = response.context["form"]
+        assert form.initial["first_contact_vet"] == vet
+        assert form.initial["first_contact_medical_place"] == place
+
+    def test_vet_queryset_only_contains_the_animals_owners_contacts(
+        self, animal, user_profile, second_user_profile, logged_in_client
+    ):
+        user, profile = user_profile
+        _, other_profile = second_user_profile
+        own_vet = Vet.objects.create(name="Dr Kowalski", owner=profile)
+        Vet.objects.create(name="Dr Nowak", owner=other_profile)
+
+        response = logged_in_client(user).get(f"/pet/{animal.id}/cnt/")
+
+        queryset = response.context["form"].fields["first_contact_vet"].queryset
+        assert list(queryset) == [own_vet]
+
+    def test_medical_place_queryset_only_contains_the_animals_owners_contacts(
+        self, animal, user_profile, second_user_profile, logged_in_client
+    ):
+        user, profile = user_profile
+        _, other_profile = second_user_profile
+        own_place = MedicalPlace.objects.create(name="City Vet Clinic", owner=profile)
+        MedicalPlace.objects.create(name="Other Clinic", owner=other_profile)
+
+        response = logged_in_client(user).get(f"/pet/{animal.id}/cnt/")
+
+        queryset = response.context["form"].fields["first_contact_medical_place"].queryset
+        assert list(queryset) == [own_place]
+
+    @pytest.mark.regression
+    def test_owner_get_on_deceased_animal_returns_403(self, user_profile, logged_in_client):
+        """Guards the deceased-write gap from the plan's §1 analysis, characterized in PR #66."""
+        user, profile = user_profile
+        animal = Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
+
+        response = logged_in_client(user).get(f"/pet/{animal.id}/cnt/")
+
+        assert response.status_code == 403
+
+    @pytest.mark.regression
+    def test_owner_post_on_deceased_animal_returns_403_and_does_not_change_fk(self, user_profile, logged_in_client):
+        """Guards the deceased-write gap from the plan's §1 analysis, characterized in PR #66."""
+        user, profile = user_profile
+        vet = Vet.objects.create(name="Dr Kowalski", owner=profile)
+        animal = Animal.objects.create(full_name="Passed", owner=profile, date_of_death=date(2024, 3, 15))
+
+        response = logged_in_client(user).post(f"/pet/{animal.id}/cnt/", {"first_contact_vet": vet.pk})
+
+        assert response.status_code == 403
+        animal.refresh_from_db()
+        assert animal.first_contact_vet is None
 
 
 @pytest.mark.integration

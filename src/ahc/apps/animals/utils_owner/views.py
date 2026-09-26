@@ -10,6 +10,7 @@ from django.views.generic.edit import FormView
 
 from ahc.apps.animals.mixins.animal_owner_permissions import UserPassesOwnershipTestMixin
 from ahc.apps.animals.models import Animal, AnimalShare
+from ahc.apps.animals.selectors import is_animal_owner, user_can_modify_animal
 from ahc.apps.animals.services import (
     create_share,
     process_profile_image,
@@ -164,20 +165,32 @@ class ChangeBirthdayView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormV
 class ChangeFirstContactView(LoginRequiredMixin, UserPassesOwnershipTestMixin, FormView):
     form_class = ChangeFirstContactForm
     template_name = "animals/change_first_contact.html"
+    request: AuthenticatedRequest
+
+    def test_func(self):
+        animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        profile = self.request.user.profile
+        return is_animal_owner(profile, animal) and user_can_modify_animal(profile, animal)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["animal"] = get_object_or_404(Animal, pk=self.kwargs["pk"])
+        return kwargs
 
     def get_context_data(self, **kwargs):
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         context = super().get_context_data(**kwargs)
         context["animal_id"] = self.kwargs["pk"]
-        context["vet"] = animal.legacy_first_contact_vet
-        context["place"] = animal.legacy_first_contact_medical_place
+        context["vet"] = animal.first_contact_vet
+        context["place"] = animal.first_contact_medical_place
+        context["next"] = self.request.path
         return context
 
     def form_valid(self, form):
         set_first_contact(
             get_object_or_404(Animal, pk=self.kwargs["pk"]),
-            vet=form.cleaned_data["legacy_first_contact_vet"],
-            place=form.cleaned_data["legacy_first_contact_medical_place"],
+            vet=form.cleaned_data["first_contact_vet"],
+            place=form.cleaned_data["first_contact_medical_place"],
         )
         return super().form_valid(form)
 
