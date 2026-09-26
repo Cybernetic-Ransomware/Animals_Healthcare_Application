@@ -1,7 +1,7 @@
 ## Data model — stored fields per entity
 
 ### Date
-`2023-07-09` (updated `2026-06-01`)
+`2023-07-09` (updated `2026-09-27`)
 
 ### Status
 In-building
@@ -26,8 +26,10 @@ This ADR is a living document — update it when new fields are added.
 | `creation_date`             | DateTimeField    | auto     | `auto_now_add`, non-editable                     |
 | `owner`                     | FK → UserProfile | no (null)| `SET_NULL` on delete; `related_name="owner"`     |
 | `allowed_users`             | M2M → UserProfile| —        | Keepers; `through="AnimalShare"`; `related_name="keepers"` |
-| `first_contact_vet`         | CharField(250)   | no       |                                                  |
-| `first_contact_medical_place`| CharField(250)  | no       |                                                  |
+| `first_contact_vet`         | FK → `veterinary.Vet` | no (null) | `SET_NULL`; `related_name="first_contact_for"`; nullable, owner-scoped record |
+| `first_contact_medical_place`| FK → `veterinary.MedicalPlace` | no (null) | `SET_NULL`; `related_name="first_contact_for"`; nullable, owner-scoped record |
+| `legacy_first_contact_vet`  | CharField(250)   | no       | Compatibility-window only — see note below       |
+| `legacy_first_contact_medical_place` | CharField(250) | no | Compatibility-window only — see note below       |
 | `last_control_visit`        | DateTimeField    | no       |                                                  |
 | `next_visit_date`           | DateField        | no       |                                                  |
 | `dietary_restrictions`      | CharField(2500)  | no       |                                                  |
@@ -36,13 +38,59 @@ This ADR is a living document — update it when new fields are added.
 | `sex`                       | CharField(1)     | no       | Choices: `m`/`f` via `Sex(TextChoices)`; `get_sex_display()` → Male/Female |
 | `sterilization`             | BooleanField     | default  | `default=False`; shown as disabled checkbox in UI|
 
-**Optional field idiom** — all optional `CharField` / `DateField` use:
-`default=None, blank=True, null=True`.
+**`legacy_first_contact_vet` / `legacy_first_contact_medical_place`** (ADR-15, expand/contract
+migration) — these keep the original `first_contact_vet` / `first_contact_medical_place` text
+columns physically alive via `db_column`, so the pre-migration data is not lost. They are a
+**compatibility window only**, not the current data model:
+
+- Runtime UI does not read them.
+- The offline snapshot exporter does not read them.
+- `animals.services` does not write them — there is no dual-write with the new foreign keys.
+- They will be removed by a separate later "contract" migration (ADR-15, stage C12) once the
+  expand PR has run in production for an observation period without a rollback.
+
+**Optional field idiom** — all optional `CharField` / `DateField` on `Animal` use:
+`default=None, blank=True, null=True`. This idiom is unchanged for `Animal`'s own nullable
+domain fields. The new `veterinary.ContactRecord` fields deliberately use a different idiom —
+see below.
 
 **Boolean field idiom** — binary booleans (no "unknown" state) use:
 `BooleanField(default=False)` without `null=True`.
 
 **`TextChoices` placement** — defined at module level, above the model class that uses them.
+
+#### `Vet` / `MedicalPlace` models (`veterinary/models.py`)
+
+Owner-scoped contact book records, introduced by ADR-15. `ContactRecord` is an **abstract** base
+shared by both:
+
+| Field     | Type                | Notes                                                        |
+|-----------|---------------------|---------------------------------------------------------------|
+| `id`      | UUIDField (PK)      | `uuid4`, non-editable — record identity is the UUID, not `name` |
+| `name`    | CharField(250)      | Same length as the legacy `first_contact_*` column            |
+| `phone`   | CharField(32)       | Optional                                                       |
+| `email`   | EmailField          | Optional                                                       |
+| `details` | CharField(2500)     | Optional free text, visible to keepers with `vet_contact`      |
+
+`Vet` adds `owner = FK → Profile` (`CASCADE`, `related_name="vets"`). `MedicalPlace` adds the same
+`owner` FK (`related_name="medical_places"`) plus `address` (CharField(250)) and `website`
+(URLField).
+
+- Both models are **owner-scoped**: every record belongs to exactly one `Profile`, and `owner`
+  uses `CASCADE` — deleting a `Profile` deletes its contact book.
+- **No uniqueness constraint on `name`.** Two records — even for the same owner — may share a
+  display name; identity is the UUID, and the contact-picker UI disambiguates by phone or
+  address.
+
+**Optional string idiom for `veterinary`** — unlike `Animal`'s `null=True` idiom above, new
+optional string fields in `veterinary` (`phone`, `email`, `details`, `address`, `website`) use a
+single representation of "no value": an empty string.
+
+```python
+phone = models.CharField(max_length=32, blank=True, default="")
+```
+
+`null=True` is not used for these fields. This does not retroactively change any `Animal` field.
 
 #### `AnimalShare` model (`animals/models.py`) — through model for `Animal.allowed_users`
 
@@ -57,7 +105,7 @@ Stores per-share metadata for the keeper relationship.  Created explicitly via t
 | `created`        | DateTimeField    | `auto_now_add`, records when share was granted             |
 | `valid_until`    | DateField        | `null=True` = indefinite; expiry enforced by selectors     |
 | `allow_basic`    | BooleanField     | Basic info (name, species, breed, sex, age, descriptions)  |
-| `allow_vet_contact` | BooleanField  | Vet contact fields + `next_visit_date`                     |
+| `allow_vet_contact` | BooleanField  | Structured `Vet`/`MedicalPlace` first-contact cards + `next_visit_date` |
 | `allow_diet`     | BooleanField     | `dietary_restrictions` + diet-note timeline                |
 | `allow_medications` | BooleanField  | Medication-note timeline                                   |
 | `allow_history`  | BooleanField     | Medical-visit timeline + general notes                     |
@@ -73,12 +121,17 @@ Stores per-share metadata for the keeper relationship.  Created explicitly via t
 1. `animals/selectors.py`: `user_can_access_animal` checks expiry; `allowed_categories_for` returns the granted set.
 2. Tab views / templates: `_build_*` functions skip building data for absent categories; templates gate sections with `{% if "<cat>" in allowed_categories %}`.
 
+**`vet_contact` and the contact book**: a carer holding `vet_contact` sees the first-contact
+`Vet`/`MedicalPlace` card only *through the animal* (read-only) — never the owner's contact book
+at `/veterinary/contacts/...` (404 for a carer), and never with permission to edit or delete the
+owner's records.
+
 #### `ShareCategory(TextChoices)` (`animals/models.py`)
 
 | Value         | Label             | Scope                                                  |
 |---------------|-------------------|--------------------------------------------------------|
 | `basic`       | Basic info        | Hero + Overview tab (name, species, breed, sex, age…)  |
-| `vet_contact` | Vet contact       | `first_contact_*`, `next_visit_date` (Vet tab fields)  |
+| `vet_contact` | Vet contact       | Structured first-contact `Vet` and `MedicalPlace` cards (name, phone, email, address, website, `details`) reached through `Animal.first_contact_*`, plus `next_visit_date` |
 | `diet`        | Diet              | `dietary_restrictions` + diet-note timeline            |
 | `medications` | Medications       | medicament-note timeline                               |
 | `history`     | History & notes   | medical-visit timeline + fast/other notes              |
@@ -118,8 +171,9 @@ Core fields: `animal` (FK), `title`, `short_description`, `full_description`, `c
 - Expired shares (`valid_until < today`) are excluded by the selectors; no background cleanup is required for correctness, though a Celery Beat task could prune old rows.
 
 ### Keywords
-- data, database, models, Animal, AnimalShare, ShareDefaults, ShareCategory, UserProfile, MedicalNote, sharing, privacy
+- data, database, models, Animal, AnimalShare, ShareDefaults, ShareCategory, UserProfile, MedicalNote, sharing, privacy, Vet, MedicalPlace, ContactRecord, contact book
 
 ### Links
 - `CLAUDE.md` — Animals App Conventions (field editing pipeline, model idioms)
 - ADR-08 — database technology choices (PostgreSQL / CouchDB / Redis)
+- ADR-15 — vet and medical place contact profiles (`Vet`, `MedicalPlace`, expand/contract migration of `first_contact_*`)

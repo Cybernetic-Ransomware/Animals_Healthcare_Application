@@ -7,8 +7,8 @@
 In-building
 
 ### Context
-`Animal` currently stores the vet and medical place contact as two free-text fields
-(`first_contact_vet`, `first_contact_medical_place`, `CharField(250)`). This causes three problems:
+Before this feature, `Animal` stored the vet and medical place contact as two free-text fields
+(`first_contact_vet`, `first_contact_medical_place`, `CharField(250)`). This caused three problems:
 
 - **Duplication.** The same vet has to be retyped for every animal that shares them; a phone
   number change means editing every animal individually.
@@ -21,12 +21,33 @@ In-building
   `first_contact_medical_place = models.ForeignKey(Place_profile)`; the follow-up commit that
   replaced these with text fields is explicitly titled "First contact as text fields
   implementation" — the text fields were a conscious interim step, not the final design. The
-  `Vet_pofile` / `Place_profile` comments and a `# TO change` marker are still in the codebase.
+  `Vet_pofile` / `Place_profile` comments and a `# TO change` marker were present in the codebase
+  at the time this decision was made; both have since been removed.
 
 The goal of this feature is to replace the text fields with domain records `Vet` and
 `MedicalPlace`, without losing existing data and without breaking the offline snapshot contract
 (ADR-12). The decisions below were evaluated against several alternatives (documented in the
 feature's implementation plan) and approved before any model, migration, or view work started.
+
+### Status after the expand PR (2026-09-27)
+
+The decisions below have been implemented through the first of the feature's two PRs (the
+"expand" PR, stages C1–C11). The following now exist and are exercised by tests:
+
+- The `ahc.apps.veterinary` app, with the `ContactRecord` abstract base and the `Vet` /
+  `MedicalPlace` models.
+- Owner-scoped contact books: CRUD pages under `/veterinary/contacts/...`, with IDOR protection
+  (a request for another owner's record 404s) and a deceased-animal write gate on first-contact
+  changes.
+- `Animal.first_contact_vet` / `first_contact_medical_place` as nullable foreign keys
+  (`SET_NULL`) to `veterinary.Vet` / `MedicalPlace`, selected through an owner-scoped picker.
+- Copying/reusing first-contact records into the new owner's contact book on ownership transfer.
+- The offline snapshot exporter rendering `first_contact_vet` / `first_contact_medical_place`
+  through `ContactRecord.as_contact_text()` instead of the legacy text fields (ADR-12, stage 7).
+
+This is **not** the feature's final state. The second PR ("contract", stage C12) — dropping the
+legacy text columns — has not run; see "Legacy window" and "Consequences" below. The status of
+this ADR stays `In-building` until that PR lands.
 
 ### Decision
 
@@ -150,23 +171,33 @@ feature's implementation plan) and approved before any model, migration, or view
 
 ### Consequences
 
-- **Easier:** contacts are entered once per owner and reused across all their animals; a phone
-  number or address change propagates to every animal automatically. `tel:`/`mailto:`/website links
-  and a proper contact-management UI become possible. The domain has a clear extension path for
-  vet ↔ place M2M relationships, structured FKs on visit notes, pricing, and ratings — all
-  additive, none requiring a redesign of this decision, so these backlog items have a concrete path
-  forward.
-- **Harder:** the feature now spans two PRs ("expand" and "contract") separated by an observation
-  window, rather than a single self-contained change — a rollback after the contract PR requires a
-  database backup, not just an image pin. Any code path that reads first-contact must, for the
-  rest of the compatibility window, be aware that either representation (legacy text or FK) may be
-  the current source of truth for a given animal. Deferring pricing, ratings, the Vet↔Place
-  relationship, and structured FKs on visit notes to the backlog means those original ADR-01 scope
-  items remain unimplemented for now.
-- **Follow-up documentation debt:** ADR-01 (scope note on pricing/ratings), ADR-09 (`Animal` field
-  table, the new `blank=True, default=""` idiom deviation, and the `vet_contact` sharing
-  description) and ADR-12 (snapshot rendering note) are updated once the feature actually lands
-  (tracked as a later stage of this same plan), not as part of this decisions-only record.
+**Easier / delivered by the expand PR:**
+- An owner can maintain a single contact book; one `Vet` or `MedicalPlace` record is reused across
+  all their animals, and a phone number or address change propagates to every animal that
+  references it.
+- Structured `tel:` / `mailto:` / website links and a proper contact-management UI are possible,
+  where before there was only free text.
+- The offline snapshot keeps its v1 contract — `first_contact_vet` / `first_contact_medical_place`
+  are still TEXT columns with the same names and meaning, now rendered via `as_contact_text()`
+  (ADR-12, stage 7).
+
+**Temporary cost, for the rest of the compatibility window:**
+- The FK and the legacy text columns exist side by side; the legacy columns are frozen and are not
+  the runtime source of truth (UI, services, and the snapshot exporter never read them).
+- An application-image rollback during this window requires treating first-contact data as
+  read-only, or manually reconciling the two representations before rolling forward again — see
+  "Rollback semantics" above.
+
+**Still deferred:**
+- A `Vet` ↔ `MedicalPlace` many-to-many relationship.
+- A structured FK from visit notes (`MedicalRecord`, `VaccinationNote`) to a contact record.
+- Historical prices and ratings (ADR-01's original scope).
+- A global, cross-owner contact directory.
+
+None of these require a redesign of the decisions above — each is additive on top of the current
+model. The contract PR (C12) removing the legacy columns is the remaining step to reach the
+feature's final state; it needs a production observation period and the verification query in
+"Migration strategy" above to return zero before it can proceed.
 
 ### Keywords
 - vet contact,
@@ -177,6 +208,9 @@ feature's implementation plan) and approved before any model, migration, or view
 - veterinary app.
 
 ### Links
-- ADR-01 (core functionality scope — originally listed "healthcare place and vet profiles")
-- ADR-09 (data model — `Animal` fields and sharing; to be updated once this feature lands)
-- ADR-12 (offline snapshots — schema compatibility contract kept intact by this decision)
+- ADR-01 (core functionality scope — originally listed "healthcare place and vet profiles"; updated
+  with the delivered/backlog split)
+- ADR-09 (data model — `Animal` fields and sharing; updated with the FK/legacy table split and the
+  `Vet`/`MedicalPlace` field reference)
+- ADR-12 (offline snapshots — schema compatibility contract kept intact by this decision; stage 7
+  documents the `as_contact_text()` rendering change)

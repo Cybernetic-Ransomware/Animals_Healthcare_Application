@@ -23,6 +23,8 @@ Scheduled reminders for upcoming visits and vaccinations are delivered via Disco
 ## Features
 
 - Animal profiles with configurable per-category sharing between owners and carers.
+- Owner-scoped veterinary contact book for vets and medical places, with structured contact data
+  reusable as an animal's first contact and selective carer visibility through `vet_contact` sharing.
 - Medical timeline filtered by note type (visit, diet, medication, vaccination, biometric) and tag.
 - Inline-editable vaccination records with date-based Discord reminders.
 - Biometric tracking (weight, height, custom measurements) with historical weight and height charts.
