@@ -137,7 +137,6 @@ def test_forward_migration_materializes_and_dedupes_contacts(user_profile, secon
         def refresh(animal):
             return Animal.objects.get(pk=animal.pk)
 
-        # A
         a1 = refresh(animal_a1)
         vet_a1 = RealVet.objects.get(pk=a1.first_contact_vet_id)
         assert vet_a1.owner.pk == owner_a.pk
@@ -150,14 +149,12 @@ def test_forward_migration_materializes_and_dedupes_contacts(user_profile, secon
         assert a2.first_contact_vet_id == a1.first_contact_vet_id
         assert RealVet.objects.filter(owner_id=owner_a.pk, name="Dr Kowalski", details="tel. 123").count() == 1
 
-        # B
         blank = refresh(animal_blank)
         vet_blank = RealVet.objects.get(pk=blank.first_contact_vet_id)
         assert vet_blank.name == "Dr Kowalski"
         assert vet_blank.details == "\ntylko nagłe przypadki"
         assert vet_blank.as_contact_text() == blank.legacy_first_contact_vet
 
-        # C
         place_animal = refresh(animal_place)
         place = RealMedicalPlace.objects.get(pk=place_animal.first_contact_medical_place_id)
         assert place.owner.pk == owner_a.pk
@@ -165,14 +162,12 @@ def test_forward_migration_materializes_and_dedupes_contacts(user_profile, secon
         assert place.details == "ul. Testowa 1"
         assert place.as_contact_text() == place_animal.legacy_first_contact_medical_place
 
-        # E
         e = refresh(animal_e)
         vet_e = RealVet.objects.get(pk=e.first_contact_vet_id)
         assert vet_e.pk != vet_a1.pk
         assert vet_e.name == vet_a1.name == "Dr Kowalski"
         assert vet_e.details == "tel. 222"
 
-        # F
         f = refresh(animal_f)
         vet_f = RealVet.objects.get(pk=f.first_contact_vet_id)
         assert vet_f.pk != vet_a1.pk
@@ -180,23 +175,19 @@ def test_forward_migration_materializes_and_dedupes_contacts(user_profile, secon
         assert vet_f.name == "Dr Kowalski"
         assert vet_f.details == "tel. 123"
 
-        # G
         g = refresh(animal_g)
         assert g.first_contact_vet_id == pre_existing_vet.pk
         assert RealVet.objects.filter(owner_id=owner_a.pk, name="Existing Vet").count() == 1
 
-        # H
         h = refresh(animal_h)
         assert h.first_contact_vet_id == already_linked_vet.pk
         assert h.legacy_first_contact_vet == "Some other text\nthat should be ignored"
 
-        # I
         i = refresh(animal_i)
         assert i.first_contact_vet_id is None
         assert i.legacy_first_contact_vet == "Dr Nikt\ntel. 000"
 
-        # Only the four genuinely new Vet contacts (a1, blank, e, f) and one new MedicalPlace
-        # should have been created; g and h reused existing rows, i was skipped.
+        # g and h reused existing rows, i was skipped: only 4 new Vets and 1 new MedicalPlace.
         assert HistoricalVet.objects.count() - vet_count_before == 4
         assert HistoricalMedicalPlace.objects.count() - place_count_before == 1
     finally:
@@ -229,8 +220,7 @@ def test_forward_migration_is_idempotent_across_a_revert_cycle(user_profile):
         assert first_vet_id is not None
         assert HistoricalVet.objects.filter(owner_id=owner.pk, name="Dr Idempotent").count() == 1
 
-        # Reverse (noop) back to 0008, then forward again: the Vet row and the FK survive the
-        # revert, since RunPython.noop does not touch data.
+        # Revert (noop) to 0008 and forward again: the Vet row and FK survive since noop touches no data.
         executor.migrate(MIGRATE_FROM)
         executor.loader.build_graph()
         executor.migrate(MIGRATE_TO)

@@ -2,13 +2,7 @@ from django.db import migrations
 
 
 def _split_legacy_text(text):
-    """Split normalized legacy contact text into (name, details), or None when it is blank.
-
-    The first line becomes `name` (always fits, since the legacy column is at most 250 chars,
-    same as `name`). The remaining lines become `details`, verbatim, so that
-    `name + "\\n" + details` (or `name` alone) reconstructs the normalized text exactly —
-    including an empty line right after the first, which `as_contact_text()` must round-trip.
-    """
+    """Split into (name, details) so `name + "\\n" + details` rebuilds the normalized text exactly."""
     if text is None:
         return None
     normalized = "\n".join(line.rstrip() for line in text.strip().splitlines())
@@ -21,12 +15,7 @@ def _split_legacy_text(text):
 
 
 def _reuse_or_create_contact(model, *, owner_id, name, details, **extra_empty_fields):
-    """Return an existing contact with identical materialized fields, or create one.
-
-    Reuse (rather than always creating) is what makes the forward pass idempotent across a
-    revert to 0008 and a re-run of 0009: any contact already produced by a previous run, or
-    created manually, is matched and reused instead of duplicated.
-    """
+    """Reuse an identical existing contact instead of creating one (keeps re-running 0009 idempotent)."""
     lookup = {"owner_id": owner_id, "name": name, "details": details, "phone": "", "email": "", **extra_empty_fields}
     existing = model.objects.filter(**lookup).order_by("pk").first()
     if existing is not None:
@@ -35,13 +24,7 @@ def _reuse_or_create_contact(model, *, owner_id, name, details, **extra_empty_fi
 
 
 def forward(apps, schema_editor):
-    """Materialize legacy first-contact text into Vet / MedicalPlace records.
-
-    Only animals with an owner are processed; ownerless legacy text is left untouched, as it
-    cannot be assigned to anyone's contact book. An already-set FK is never overwritten, so a
-    contact picked in the new UI is never replaced by a legacy-text-derived one. Legacy text
-    columns are read-only here — never modified or cleared.
-    """
+    """Materialize legacy first-contact text into Vet / MedicalPlace records (no dual-write, ADR-15)."""
     Animal = apps.get_model("animals", "Animal")
     Vet = apps.get_model("veterinary", "Vet")
     MedicalPlace = apps.get_model("veterinary", "MedicalPlace")
@@ -77,7 +60,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Reverse is a noop: legacy text is untouched, and a materialized contact may already be
-        # shared by several animals or hand-edited in the contact book, so undoing it is unsafe.
+        # Reverse is a noop: undoing is unsafe once a contact may be shared or hand-edited.
         migrations.RunPython(forward, reverse_code=migrations.RunPython.noop),
     ]
