@@ -13,8 +13,10 @@ class TestVetTabAccess:
     @pytest.fixture
     def animal(self, db, user_profile):
         _, profile = user_profile
-        vet = Vet.objects.create(name="Dr Smith", owner=profile, phone="123-456-789")
-        place = MedicalPlace.objects.create(name="City Vet Clinic", owner=profile)
+        vet = Vet.objects.create(name="Dr Smith", owner=profile, phone="123-456-789", details="Speaks English and Polish.")
+        place = MedicalPlace.objects.create(
+            name="City Vet Clinic", owner=profile, address="Main St 1", details="Open 24/7."
+        )
         return Animal.objects.create(
             full_name="Luna",
             owner=profile,
@@ -46,7 +48,10 @@ class TestVetTabAccess:
         assert "Veterinary contact" in content
         assert "Dr Smith" in content
         assert "123-456-789" in content
+        assert "Speaks English and Polish." in content
         assert "City Vet Clinic" in content
+        assert "Main St 1" in content
+        assert "Open 24/7." in content
         assert "LEGACY TEXT SENTINEL" not in content
         assert reverse("animal_first_contact", kwargs={"pk": animal.id}) not in content
         assert reverse("contact_book") not in content
