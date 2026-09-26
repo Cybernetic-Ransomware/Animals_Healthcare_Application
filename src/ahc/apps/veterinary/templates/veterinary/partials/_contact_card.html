@@ -1,0 +1,15 @@
+{# Reusable read-only display for a Vet or a MedicalPlace record. Pass `contact`. #}
+<article>
+    <header>
+        <strong>{{ contact.name }}</strong>
+        {# Disambiguates same-name records: address for a place (it has one), phone otherwise. #}
+        {% if contact.address %} — {{ contact.address }}{% elif contact.phone %} — {{ contact.phone }}{% endif %}
+    </header>
+    {% if contact.phone %}<p><a href="tel:{{ contact.phone }}">{{ contact.phone }}</a></p>{% endif %}
+    {% if contact.email %}<p><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></p>{% endif %}
+    {% if contact.address %}<p>{{ contact.address }}</p>{% endif %}
+    {% if contact.website %}
+        <p><a href="{{ contact.website }}" target="_blank" rel="noopener noreferrer">{{ contact.website }}</a></p>
+    {% endif %}
+    {% if contact.details %}{{ contact.details|linebreaks }}{% endif %}
+</article>
