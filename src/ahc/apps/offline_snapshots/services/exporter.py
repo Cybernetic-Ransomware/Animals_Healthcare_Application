@@ -116,8 +116,8 @@ def _animal_row(animal: Animal, allowed: set[str]) -> tuple:
     if ShareCategory.DIET.value in allowed:
         row["dietary_restrictions"] = animal.dietary_restrictions
     if ShareCategory.VET_CONTACT.value in allowed:
-        row["first_contact_vet"] = animal.first_contact_vet
-        row["first_contact_medical_place"] = animal.first_contact_medical_place
+        row["first_contact_vet"] = animal.legacy_first_contact_vet
+        row["first_contact_medical_place"] = animal.legacy_first_contact_medical_place
         row["last_control_visit"] = _iso(animal.last_control_visit)
         row["next_visit_date"] = _iso(animal.next_visit_date)
     return (str(animal.id), animal.full_name, *row.values())

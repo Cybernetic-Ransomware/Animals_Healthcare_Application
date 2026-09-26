@@ -21,8 +21,8 @@ def snapshot_animal(db, user_profile):
         sex="m",
         birthdate=date(2020, 5, 1),
         dietary_restrictions="no grain",
-        first_contact_vet="Dr. Vet",
-        first_contact_medical_place="Happy Paws Clinic",
+        legacy_first_contact_vet="Dr. Vet",
+        legacy_first_contact_medical_place="Happy Paws Clinic",
     )
     visit = MedicalRecord.objects.create(
         animal=animal, author=profile, short_description="Yearly check", type_of_event="medical_visit"

@@ -7,6 +7,7 @@ from PIL import Image
 
 from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.animals.selectors import get_or_create_share_defaults, user_can_access_animal
+from ahc.apps.veterinary.models import MedicalPlace, Vet
 
 
 def create_animal(owner_profile, form) -> Animal:
@@ -97,8 +98,12 @@ def set_birthday(animal: Animal, birthdate) -> None:
     animal.save()
 
 
-def set_first_contact(animal: Animal, vet: str, place: str) -> None:
-    """Update the animal's first-contact vet name and medical place."""
+def set_first_contact(animal: Animal, vet: Vet | None, place: MedicalPlace | None) -> None:
+    """Assign first-contact FK fields; re-checks ownership since a hand-crafted POST could bypass the form's queryset."""
+    if vet is not None and vet.owner != animal.owner:
+        raise ValueError("Vet does not belong to the animal's owner.")
+    if place is not None and place.owner != animal.owner:
+        raise ValueError("Medical place does not belong to the animal's owner.")
     animal.first_contact_vet = vet
     animal.first_contact_medical_place = place
     animal.save()

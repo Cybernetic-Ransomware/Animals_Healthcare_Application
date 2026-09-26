@@ -188,6 +188,7 @@ Key decisions are documented as ADRs in [`doc/`](doc/):
 | [10](doc/10_adr_notification_trigger.md) | In progress | Notifications — Celery Beat + Background Tasks |
 | [11](doc/11_adr_frontend_interactions.md) | Done | Frontend interactions — htmx + native `<dialog>` |
 | [12](doc/12_adr_turso_offline_snapshots.md) | In progress | Offline snapshots — Turso/libSQL read-only cache |
+| [15](doc/15_adr_vet_medical_place_profiles.md) | In progress | Data model — vet and medical place contact profiles |
 
 ## Useful Links
 

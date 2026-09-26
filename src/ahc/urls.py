@@ -32,6 +32,7 @@ urlpatterns = [
     path("pet/", include("ahc.apps.animals.urls")),
     path("pet/<uuid:pk>/offline-snapshot/", include("ahc.apps.offline_snapshots.urls")),
     path("note/", include("ahc.apps.medical_notes.urls")),
+    path("veterinary/", include("ahc.apps.veterinary.urls")),
     path(
         "favicon.ico",
         RedirectView.as_view(url=f"{settings.MEDIA_URL}icons/chinchilla.png"),

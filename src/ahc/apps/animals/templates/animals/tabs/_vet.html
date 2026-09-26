@@ -6,8 +6,16 @@
     <div class="section">
         <h4 class="button secondary outline section-header" role="button" tabindex="0">Expand: first contact details</h4>
         <div class="section-content">
-            <pre>{{ animal.first_contact_vet|default:"Not set." }}</pre>
-            <pre>{{ animal.first_contact_medical_place|default:"Not set." }}</pre>
+            {% if animal.first_contact_vet %}
+                {% include "veterinary/partials/_contact_card.html" with contact=animal.first_contact_vet %}
+            {% else %}
+                <p>Not set.</p>
+            {% endif %}
+            {% if animal.first_contact_medical_place %}
+                {% include "veterinary/partials/_contact_card.html" with contact=animal.first_contact_medical_place %}
+            {% else %}
+                <p>Not set.</p>
+            {% endif %}
         </div>
     </div>
 
@@ -20,6 +28,7 @@
     {% if is_owner %}
     <div class="grid">
         <a role="button" class="secondary outline" href="{% url 'animal_first_contact' pk=animal.id %}">Manage vet contacts</a>
+        <a role="button" class="secondary outline" href="{% url 'contact_book' %}">Contact book</a>
         <a role="button" class="secondary outline" href="{% url 'animal_next_visit' pk=animal.id %}">Set next visit date</a>
     </div>
     {% endif %}
