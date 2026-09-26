@@ -159,6 +159,10 @@ class ChangeFirstContactForm(forms.ModelForm):
             "legacy_first_contact_vet": forms.Textarea(attrs={"rows": 4, "cols": 2}),
             "legacy_first_contact_medical_place": forms.Textarea(attrs={"rows": 4, "cols": 2}),
         }
+        labels = {
+            "legacy_first_contact_vet": "First contact vet",
+            "legacy_first_contact_medical_place": "First contact medical place",
+        }
 
 
 class ChangeNextVisitForm(forms.ModelForm):
