@@ -15,8 +15,8 @@ class TestVetTabAccess:
         return Animal.objects.create(
             full_name="Luna",
             owner=profile,
-            first_contact_vet="Dr. Smith, tel. 123-456-789",
-            first_contact_medical_place="City Vet Clinic",
+            legacy_first_contact_vet="Dr. Smith, tel. 123-456-789",
+            legacy_first_contact_medical_place="City Vet Clinic",
         )
 
     def test_owner_sees_contact_section_and_edit_link(self, animal, user_profile, logged_in_client):

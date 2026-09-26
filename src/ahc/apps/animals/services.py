@@ -98,9 +98,9 @@ def set_birthday(animal: Animal, birthdate) -> None:
 
 
 def set_first_contact(animal: Animal, vet: str, place: str) -> None:
-    """Update the animal's first-contact vet name and medical place."""
-    animal.first_contact_vet = vet
-    animal.first_contact_medical_place = place
+    """Update the animal's first-contact vet name and medical place (legacy text, pre-C5)."""
+    animal.legacy_first_contact_vet = vet
+    animal.legacy_first_contact_medical_place = place
     animal.save()
 
 

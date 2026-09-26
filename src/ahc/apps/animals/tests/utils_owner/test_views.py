@@ -147,12 +147,12 @@ class TestChangeFirstContactView:
         user, _ = user_profile
         response = logged_in_client(user).post(
             f"/pet/{animal.id}/cnt/",
-            {"first_contact_vet": "Dr. Smith", "first_contact_medical_place": "City Clinic"},
+            {"legacy_first_contact_vet": "Dr. Smith", "legacy_first_contact_medical_place": "City Clinic"},
         )
         assert response.status_code == 302
         animal.refresh_from_db()
-        assert animal.first_contact_vet == "Dr. Smith"
-        assert animal.first_contact_medical_place == "City Clinic"
+        assert animal.legacy_first_contact_vet == "Dr. Smith"
+        assert animal.legacy_first_contact_medical_place == "City Clinic"
 
 
 @pytest.mark.integration

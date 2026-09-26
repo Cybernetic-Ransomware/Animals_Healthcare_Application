@@ -154,10 +154,10 @@ class ChangeBirthdayForm(forms.ModelForm):
 class ChangeFirstContactForm(forms.ModelForm):
     class Meta:
         model = Animal
-        fields = ["first_contact_vet", "first_contact_medical_place"]
+        fields = ["legacy_first_contact_vet", "legacy_first_contact_medical_place"]
         widgets = {
-            "first_contact_vet": forms.Textarea(attrs={"rows": 4, "cols": 2}),
-            "first_contact_medical_place": forms.Textarea(attrs={"rows": 4, "cols": 2}),
+            "legacy_first_contact_vet": forms.Textarea(attrs={"rows": 4, "cols": 2}),
+            "legacy_first_contact_medical_place": forms.Textarea(attrs={"rows": 4, "cols": 2}),
         }
 
 

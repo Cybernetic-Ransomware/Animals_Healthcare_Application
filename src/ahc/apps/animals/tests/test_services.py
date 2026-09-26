@@ -156,8 +156,8 @@ class TestAnimalFieldUpdateServices:
     def test_set_first_contact_assigns_both_fields_and_saves(self):
         animal = MagicMock()
         set_first_contact(animal, vet="Dr Smith", place="City Clinic")
-        assert animal.first_contact_vet == "Dr Smith"
-        assert animal.first_contact_medical_place == "City Clinic"
+        assert animal.legacy_first_contact_vet == "Dr Smith"
+        assert animal.legacy_first_contact_medical_place == "City Clinic"
         animal.save.assert_called_once()
 
 

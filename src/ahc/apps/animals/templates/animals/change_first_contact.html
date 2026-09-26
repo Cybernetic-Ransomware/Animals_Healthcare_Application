@@ -11,16 +11,16 @@
         <form method="post">
             {% csrf_token %}
             <div>
-                {{ form.first_contact_vet.label_tag }}
-                {{ form.first_contact_vet }}
-                {% for error in form.first_contact_vet.errors %}
+                {{ form.legacy_first_contact_vet.label_tag }}
+                {{ form.legacy_first_contact_vet }}
+                {% for error in form.legacy_first_contact_vet.errors %}
                     <small class="form-error">{{ error }}</small>
                 {% endfor %}
             </div>
             <div>
-                {{ form.first_contact_medical_place.label_tag }}
-                {{ form.first_contact_medical_place }}
-                {% for error in form.first_contact_medical_place.errors %}
+                {{ form.legacy_first_contact_medical_place.label_tag }}
+                {{ form.legacy_first_contact_medical_place }}
+                {% for error in form.legacy_first_contact_medical_place.errors %}
                     <small class="form-error">{{ error }}</small>
                 {% endfor %}
             </div>

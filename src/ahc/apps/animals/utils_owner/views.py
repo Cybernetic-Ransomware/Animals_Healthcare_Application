@@ -169,15 +169,15 @@ class ChangeFirstContactView(LoginRequiredMixin, UserPassesOwnershipTestMixin, F
         animal = get_object_or_404(Animal, pk=self.kwargs["pk"])
         context = super().get_context_data(**kwargs)
         context["animal_id"] = self.kwargs["pk"]
-        context["vet"] = animal.first_contact_vet
-        context["place"] = animal.first_contact_medical_place
+        context["vet"] = animal.legacy_first_contact_vet
+        context["place"] = animal.legacy_first_contact_medical_place
         return context
 
     def form_valid(self, form):
         set_first_contact(
             get_object_or_404(Animal, pk=self.kwargs["pk"]),
-            vet=form.cleaned_data["first_contact_vet"],
-            place=form.cleaned_data["first_contact_medical_place"],
+            vet=form.cleaned_data["legacy_first_contact_vet"],
+            place=form.cleaned_data["legacy_first_contact_medical_place"],
         )
         return super().form_valid(form)
 
