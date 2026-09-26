@@ -16,6 +16,7 @@ from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord
 from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
 from ahc.apps.offline_snapshots.services.exporter import export_animal_snapshot
 from ahc.apps.offline_snapshots.services.schema import SCHEMA_VERSION
+from ahc.apps.veterinary.models import Vet
 
 from ..helpers import _query
 
@@ -53,6 +54,26 @@ class TestOwnerSnapshotExport:
         assert row["dietary_restrictions"] == "no grain"
         assert row["first_contact_vet"] == "Dr. Vet"
         assert row["first_contact_medical_place"] == "Happy Paws Clinic"
+
+    def test_animal_snapshot_column_set_is_unchanged(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        columns = {info["name"] for info in _query(path, "PRAGMA table_info(animal_snapshot)")}
+        assert columns == {
+            "id",
+            "full_name",
+            "species",
+            "breed",
+            "sex",
+            "birthdate",
+            "dietary_restrictions",
+            "first_contact_vet",
+            "first_contact_medical_place",
+            "last_control_visit",
+            "next_visit_date",
+        }
 
     def test_contains_only_this_animals_records(self, snapshot_animal, second_user_profile, tmp_path):
         animal, profile = snapshot_animal
@@ -165,6 +186,52 @@ class TestSourceRevision:
 
         assert first != second
 
+    def test_first_contact_vet_field_change_changes_revision(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        first = self._revision(export_animal_snapshot(animal, profile, tmp_path))
+
+        animal.first_contact_vet.phone = "999-999-999"
+        animal.first_contact_vet.save()
+        second = self._revision(export_animal_snapshot(animal, profile, tmp_path, force=True))
+
+        assert first != second
+
+
+@pytest.mark.integration
+class TestFirstContactTextExport:
+    """first_contact_vet / first_contact_medical_place are rendered via ContactRecord.as_contact_text()."""
+
+    def test_vet_with_phone_produces_multiline_contact_text(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        animal.first_contact_vet.phone = "123-456-789"
+        animal.first_contact_vet.save()
+
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        (row,) = _query(path, "SELECT first_contact_vet FROM animal_snapshot")
+        assert row["first_contact_vet"] == "Dr. Vet\n123-456-789"
+
+    def test_medical_place_with_address_produces_multiline_contact_text(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        animal.first_contact_medical_place.address = "Main St 1"
+        animal.first_contact_medical_place.save()
+
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        (row,) = _query(path, "SELECT first_contact_medical_place FROM animal_snapshot")
+        assert row["first_contact_medical_place"] == "Happy Paws Clinic\nMain St 1"
+
+    def test_record_shaped_like_a_migration_0009_result_exports_the_normalized_legacy_text(self, snapshot_animal, tmp_path):
+        animal, profile = snapshot_animal
+        vet = Vet.objects.create(name="Dr Smith", phone="", email="", details="\nemergencies only", owner=profile)
+        animal.first_contact_vet = vet
+        animal.save()
+
+        path = export_animal_snapshot(animal, profile, tmp_path)
+
+        (row,) = _query(path, "SELECT first_contact_vet FROM animal_snapshot")
+        assert row["first_contact_vet"] == "Dr Smith\n\nemergencies only"
+
 
 @pytest.mark.integration
 class TestShareFiltering:
@@ -179,6 +246,7 @@ class TestShareFiltering:
         assert row["full_name"] == "Snappy"
         assert row["species"] is None
         assert row["first_contact_vet"] is None
+        assert row["first_contact_medical_place"] is None
         assert row["dietary_restrictions"] == "no grain"
         records = _query(path, "SELECT type_of_event FROM medical_record_snapshot")
         assert {r["type_of_event"] for r in records} == {"diet_note"}
@@ -199,10 +267,14 @@ class TestShareFiltering:
         (vaccination,) = _query(path, "SELECT * FROM vaccination_note_snapshot")
         assert vaccination["vaccine_name"] == "Rabies"
         assert vaccination["valid_until"] == "2027-03-01"
-        (row,) = _query(path, "SELECT species, dietary_restrictions, first_contact_vet FROM animal_snapshot")
+        (row,) = _query(
+            path,
+            "SELECT species, dietary_restrictions, first_contact_vet, first_contact_medical_place FROM animal_snapshot",
+        )
         assert row["species"] is None
         assert row["dietary_restrictions"] is None
         assert row["first_contact_vet"] is None
+        assert row["first_contact_medical_place"] is None
         assert _query(path, "SELECT * FROM feeding_note_snapshot") == []
         assert _query(path, "SELECT * FROM biometric_snapshot") == []
         assert _query(path, "SELECT * FROM attachment_metadata_snapshot") == []
