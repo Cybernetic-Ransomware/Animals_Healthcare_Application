@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ahc.apps.animals.models import AnimalShare
+from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.animals.selectors import (
     animals_visible_to,
 )
@@ -106,29 +106,33 @@ class TestProcessProfileImageService:
         img.thumbnail.assert_called_once_with((448, 448))
 
 
-@pytest.mark.unit
+@pytest.mark.integration
+@pytest.mark.django_db
 class TestTransferOwnershipService:
-    """transfer_ownership: reassigns owner; optionally makes requester a keeper."""
+    """transfer_ownership: reassigns owner; optionally makes requester a keeper.
 
-    def test_assigns_new_owner_and_saves(self):
-        animal = MagicMock()
-        new_owner = MagicMock()
-        requesting = MagicMock()
+    Needs django_db now: transaction.atomic() touches the real connection even with nothing to copy (ADR-15 C9).
+    """
 
-        transfer_ownership(animal, new_owner, set_keeper=False, requesting_profile=requesting)
+    def test_assigns_new_owner_and_saves(self, user_profile, second_user_profile):
+        _, owner_a = user_profile
+        _, owner_b = second_user_profile
+        animal = Animal.objects.create(full_name="Whiskers", owner=owner_a)
 
-        assert animal.owner == new_owner
-        animal.save.assert_called_once()
-        animal.allowed_users.add.assert_not_called()
+        transfer_ownership(animal, owner_b, set_keeper=False, requesting_profile=owner_a)
 
-    def test_adds_requesting_as_keeper_when_flag_is_set(self):
-        animal = MagicMock()
-        new_owner = MagicMock()
-        requesting = MagicMock()
+        animal.refresh_from_db()
+        assert animal.owner == owner_b
+        assert not AnimalShare.objects.filter(animal=animal).exists()
+
+    def test_adds_requesting_as_keeper_when_flag_is_set(self, user_profile, second_user_profile):
+        _, owner_a = user_profile
+        _, owner_b = second_user_profile
+        animal = Animal.objects.create(full_name="Whiskers", owner=owner_a)
 
         with patch("ahc.apps.animals.services.create_share") as mock_create_share:
-            transfer_ownership(animal, new_owner, set_keeper=True, requesting_profile=requesting)
-            mock_create_share.assert_called_once_with(animal, requesting.pk, scope=None, valid_until=None)
+            transfer_ownership(animal, owner_b, set_keeper=True, requesting_profile=owner_a)
+            mock_create_share.assert_called_once_with(animal, owner_a.pk, scope=None, valid_until=None)
 
 
 @pytest.mark.unit

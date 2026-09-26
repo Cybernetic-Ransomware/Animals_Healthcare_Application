@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import date
 
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from PIL import Image
 
 from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.animals.selectors import get_or_create_share_defaults, user_can_access_animal
 from ahc.apps.veterinary.models import MedicalPlace, Vet
+from ahc.apps.veterinary.services import copy_contact_to
 
 
 def create_animal(owner_profile, form) -> Animal:
@@ -45,13 +47,25 @@ def process_profile_image(animal: Animal) -> None:
 def transfer_ownership(animal: Animal, new_owner, set_keeper: bool, requesting_profile) -> None:
     """Transfer animal ownership to new_owner.
 
+    Also re-points first-contact vet/medical-place FKs to a copy or reuse in new_owner's
+    book (never mutating the originals), so invariant I2 still holds after the transfer (ADR-15 C9).
+
     If set_keeper is True, the previous owner (requesting_profile) is added as a carer
     with an AnimalShare that mirrors their ShareDefaults.
     """
-    animal.owner = new_owner
-    animal.save()
-    if set_keeper:
-        create_share(animal, requesting_profile.pk, scope=None, valid_until=None)
+    with transaction.atomic():
+        current_vet = animal.first_contact_vet
+        current_place = animal.first_contact_medical_place
+
+        animal.owner = new_owner
+        animal.first_contact_vet = copy_contact_to(current_vet, new_owner) if current_vet is not None else None
+        animal.first_contact_medical_place = (
+            copy_contact_to(current_place, new_owner) if current_place is not None else None
+        )
+        animal.save()
+
+        if set_keeper:
+            create_share(animal, requesting_profile.pk, scope=None, valid_until=None)
 
 
 def create_share(animal: Animal, carer_id, scope: dict | None, valid_until: date | None) -> AnimalShare:
