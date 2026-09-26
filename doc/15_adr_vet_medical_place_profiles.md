@@ -99,7 +99,9 @@ feature's implementation plan) and approved before any model, migration, or view
   empty. It then appends `details` **verbatim** — including internal blank lines — because `details`
   is free text the owner wrote intentionally; only the structured fields are individually filtered
   for emptiness. This is also what lets a migrated record's `as_contact_text()` reproduce the
-  original legacy text exactly.
+  *normalized* legacy text exactly (trailing whitespace per line and leading/trailing blank lines
+  are stripped by the migration's normalization step before the name/details split — see the
+  migration plan, section 4.2, and invariant I7).
 
 **Unaffected areas**
 
