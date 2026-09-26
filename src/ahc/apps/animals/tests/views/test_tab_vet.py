@@ -7,7 +7,7 @@ from ahc.apps.animals.models import Animal, AnimalShare
 @pytest.mark.integration
 @pytest.mark.django_db
 class TestVetTabAccess:
-    """Characterizes pre-refactor vet-tab visibility before plan C1 (doc/plans/vet_medical_place_profiles.md)."""
+    """Characterize vet-tab visibility before the veterinary contact refactor."""
 
     @pytest.fixture
     def animal(self, db, user_profile):
@@ -37,6 +37,7 @@ class TestVetTabAccess:
         content = response.content.decode()
         assert "Veterinary contact" in content
         assert "Dr. Smith, tel. 123-456-789" in content
+        assert "City Vet Clinic" in content
         assert reverse("animal_first_contact", kwargs={"pk": animal.id}) not in content
 
     def test_keeper_with_only_allow_history_does_not_see_contact_but_sees_timeline(
@@ -49,6 +50,8 @@ class TestVetTabAccess:
         assert response.status_code == 200
         content = response.content.decode()
         assert "Veterinary contact" not in content
+        assert "Dr. Smith, tel. 123-456-789" not in content
+        assert "City Vet Clinic" not in content
         assert "Medical visit timeline" in content
 
     def test_keeper_without_vet_contact_and_without_history_gets_403(self, animal, second_user_profile, logged_in_client):
