@@ -1,0 +1,15 @@
+{% extends "homepage/base.html" %}
+{% block content %}
+    <div class="content-section">
+        <h1>{% if object %}Edit {{ kind_label }}{% else %}Add {{ kind_label }}{% endif %}</h1>
+        <form method="post">
+            {% csrf_token %}
+            {% include "partials/form_fields.html" %}
+            {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+            <button type="submit">Save</button>
+        </form>
+        <p><a href="{% if next %}{{ next }}{% else %}{% url 'contact_book' %}{% endif %}">Cancel</a></p>
+    </div>
+{% endblock %}

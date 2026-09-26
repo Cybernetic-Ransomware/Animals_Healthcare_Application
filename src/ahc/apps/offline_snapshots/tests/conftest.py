@@ -7,12 +7,15 @@ from ahc.apps.medical_notes.models.type_basic_note import MedicalRecord, Medical
 from ahc.apps.medical_notes.models.type_feeding_notes import FeedingNote
 from ahc.apps.medical_notes.models.type_measurement_notes import BiometricRecord, BiometricWeightRecords
 from ahc.apps.medical_notes.models.type_vaccination_notes import VaccinationNote
+from ahc.apps.veterinary.models import MedicalPlace, Vet
 
 
 @pytest.fixture
 def snapshot_animal(db, user_profile):
     """An animal owned by user_profile with one record of each snapshot-relevant kind."""
     _, profile = user_profile
+    vet = Vet.objects.create(name="Dr. Vet", owner=profile)
+    place = MedicalPlace.objects.create(name="Happy Paws Clinic", owner=profile)
     animal = Animal.objects.create(
         full_name="Snappy",
         owner=profile,
@@ -21,8 +24,8 @@ def snapshot_animal(db, user_profile):
         sex="m",
         birthdate=date(2020, 5, 1),
         dietary_restrictions="no grain",
-        first_contact_vet="Dr. Vet",
-        first_contact_medical_place="Happy Paws Clinic",
+        first_contact_vet=vet,
+        first_contact_medical_place=place,
     )
     visit = MedicalRecord.objects.create(
         animal=animal, author=profile, short_description="Yearly check", type_of_event="medical_visit"

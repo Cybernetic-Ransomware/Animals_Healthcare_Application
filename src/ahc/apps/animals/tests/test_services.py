@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ahc.apps.animals.models import AnimalShare
+from ahc.apps.animals.models import Animal, AnimalShare
 from ahc.apps.animals.selectors import (
     animals_visible_to,
 )
@@ -106,29 +106,33 @@ class TestProcessProfileImageService:
         img.thumbnail.assert_called_once_with((448, 448))
 
 
-@pytest.mark.unit
+@pytest.mark.integration
+@pytest.mark.django_db
 class TestTransferOwnershipService:
-    """transfer_ownership: reassigns owner; optionally makes requester a keeper."""
+    """transfer_ownership: reassigns owner; optionally makes requester a keeper.
 
-    def test_assigns_new_owner_and_saves(self):
-        animal = MagicMock()
-        new_owner = MagicMock()
-        requesting = MagicMock()
+    Needs django_db now: transaction.atomic() touches the real connection even with nothing to copy (ADR-15 C9).
+    """
 
-        transfer_ownership(animal, new_owner, set_keeper=False, requesting_profile=requesting)
+    def test_assigns_new_owner_and_saves(self, user_profile, second_user_profile):
+        _, owner_a = user_profile
+        _, owner_b = second_user_profile
+        animal = Animal.objects.create(full_name="Whiskers", owner=owner_a)
 
-        assert animal.owner == new_owner
-        animal.save.assert_called_once()
-        animal.allowed_users.add.assert_not_called()
+        transfer_ownership(animal, owner_b, set_keeper=False, requesting_profile=owner_a)
 
-    def test_adds_requesting_as_keeper_when_flag_is_set(self):
-        animal = MagicMock()
-        new_owner = MagicMock()
-        requesting = MagicMock()
+        animal.refresh_from_db()
+        assert animal.owner == owner_b
+        assert not AnimalShare.objects.filter(animal=animal).exists()
+
+    def test_adds_requesting_as_keeper_when_flag_is_set(self, user_profile, second_user_profile):
+        _, owner_a = user_profile
+        _, owner_b = second_user_profile
+        animal = Animal.objects.create(full_name="Whiskers", owner=owner_a)
 
         with patch("ahc.apps.animals.services.create_share") as mock_create_share:
-            transfer_ownership(animal, new_owner, set_keeper=True, requesting_profile=requesting)
-            mock_create_share.assert_called_once_with(animal, requesting.pk, scope=None, valid_until=None)
+            transfer_ownership(animal, owner_b, set_keeper=True, requesting_profile=owner_a)
+            mock_create_share.assert_called_once_with(animal, owner_a.pk, scope=None, valid_until=None)
 
 
 @pytest.mark.unit
@@ -144,7 +148,7 @@ class TestAddKeeperService:
 
 @pytest.mark.unit
 class TestAnimalFieldUpdateServices:
-    """set_birthday / set_first_contact: update specific fields and call save."""
+    """set_birthday: updates the field and calls save."""
 
     def test_set_birthday_assigns_date_and_saves(self):
         animal = MagicMock()
@@ -153,12 +157,49 @@ class TestAnimalFieldUpdateServices:
         assert animal.birthdate == bd
         animal.save.assert_called_once()
 
-    def test_set_first_contact_assigns_both_fields_and_saves(self):
-        animal = MagicMock()
-        set_first_contact(animal, vet="Dr Smith", place="City Clinic")
-        assert animal.first_contact_vet == "Dr Smith"
-        assert animal.first_contact_medical_place == "City Clinic"
+
+@pytest.mark.unit
+class TestSetFirstContactService:
+    """set_first_contact: assigns FK contact records, defended by an owner-match check."""
+
+    def test_assigns_vet_and_place_of_the_same_owner_and_saves(self):
+        owner = object()
+        animal = MagicMock(owner=owner)
+        vet = MagicMock(owner=owner)
+        place = MagicMock(owner=owner)
+
+        set_first_contact(animal, vet=vet, place=place)
+
+        assert animal.first_contact_vet is vet
+        assert animal.first_contact_medical_place is place
         animal.save.assert_called_once()
+
+    def test_none_vet_and_none_place_clear_the_fk(self):
+        animal = MagicMock(owner=object())
+
+        set_first_contact(animal, vet=None, place=None)
+
+        assert animal.first_contact_vet is None
+        assert animal.first_contact_medical_place is None
+        animal.save.assert_called_once()
+
+    def test_vet_of_a_different_owner_raises_and_does_not_save(self):
+        animal = MagicMock(owner=object())
+        vet = MagicMock(owner=object())
+
+        with pytest.raises(ValueError):
+            set_first_contact(animal, vet=vet, place=None)
+        animal.save.assert_not_called()
+
+    def test_medical_place_of_a_different_owner_raises_and_does_not_save(self):
+        owner = object()
+        animal = MagicMock(owner=owner)
+        vet = MagicMock(owner=owner)
+        place = MagicMock(owner=object())
+
+        with pytest.raises(ValueError):
+            set_first_contact(animal, vet=vet, place=place)
+        animal.save.assert_not_called()
 
 
 @pytest.mark.unit

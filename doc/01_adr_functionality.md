@@ -30,6 +30,14 @@ Deferred to future iterations:
 - All notification channels beyond Discord (SMS, WhatsApp, Messenger)
 - Direct chat between users
 
+### Status update (2026-09-27)
+
+"Healthcare place and vet profiles" from the original scope list is partially delivered. As of
+ADR-15 (`ahc.apps.veterinary`), owners have a private contact book of `Vet` and `MedicalPlace`
+records — structured contact data (name, phone, email, and, for a place, address and website) —
+reusable as an animal's first contact. **Historical prices and ratings remain backlog items**,
+unimplemented; nothing in the current codebase provides them.
+
 ### Consequences
 The feature set was scoped to an achievable first version, leaving a documented backlog for future iterations.
 Deferred features are recorded here rather than in code as TODO comments.

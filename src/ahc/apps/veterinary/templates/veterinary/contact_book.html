@@ -1,0 +1,43 @@
+{% extends "homepage/base.html" %}
+{% block content %}
+    <div class="content-section">
+        <h1>Contact book</h1>
+
+        <h3>Vets</h3>
+        <p><a role="button" href="{% url 'vet_create' %}">Add vet</a></p>
+        {% if vets %}
+            <div class="grid">
+                {% for vet in vets %}
+                    <div>
+                        {% include "veterinary/partials/_contact_card.html" with contact=vet %}
+                        <div class="grid">
+                            <a role="button" class="secondary outline" href="{% url 'vet_edit' pk=vet.pk %}">Edit</a>
+                            <a role="button" class="secondary outline" href="{% url 'vet_delete' pk=vet.pk %}">Delete</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No vets in your contact book yet.</p>
+        {% endif %}
+
+        <br>
+        <h3>Medical places</h3>
+        <p><a role="button" href="{% url 'medical_place_create' %}">Add medical place</a></p>
+        {% if medical_places %}
+            <div class="grid">
+                {% for place in medical_places %}
+                    <div>
+                        {% include "veterinary/partials/_contact_card.html" with contact=place %}
+                        <div class="grid">
+                            <a role="button" class="secondary outline" href="{% url 'medical_place_edit' pk=place.pk %}">Edit</a>
+                            <a role="button" class="secondary outline" href="{% url 'medical_place_delete' pk=place.pk %}">Delete</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No medical places in your contact book yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}

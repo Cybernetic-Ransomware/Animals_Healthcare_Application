@@ -23,6 +23,8 @@ Scheduled reminders for upcoming visits and vaccinations are delivered via Disco
 ## Features
 
 - Animal profiles with configurable per-category sharing between owners and carers.
+- Owner-scoped veterinary contact book for vets and medical places, with structured contact data
+  reusable as an animal's first contact and selective carer visibility through `vet_contact` sharing.
 - Medical timeline filtered by note type (visit, diet, medication, vaccination, biometric) and tag.
 - Inline-editable vaccination records with date-based Discord reminders.
 - Biometric tracking (weight, height, custom measurements) with historical weight and height charts.
@@ -188,6 +190,7 @@ Key decisions are documented as ADRs in [`doc/`](doc/):
 | [10](doc/10_adr_notification_trigger.md) | In progress | Notifications — Celery Beat + Background Tasks |
 | [11](doc/11_adr_frontend_interactions.md) | Done | Frontend interactions — htmx + native `<dialog>` |
 | [12](doc/12_adr_turso_offline_snapshots.md) | In progress | Offline snapshots — Turso/libSQL read-only cache |
+| [15](doc/15_adr_vet_medical_place_profiles.md) | In progress | Data model — vet and medical place contact profiles |
 
 ## Useful Links
 

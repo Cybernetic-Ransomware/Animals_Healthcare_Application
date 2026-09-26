@@ -285,6 +285,28 @@ PostgreSQL query (`build_export_plan`) dominates over the libSQL write.
 `compare_drivers` runs two full reads plus a row-level diff — it is not a
 production path and does not reflect snapshot read latency in isolation.
 
+### Stage 7 — first contact rendered from contact records (2026-09-27)
+
+ADR-15 replaced `Animal.first_contact_vet` / `first_contact_medical_place` with foreign keys to
+`veterinary.Vet` / `MedicalPlace`, kept behind the same attribute names. This is a **compatible**
+change under the schema contract, not a schema bump:
+
+- `animal_snapshot.first_contact_vet` and `first_contact_medical_place` **keep their existing
+  names, types (TEXT), and meaning** — a human-readable rendering of the animal's first contact.
+- The exporter now renders them via `animal.first_contact_vet.as_contact_text()` and
+  `animal.first_contact_medical_place.as_contact_text()`, instead of reading the legacy text
+  fields directly. Gating by `ShareCategory.VET_CONTACT` is unchanged.
+- `SCHEMA_VERSION` **stays `1`.** No column was added, renamed, or removed, and no column changed
+  type.
+
+**One-time `source_revision` shift.** The first export produced by this exporter version, for any
+animal that has a first contact, can carry a new `source_revision` even when the owner made no
+semantic change — the payload's bytes changed because the source moved from legacy text to
+`as_contact_text()` output. This is expected: the snapshot will report as stale ("Ready, but
+outdated") once per such animal. After that one-time shift, `source_revision` behaves as before —
+e.g. editing a `Vet`'s phone number changes the rendered payload and therefore the revision, which
+is the intended detection behavior, not a regression.
+
 ### Consequences
 - Easier: producing portable offline exports of an animal's profile; a future
   mobile companion can pull the file as-is; the snapshot doubles as a
@@ -310,4 +332,5 @@ production path and does not reflect snapshot read latency in isolation.
 ### Links
 - ADR-08 (databases: PostgreSQL as primary store, CouchDB for attachments)
 - ADR-09 (data model / animal fields)
+- ADR-15 (vet and medical place contact profiles — source of the `first_contact_*` rendering change in stage 7)
 - Turso Python quickstart: https://docs.turso.tech/

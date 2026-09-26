@@ -3,6 +3,37 @@ from datetime import date
 import pytest
 
 from ahc.apps.animals.models import Animal
+from ahc.apps.veterinary.models import MedicalPlace, Vet
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestFirstContactForeignKeys:
+    """Deleting a contact record must SET_NULL on Animal, never cascade-delete the animal."""
+
+    def test_deleting_vet_nulls_first_contact_vet_and_keeps_animal(self, animal, user_profile):
+        _, profile = user_profile
+        vet = Vet.objects.create(name="Dr Kowalski", owner=profile)
+        animal.first_contact_vet = vet
+        animal.save()
+
+        vet.delete()
+        animal.refresh_from_db()
+
+        assert animal.first_contact_vet is None
+        assert Animal.objects.filter(pk=animal.pk).exists()
+
+    def test_deleting_medical_place_nulls_first_contact_medical_place_and_keeps_animal(self, animal, user_profile):
+        _, profile = user_profile
+        place = MedicalPlace.objects.create(name="City Vet Clinic", owner=profile)
+        animal.first_contact_medical_place = place
+        animal.save()
+
+        place.delete()
+        animal.refresh_from_db()
+
+        assert animal.first_contact_medical_place is None
+        assert Animal.objects.filter(pk=animal.pk).exists()
 
 
 @pytest.mark.integration

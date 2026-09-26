@@ -2,30 +2,29 @@
 {% block content %}
     <div class="content-section">
         <h4>Current first contact vet:</h4>
-        <p>{{ vet|linebreaks }}</p>
+        {% if vet %}
+            {% include "veterinary/partials/_contact_card.html" with contact=vet %}
+        {% else %}
+            <p>Not set.</p>
+        {% endif %}
         <h4>Current first contact medical place:</h4>
-        <p>{{ place|linebreaks }}</p>
+        {% if place %}
+            {% include "veterinary/partials/_contact_card.html" with contact=place %}
+        {% else %}
+            <p>Not set.</p>
+        {% endif %}
     </div>
     <br>
     <div class="content-section">
         <form method="post">
             {% csrf_token %}
-            <div>
-                {{ form.first_contact_vet.label_tag }}
-                {{ form.first_contact_vet }}
-                {% for error in form.first_contact_vet.errors %}
-                    <small class="form-error">{{ error }}</small>
-                {% endfor %}
-            </div>
-            <div>
-                {{ form.first_contact_medical_place.label_tag }}
-                {{ form.first_contact_medical_place }}
-                {% for error in form.first_contact_medical_place.errors %}
-                    <small class="form-error">{{ error }}</small>
-                {% endfor %}
-            </div>
+            {% include "partials/form_fields.html" %}
             <button type="submit">Change</button>
         </form>
+        <div class="grid">
+            <a role="button" class="secondary outline" href="{% url 'vet_create' %}?next={{ next|urlencode }}">Add vet</a>
+            <a role="button" class="secondary outline" href="{% url 'medical_place_create' %}?next={{ next|urlencode }}">Add clinic</a>
+        </div>
     </div>
     <p><a href="{% url 'animal_profile' pk=animal_id %}">Return to profile</a></p>
 {% endblock %}

@@ -38,10 +38,23 @@ class Animal(models.Model):
     )  # dodac okresową notyfikację o braku ownera - przypisuje admin z panelu
     allowed_users = models.ManyToManyField(UserProfile, through="AnimalShare", related_name="keepers")
 
-    first_contact_vet = models.CharField(max_length=250, default=None, blank=True, null=True)
-    # first_contact_vet = models.ForeignKey(Vet_pofile)
-    first_contact_medical_place = models.CharField(max_length=250, default=None, blank=True, null=True)
-    # first_contact_medical_place = models.ForeignKey(Place_profile)
+    legacy_first_contact_vet = models.CharField(
+        max_length=250, default=None, blank=True, null=True, db_column="first_contact_vet"
+    )
+    legacy_first_contact_medical_place = models.CharField(
+        max_length=250, default=None, blank=True, null=True, db_column="first_contact_medical_place"
+    )
+    first_contact_vet = models.ForeignKey(
+        "veterinary.Vet", on_delete=models.SET_NULL, null=True, blank=True, default=None, related_name="first_contact_for"
+    )
+    first_contact_medical_place = models.ForeignKey(
+        "veterinary.MedicalPlace",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        default=None,
+        related_name="first_contact_for",
+    )
 
     last_control_visit = models.DateTimeField(null=True, default=None)
 

@@ -1,0 +1,27 @@
+{% extends "homepage/base.html" %}
+{% block content %}
+    <div class="content-section">
+        <h1>Delete {{ kind_label }}</h1>
+        <p>Are you sure you want to delete "{{ object.name }}"?</p>
+
+        {% if referencing_animals %}
+            <article>
+                <p>
+                    <strong>Warning:</strong> this contact is set as the first contact for the animal(s) below.
+                    Deleting it will clear that field on each of them; the animals themselves are not affected.
+                </p>
+                <ul>
+                    {% for animal in referencing_animals %}
+                        <li>{{ animal.full_name }}{% if animal.is_deceased %} (deceased){% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </article>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">Yes, delete</button>
+        </form>
+        <p><a href="{% url 'contact_book' %}">Cancel</a></p>
+    </div>
+{% endblock %}
