@@ -175,7 +175,7 @@ services:
     restart: unless-stopped
 
   celery_flower:
-    image: mher/flower:2.1.0
+    image: mher/flower:2.2.0
     container_name: ahc-flower
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
