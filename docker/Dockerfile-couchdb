@@ -1,4 +1,4 @@
-FROM couchdb:3.5.2
+FROM couchdb:3.5.3
 
 # No ARG/ENV credentials here -- docker history --no-trunc leaked them in plaintext before; runtime-only now, see setup_couchdb.sh.
 COPY docker/setup_couchdb.sh setup_couchdb.sh
