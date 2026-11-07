@@ -84,7 +84,7 @@ services:
 
   # One-shot DB creation once the server is authenticated -- mirrors kubernetes/base/couchdb/init-job.yaml.
   couchdb_init:
-    image: curlimages/curl:8.22.0
+    image: curlimages/curl:8.23.0
     depends_on:
       couch_db:
         condition: service_healthy
@@ -181,7 +181,7 @@ services:
     restart: unless-stopped
 
   celery_flower:
-    image: mher/flower:2.1.0
+    image: mher/flower:2.2.0
     ports:
       - "5555:5555"
     environment:
